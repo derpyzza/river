@@ -20,8 +20,26 @@ Both a scripting language and a compiled one?
 multiline strings
 ## Arrays
 two array types: a regular C-style array, as well as a better array type
+```c 
+
+// Regular C style array. dissolves down into a pointer.
+int array[4] = { 0, 1, 2, 3 };
+
+// Better array type. holds the length
+Array array(int, 4) = { 0, 1, 2, 3};
+
+```
+
 ## Enums
+
 new tagged enum type;
+``` c
+sum name {
+    variant,
+    variant,
+    variant(string)
+};
+```
 ## Tuples
 
 ```c rvr
@@ -35,19 +53,70 @@ struct tup_x x = struct {.0=23, .1=59, .f="string"};
 ```
 
 # Language Features & Syntax Sugar
-Functions that return bools can end in a ? mark.
-like `is_digit?(val);`
-The compiler monitors the question mark and throws a warning if the function does not return a bool.
+## Constructors and destructors
+```c 
+
+struct object {
+    int x, y;
+};
+
+// object* obj = malloc(sizeof(object));
+object obj = new object();
+
+object* object(object* self, int x, int y) {
+    self.x = 10;
+}
+
+// object() => { 10, 0 };
+object obj = new object();
+
+```
 ## String Formatting
 ## Comptime code execution 
-## Function overloading
 ## Rust style errors / Optional types / Result types
 ## Defers
+The `defer` keyword just executes the given statement at the end of the current scope.
+
+```c 
+{
+    object x = new object();
+    defer delete object;
+
+    /*
+     * do stuff ...
+     */
+
+    // calls delete here
+}
+
+```
 ## Ranges 
+
+```c
+
+range 0..10, 2
+range 0..10:2
+for (0 till 10 every 2) {
+
+}
+
+for ( 0 to 10) {
+
+}
+
+```
+
 ## Joint allocations?
 https://github.com/BSVino/JaiPrimer/blob/master/JaiPrimer.md#proposed-features
 
 ## For in / for each statements
+```c 
+
+for x in array {
+
+}
+
+```
 ## Default Arguments
 ## Match statements 
 ```c 
@@ -66,6 +135,15 @@ int x = () => {
 
 ## Implicit Returns 
 Expressions at the end of a block of code are implicitly returned.
+
+```c 
+
+int c () {
+    int x = 0;
+    x   // returns x
+}
+
+```
 
 ## Chaining methods 
 
@@ -100,7 +178,7 @@ float y = 23.0f;
 
 ## Classes
 
-no inheritance
+Classes are just a prettier struct
 
 ```cpp
 
