@@ -1,6 +1,6 @@
 A Small superset of C that's transpiled down to C, with lots of syntax sugar.
 
-All ( or most ) C code is valid river code but river code is not valid C code.
+All ( or rather, most ) C code is valid river code, but river code is not at all valid C code.
 
 named river
 cause it flows down to C
