@@ -1,5 +1,5 @@
 CC = clang
-PROGNAME = river
+PROGNAME = rvrc
 SRC = src
 BIN = bin
 TESTS = tests

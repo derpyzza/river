@@ -6,32 +6,59 @@ This is the language spec for river.
 . , > >= <= < ? : ; ' " ` = == ( ) { } [ ]
 
 ## Keyword list 
-let short char int long string float double void bool array
-signed unsigned usize isize
+
+C keywords:
+
+short char int long float double void
+signed unsigned 
+if else for while break continue
+switch case goto struct return 
+enum union typedef sizeof const
+
+river keywords:
+
+usize isize let string bool array
 i8 i16 i32 i64 u8 u16 u32 u64 f32 f64
-if else for while foreach defer break continue
-switch case match goto label
-struct return enum union typedef sizeof
-public private sticky const
-new delete namespace
+foreach defer match label
+public private sticky
+new delete namespace macro
+
+
+how about smarter comments?
+tagged comments
+like @todo @error @bug @note, which the compiler could build notes out of and then store in a file somewhere?
 
 
 ## Variable Declaration
 
 ```c
+
 int x = 0;
 let x = 45;
 x = "str"; // illegal
+
 ```
 
 ## Statements and Expressions
 
-Statements are ended by a semicolon
-Expressions are not.
+Expressions are strings of code that evaluate to a value,
+whereas statements produce a side-effect;
 
 ```c 
 
+// Expressions
 
+x = 3 // outputs 3
+"string literal"
+12424.41 // Number literal
+(object){.x = 2314, .wr = "saftq"} // Struct literal
+{
+    return x;
+} // This whole block is an expression
+let x = if (bool) 10 else if (other_bool) 11 else 23; // this is an expression wrapped up in a statement;
+
+
+// Statements
 
 ```
 
