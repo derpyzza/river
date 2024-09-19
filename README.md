@@ -40,11 +40,31 @@ sum name {
     variant(string)
 };
 ```
+enums are namespaced:
+
+```c 
+
+enum name {
+    var1,
+    var2,
+    var3
+};
+
+enum x = name::var1;
+
+```
 ## Tuples
 
 ```c rvr
 let x = (23, 59, f: "String");
 
+(int, float) x = (23, 34.0);
+
+int a;
+float b;
+
+// a gets set to x.0, b gets set to x.1
+(a, b) = x;
 ```
 
 ```c 
@@ -53,6 +73,30 @@ struct tup_x x = struct {.0=23, .1=59, .f="string"};
 ```
 
 # Language Features & Syntax Sugar
+
+## Debug / Print interfaces
+
+Structs can implement debug / print interfaces, which will then be used by the print functions
+
+```c 
+
+struct vec3 {
+    float x, y, z;
+} 
+
+impl print::vec3 {
+    char* to_string(vec3* v) {
+        return `x: ${v->x}, y: ${v->y}, z: ${v->z}`;
+    }
+}
+
+vec3 v = { 3, 5, 6 };
+
+print v; // "x: 3, y: 5, z: 6"
+
+
+```
+
 ## Constructors and destructors
 ```c 
 
@@ -118,6 +162,20 @@ for x in array {
 
 ```
 ## Default Arguments
+
+```c 
+
+struct object {
+    int param1, 
+        param2 = 30;
+}
+
+void function_definition ( int x, int y = 20, bool open = true ) {
+    // define function over here
+}
+
+```
+
 ## Match statements 
 ```c 
 match user.name {
@@ -128,9 +186,13 @@ match user.name {
 ```
 ## Closures 
 ```c
-int x = () => {
-    return 10;
+int x = (int)() {
+    int x = 20;
+    x += 12;
+    x
 }
+
+x() // returns 12;
 ```
 
 ## Implicit Returns 

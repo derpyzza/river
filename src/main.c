@@ -2,108 +2,166 @@
 #include <stdlib.h>
 #include <string.h>
 
-static inline int char_is_digit(char c) {
+static inline int char_is_digit(char c)
+{
 	return (c >= '0' && c <= '9');
 }
 
-static inline int char_is_alpha(char c) {
-	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+static inline int char_is_alpha(char c)
+{
+	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || ( c == '_' );
 }
 
-static inline int char_is_whitespace(char c) {
+static inline int char_is_alphanum( char c )
+{
+	return (char_is_alpha(c) || char_is_digit(c));
+}
+
+static inline int char_is_whitespace(char c)
+{
 	return (c == ' ' || c == '\n' || c == '\t' || c == '\r');
 }
 
-static inline char peek(char* s) {
+/**@brief returns the next character in a string without consuming the current one */
+static inline char peek(char* s)
+{
 	return (*++s);
 }
 
+#define NUM_KEY_WORDS 14
+const char* key_words[NUM_KEY_WORDS] = {
+	"int", 
+	"bool",
+	"string",
+	"return",
+	"if",
+	"else",
+	"while",
+	"for",
+	"struct",
+	"defer",
+	"namespace", 
+	"print",
+	"true",
+	"false"
+};
+
 typedef enum token_type {
-	TOKEN_NONE = 0,
-	TOKEN_IDENTIFIER,
-	TOKEN_EQUAL_SIGN,
-	TOKEN_NUMBER,
-	TOKEN_PAREN_OPEN,
-	TOKEN_PAREN_CLOSE,
-	TOKEN_PLUS,
-	TOKEN_MINUS,
-	TOKEN_ASTERISK,
-	TOKEN_FORWARD_SLASH,
-	TOKEN_SEMI,
-	TOKEN_VALUE,
-	TOKEN_EXPRESSION,
-	TOKEN_KEYWORD,
+	TKN_NONE = 0,
+	// Single Character tokens
+	TKN_EQUAL_SIGN,
+	TKN_PAREN_OPEN,
+	TKN_PAREN_CLOSE,
+	TKN_BRACE_OPEN,
+	TKN_BRACE_CLOSE,
+	TKN_OPEN_QUOTE,
+	TKN_CLOSE_QUOTE,
+	TKN_COMMA,
+	TKN_DOT,
+	TKN_PLUS,
+	TKN_MINUS,
+	TKN_ASTERISK,
+	TKN_FORWARD_SLASH,
+	TKN_SEMI,
+
+	// keywords
+	TKN_INT,
+	TKN_BOOL,
+	TKN_STRING,
+	TKN_RETURN, 
+	TKN_IF,
+	TKN_ELSE,
+	TKN_WHILE,
+	TKN_FOR,
+	TKN_STRUCT,
+	TKN_DEFER,
+	TKN_NAMESPACE,
+	TKN_PRINT,
+	TKN_TRUE,
+	TKN_FALSE,
+
+	TKN_VALUE,
+	TKN_IDENTIFIER,
+	TKN_INTEGER_LITERAL,
+	TKN_FLOATING_LITERAL,
+	TKN_CHAR_LITERAL,
+	TKN_STRING_LITERAL,
 
 	// operators
-	TOKEN_DIV_EQ,
-	TOKEN_MULT_EQ,
-	TOKEN_ADD_EQ,
-	TOKEN_SUB_EQ,
-	TOKEN_NOT_EQ,
-	TOKEN_EQ,
-	TOKEN_LESS_THAN,
-	TOKEN_LESS_THAN_EQ,
-	TOKEN_GREATER_THAN,
-	TOKEN_GREATER_THAN_EQ,
-	TOKEN_COMMENT,
-	TOKEN_COMMENT_MULTI_START,
-	TOKEN_COMMENT_MULTI_END,
+	TKN_BANG,
+	TKN_BANG_EQ,
+	TKN_DIV_EQ,
+	TKN_MULT_EQ,
+	TKN_ADD_EQ,
+	TKN_SUB_EQ,
+	TKN_NOT_EQ,
+	TKN_EQ_EQ,
+	TKN_LESS_THAN,
+	TKN_LESS_THAN_EQ,
+	TKN_GREATER_THAN,
+	TKN_GREATER_THAN_EQ,
 
-	// Boolean operators
-	TOKEN_BOOL_AND,
-	TOKEN_BOOL_OR,
-	TOKEN_BOOL_NOT,
-	TOKEN_BOOL_XOR,
+	TKN_EOF,
 
-	MAX_TOKENS
+	MAX_TKNS
 } token_type;
 
 const char* token_strings[] = {
 	"NONE",
-	"IDENTIFIER",
-	"EQUAL SIGN",
-	"NUMBER",
-	"PAREN OPEN",
-	"PAREN CLOSE",
-	"PLUS SIGN",
-	"MINUS SIGN",
-	"ASTERISK",
-	"FORWARD SLASH",
-	"SEMI",
+	// Single Character tokens
+	"TKN_EQUAL_SIGN",
+	"TKN_PAREN_OPEN",
+	"TKN_PAREN_CLOSE",
+	"TKN_BRACE_OPEN",
+	"TKN_BRACE_CLOSE",
+	"OPEN QUOTE",
+	"CLOSE QUOTE",
+	"TKN_COMMA",
+	"TKN_DOT",
+	"TKN_PLUS",
+	"TKN_MINUS",
+	"TKN_ASTERISK",
+	"TKN_FORWARD_SLASH",
+	"TKN_SEMI",
+
+	// keywords
+	"INT",
+	"BOOL",
+	"STRING",
+	"RETURN", 
+	"IF",
+	"ELSE",
+	"WHILE",
+	"FOR",
+	"STRUCT",
+	"DEFER",
+	"NAMESPACE",
+	"PRINT",
+	"TRUE",
+	"FALSE",
+
 	"VALUE",
-	"EXPRESSION",
-	"KEYWORD",
+	"IDENTIFIER",
+	"INTEGER LITERAL",
+	"FLOATING LITERAL",
+	"CHAR LITERAL",
+	"STRING LITERAL",
+
 	// operators
-	"DIV EQ",
-	"MULT EQ",
-	"ADD EQ",
-	"SUB EQ",
-	"NOT EQ",
-	"EQ",
-	"LESS THAN",
-	"LESS THAN EQ",
-	"GREATER THAN",
-	"GREATER THAN EQ",
-	"COMMENT",
-	"COMMENT MULTI START",
-	"COMMENT MULTI END",
+	"TKN_BANG",
+	"TKN_BANG_EQ",
+	"TKN_DIV_EQ",
+	"TKN_MULT_EQ",
+	"TKN_ADD_EQ",
+	"TKN_SUB_EQ",
+	"TKN_NOT_EQ",
+	"TKN_EQ_EQ",
+	"TKN_LESS_THAN",
+	"TKN_LESS_THAN_EQ",
+	"TKN_GREATER_THAN",
+	"TKN_GREATER_THAN_EQ",
 
-	// Boolean operators
-	"BOOL AND",
-	"BOOL OR",
-	"BOOL NOT",
-	"BOOL XOR",
-};
-
-const char* key_words[] = {
-	"int", "bool", "long", "double",
-	"char", "float", "void", "if", "else",
-	"for", "while", "enum", "typedef",
-	"struct", "static", "inline", "return",
-	"const", "switch", "typedef", "break", "auto",
-	"case", "const", "do", "extern", "goto", "short",
-	"signed", "sizeof", "unsigned", "union", "volatile",
-	"register",
+	"TKN_EOF",
 };
 
 typedef enum value_type {
@@ -120,13 +178,20 @@ typedef union value_u {
 typedef struct value_s {
 	value_type type;
 	value_u value;
+	int line, offset, len;
 } value_s;
 
 typedef struct token_s {
 	token_type type;
 	int has_value;
+	int chr_index; // the starting character index
 	value_s value;
 } token_s;
+
+typedef struct str_pos {
+	int start, len, 
+			line;
+} str_pos;
 
 
 // Dynamic array of tokens;
@@ -142,7 +207,7 @@ token_array_s* init_token_array(void) {
 	tkn->current_token = 0;
 	tkn->token_list = malloc(sizeof(token_s) * tkn->max_tokens);
 	// Empty out the array
-	tkn->token_list = memset(tkn->token_list, TOKEN_NONE, sizeof(token_s) * 1024);
+	tkn->token_list = memset(tkn->token_list, TKN_NONE, sizeof(token_s) * 1024);
 
 	return tkn;
 }
@@ -150,7 +215,8 @@ token_array_s* init_token_array(void) {
 void push_token_val(
 		token_array_s* tkn,
 		token_type token,
-		value_s val
+		value_s val,
+		int chr_index
 		) {
 
 	// Check for buffer overflows
@@ -160,6 +226,7 @@ void push_token_val(
 	}
 	
 	tkn->token_list[tkn->current_token].type = token;
+	tkn->token_list[tkn->current_token].chr_index = chr_index;
 	if (val.type) {
 		tkn->token_list[tkn->current_token].value = val;
 		tkn->token_list[tkn->current_token].has_value = 1;
@@ -167,8 +234,8 @@ void push_token_val(
 	tkn->current_token++;
 }
 
-void push_token(token_array_s* tkn, token_type token) {
-	push_token_val(tkn, token, (value_s){0});
+void push_token(token_array_s* tkn, token_type token, int chr_index) {
+	push_token_val(tkn, token, (value_s){0}, chr_index);
 }
 
 char* substring(char* string, int start, int len) {
@@ -195,40 +262,50 @@ char* strip_whitespace(const char* string) {
 	return s;
 }
 
-void print_tokens(token_array_s tkn)
+void print_token_array(token_array_s tkn)
 {
 	// code = strip_whitespace(code);
-	printf("===DUMPING TOKENS===\n");
+	printf("===DUMPING TKNS===\n");
+	printf("[TI:CI] token[TN]: tkn, value: val\n"
+				 "----------------------------------\n");
 	int i = 0;
 	for (i = 0; i < tkn.current_token; i++ ) {
-		if (tkn.token_list[i].has_value)
-			switch(tkn.token_list[i].value.type) {
+		token_s current = tkn.token_list[i];
+		if (current.has_value)
+			switch(current.value.type) {
 				case VAL_INT:
-					printf("[%02i] token: %s, value: %i\n", 
+					printf("[%02i:%02i] token[%02i]: %s, value: %i\n", 
 							i, 
-							token_strings[tkn.token_list[i].type], 
-							tkn.token_list[i].value.value.integer);
+							current.chr_index,
+							current.type,
+							token_strings[current.type], 
+							current.value.value.integer);
 				break;
 				case VAL_CHAR_STAR:
-					printf("[%02i] token: %s, value: %s\n", 
+					printf("[%02i:%02i] token[%02i]: %s, value: %s\n", 
 							i, 
-							token_strings[tkn.token_list[i].type], 
-							tkn.token_list[i].value.value.string);
+							current.chr_index,
+							current.type,
+							token_strings[current.type], 
+							current.value.value.string);
 				break;
 				default:
 
 				break;
 			}
 		else  {
-			printf("[%02i] TOKEN: %s\n", i, token_strings[tkn.token_list[i].type]);
+			printf("[%02i:%02i] token[%02i]: %s\n",
+					i,
+					current.chr_index,
+					current.type,
+					token_strings[current.type]);
 		}
 	}
 	printf("Total used tokens: %ld, Unused tokens: %ld\n", tkn.current_token - 1, tkn.max_tokens - tkn.current_token);
 }
 
-
 // convert input string into list of tokens
-token_array_s* scan(const char* code) {
+token_array_s* tokenize (const char* code) {
 	token_array_s* tkn = init_token_array();
 
 	// pointers to the start of the string
@@ -248,64 +325,140 @@ token_array_s* scan(const char* code) {
 				c++;
 				num = (num * 10) + (*c - '0');
 			}
+			if (peek(c) == '.') {
+				
+			}
 			push_token_val(tkn,
-					TOKEN_NUMBER, 
-					(value_s){ VAL_INT , (value_u) { .integer = num }});
+					TKN_INTEGER_LITERAL, 
+					(value_s){ VAL_INT , (value_u) { .integer = num }},
+					c - start
+					);
 		} else if (char_is_alpha(*c)) {
 			// skip over strings
 			int str_start = c-start;
 			while(char_is_alpha(peek(c))) 
 			{
 				c++;
-				putchar(*c);
 			}
 			int str_len = c-start-str_start;
 			char* substr = substring(start, str_start, str_len);
+
+			// This flag is here because i couldn't figure out the
+			// proper control flow needed to make sure that keyword
+			// identifiers get stored as keyword tokens and not keyword AND
+			// identifier tokens. This flag is my little hack.
+			int flag = 0;
+			for(int i = 0; i < NUM_KEY_WORDS; i++) {
+				if (!strcmp(substr, key_words[i])) {
+					
+					token_type token = i + TKN_INT;
+
+					push_token_val(
+					tkn, 
+					token,
+					(value_s){ VAL_CHAR_STAR, (value_u) {.string = substr}}, 
+					c - start
+					);
+					flag = 1;
+				}
+			}
+			if (!flag)
 			push_token_val(
 					tkn, 
-					TOKEN_IDENTIFIER,
-					(value_s){ VAL_CHAR_STAR, (value_u) {.string = substr}});
+					TKN_IDENTIFIER,
+					(value_s){ VAL_CHAR_STAR, (value_u) {.string = substr}},
+					c - start
+					);
 		}
 		else if (char_is_whitespace(*c)){
 			if (*c == '\n') line++;
 		}
 		else {
 			switch (*c) {
-				case '*':
-					if (peek(c) == '=') push_token(tkn, TOKEN_MULT_EQ);
-					push_token(tkn, TOKEN_ASTERISK);
-				break;
-				case '+':
-					if (peek(c) == '=') push_token(tkn, TOKEN_ADD_EQ);
-					push_token(tkn, TOKEN_PLUS);
-				break;
-				case '-':
-					if (peek(c) == '=') push_token(tkn, TOKEN_SUB_EQ);
-					push_token(tkn, TOKEN_MINUS);
-				break;
-				case '/':
-					if (peek(c) == '=') push_token(tkn, TOKEN_DIV_EQ);
-					push_token(tkn, TOKEN_FORWARD_SLASH);
-				break;
-				case '=':
-					if (peek(c) == '=') push_token(tkn, TOKEN_EQ);
-					push_token(tkn, TOKEN_EQUAL_SIGN);
-				break;
 				case '(':
-					push_token(tkn, TOKEN_PAREN_OPEN);
+					push_token(tkn, TKN_PAREN_OPEN, c - start);
 				break;
 				case ')':
-					push_token(tkn, TOKEN_PAREN_CLOSE);
+					push_token(tkn, TKN_PAREN_CLOSE, c - start);
+				break;
+				case '{':
+					push_token(tkn, TKN_BRACE_OPEN, c - start);
+				break;
+				case '}':
+					push_token(tkn, TKN_BRACE_CLOSE, c - start);
 				break;
 				case ';':
-					push_token(tkn, TOKEN_SEMI);
+					push_token(tkn, TKN_SEMI, c - start);
+				break;
+				case ',':
+					push_token(tkn, TKN_COMMA, c - start);
+				break;
+				case '.':
+					push_token(tkn, TKN_DOT, c - start);
+				break;
+				case '*':
+					if (peek(c) == '=') push_token(tkn, TKN_MULT_EQ, c - start);
+					else push_token(tkn, TKN_ASTERISK, c - start);
+				break;
+				case '+':
+					if (peek(c) == '=') push_token(tkn, TKN_ADD_EQ, c - start);
+					else push_token(tkn, TKN_PLUS, c - start);
+				break;
+				case '-':
+					if (peek(c) == '=') push_token(tkn, TKN_SUB_EQ, c - start);
+					else push_token(tkn, TKN_MINUS, c - start);
+				break;
+				case '/':
+					if (peek(c) == '=') { 
+						push_token(tkn, TKN_DIV_EQ, c - start);
+						c++;
+					} 
+					// COMMENT
+					else if  (peek(c) == '/')
+					{
+						while(peek(c) != '\n') c++;
+					}
+					else push_token(tkn, TKN_FORWARD_SLASH, c - start);
+				break;
+				case '!':
+					if (peek(c) == '=') {
+						push_token(tkn, TKN_BANG_EQ, c - start);
+						c++;
+					}
+					else push_token(tkn, TKN_BANG, c - start);
+				break;
+				case '=':
+					if (peek(c) == '=')
+					{
+						push_token(tkn, TKN_EQ_EQ, c - start);
+						c++;
+					}
+					else push_token(tkn, TKN_EQUAL_SIGN, c - start);
+				break;
+				case '<':
+					if (peek(c) == '=') {
+						push_token(tkn, TKN_LESS_THAN_EQ, c - start);
+						c++;
+					}
+					else push_token(tkn, TKN_LESS_THAN, c - start);
+				break;
+				case '>':
+					if (peek(c) == '=')
+					{
+						push_token(tkn, TKN_GREATER_THAN_EQ, c - start);
+						c++;
+					}
+					else push_token(tkn, TKN_GREATER_THAN, c - start);
 				break;
 				default:
-					putchar(*c);
+					// putchar(*c);
+					printf("Unknown character encountered: %c at l:%i\n", *c,
+							line);
 				break;
 			}
 		}
 	}
+	push_token(tkn, TKN_EOF, len);
 	printf("== Scanning complete ==\n");
 
 	return tkn;
@@ -313,8 +466,8 @@ token_array_s* scan(const char* code) {
 
 int
 main(void) {
-	const char* code = "int thisisanidentifier 1234 * ( 205 + 4 );";
-	token_array_s* tkn = scan(code);
-	print_tokens(*tkn);
+	const char* code = "x = 34 * ( 224 / 32 + 24 );";
+	token_array_s* tkn = tokenize(code);
+	print_token_array(*tkn);
 	free(tkn);
 }
