@@ -14,6 +14,40 @@ This is the language spec for river.
 
 ```
 
+## Data types and literals
+```c 
+
+// River comes with several builtin basic data types
+// The builtin type literals are as follows:
+/*
+ * null     - No type / no value
+ * bool     - boolean type / true | false
+ * u8       - Unsigned 8 bit integer
+ * u16      - Unsigned 16 bit integer
+ * u32      - Unsigned 32 bit integer
+ * u64      - Unsigned 64 bit integer
+ * u128     - Unsigned 128 bit integer
+ * i8       - Signed 8 bit integer
+ * i16      - Signed 16 bit integer
+ * i32      - Signed 32 bit integer
+ * i64      - Signed 64 bit integer
+ * i128     - Signed 128 bit integer
+ * f32      - Floating point number
+ * f64      - Double precision floating point number
+ * isize    - Signed pointer sized integer
+ * usize    - Unsigned pointer sized integer
+ * char     - A Single utf-8 code point i.e represents a single utf-8 character, and is not a byte like in C.
+ * str      -  A statically sized utf-8 string literal
+ * string   - A dynamically sized utf-8 string literal;
+*/
+
+// Numeric type literals can have underscores in-between as a visual separator to help with readability
+i32 million = 1_000_000; // Same as 1000000
+
+```
+
+
+
 ## Variable Definition & Declaration
 
 ```c
@@ -33,27 +67,31 @@ y = 13314.3f;
 // you can also explicitly define a variable with a type.
 i32 t = 124;
 
-// The builtin type literals are as follows:
-/*
- * u8  - Unsigned 8 bit integer
- * u16 - Unsigned 16 bit integer
- * u32 - Unsigned 32 bit integer
- * u64 - Unsigned 64 bit integer
- * i8  - Signed 8 bit integer
- * i16 - Signed 16 bit integer
- * i32 - Signed 32 bit integer
- * i64 - Signed 64 bit integer
- * f32 - Floating point number
- * f64 - Double precision floating point number
- * bool - boolean type
- * char - A Single utf-8 code point i.e represents a single utf-8 character, and is not a byte like in C.
- * str -  A statically sized utf-8 string literal
- * string - A dynamically sized utf-8 string literal;
-*/
+```
+
+## types
+
+```c
+
+// You can define your own types
+
+type int -> u32;
+
+int x = 10; // base type: u32
+
+// Types can be composed of multiple base times
+// this type can represent both u32 or f32 values
+type number -> u32 | f32;
+
+number x = 10; // valid
+number y = 52.32; // also valid
+number z = 42.4d; // not valid, as it is a double value
+
 
 ```
 
 ## structs 
+
 ```c
 
 // You can wrap up several datatypes into a big datatype called a struct, just like in C 
@@ -71,6 +109,26 @@ struct Vector3_s {
 
 // Plus, declaring struct variables with the <struct identifier> type signature is also an option
 struct Vector3_s v = (Vector3_s){23, 25, 356}
+
+struct Vector4 {
+    // Fields are non-nullable by default
+    f32 x, y, z;
+    // However, fields can be nullable
+    // appending a ? to a variable name makes it nullable
+    // Like pointers, nullability is a property of a variable, not a datatype
+    f32 w?;
+};
+
+struct User {
+    // Struct fields can have default values
+    str username = "Admin";
+    u16 pin = 0000;
+};
+
+User admin;
+printf("user.name = %s", admin.username); // => "user.name = Admin"
+admin.name = "Administrator";
+printf("user.name = %s, user.pin = %i", admin.username, admin.pin) // => "user.name = Administrator, user.pin = 0000"; 
 
 ```
 
@@ -205,7 +263,7 @@ func* void(int x, float y);
 ## strings
 
 ## Character / operator list:
-+ - * / % ! != += -= *= /= %= ^ ~ & | && ||
+\+ \- \* / % ! != += -= *= /= %= ^ ~ & | && ||
 . , > >= <= < ? : ; ' " """ ` = == ( ) { } [ ]
 @
 
