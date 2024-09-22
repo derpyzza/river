@@ -1,5 +1,5 @@
 CC = clang
-PROGNAME = rvrc
+PROGNAME = rvrcc
 SRC = src
 BIN = bin
 TESTS = tests
@@ -21,7 +21,7 @@ $(EXEC): $(OBJ_FILES)
 	$(CC) $^ -o $@ $(CFLAGS) $(LDFLAGS)
 
 run: $(EXEC)
-	$(EXEC)
+	$(EXEC) in.rvr
 
 clean:
 	rm -rf $(BIN)/*

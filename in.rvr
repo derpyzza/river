@@ -1,0 +1,7 @@
+// Welcome to river!
+// Your first task:
+// Parse the following text and make it return a .c file
+// With the exact same text!
+
+int x = "hello there i am a string pls no memory dumps ;-; ok byeee";
+3 * ( 4 + 2 );

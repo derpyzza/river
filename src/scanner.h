@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common.h"
+
 #define NUM_KEY_WORDS 14
 static const char* key_words[NUM_KEY_WORDS] = {
 	"int", 
@@ -146,12 +148,17 @@ typedef enum literal_type {
 	LIT_FALSE,
 } literal_type;
 
+typedef struct {
+	int len;
+	char* c_ptr;
+}substr_s;
+
 typedef union literal_u {
 	int _int;
 	float _float;
 	char _char;
 	short _bool;
-	char* _str;
+	substr_s _str;
 } literal_u;
 
 typedef struct literal_s {
@@ -164,7 +171,7 @@ typedef struct token_s {
 	token_type type;
 	int chr_index; // the starting character index
 	int has_literal; // whether or not it has a literal;
-	literal_s literal;
+	int literal_id;
 } token_s;
 
 // Dynamic array of tokens;
@@ -172,10 +179,13 @@ typedef struct ast_s {
 	long max_tokens;
 	long current_token;
 	token_s* token_list;
+	long max_literals;
+	long current_literal;
+	literal_s* literal_list;
 } token_array_s;
 
-token_array_s* init_token_array(void);
-void push_token(token_array_s* tkn, token_type token, int chr_index);
-void push_token_val( token_array_s* tkn, token_type token, literal_s lit, int chr_index );
-void print_token_array(token_array_s tkn);
-token_array_s* tokenize (char* code);
+// token_array_s* init_token_array(void);
+// void push_token(token_array_s* tkn, token_type token, int chr_index);
+// void push_token_val( token_array_s* tkn, token_type token, literal_s lit, int chr_index );
+void print_token_array(file_s src, token_array_s tkn);
+token_array_s* tokenize (file_s src);
