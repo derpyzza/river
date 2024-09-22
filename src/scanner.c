@@ -6,6 +6,7 @@
 #define MAKE_LIT_STR(x) (literal_s){ LIT_STRING , (literal_u) { ._str = x }}
 #define MAKE_LIT_INT(x) (literal_s){ LIT_INT , (literal_u) { ._int = x }}
 #define MAKE_LIT_FLOAT(x) (literal_s){ LIT_FLOAT , (literal_u) { ._float = x }}
+#define MAKE_LIT_DOUBLE(x) (literal_s){ LIT_DOUBLE , (literal_u) { ._double = x }}
 
 token_array_s* init_token_array(void);
 void push_token(token_array_s* tkn, token_type token, int chr_index);
@@ -129,6 +130,22 @@ void print_token_array(file_s src, token_array_s tkn)
 							token_strings[type], 
 							lit._int);
 				break;
+				case LIT_DOUBLE:
+					printf("[%02i:%02i] token[%02i]: %s, value: %lf\n", 
+							i, 
+							chid,
+							type,
+							token_strings[type], 
+							lit._double);
+				break;
+				case LIT_FLOAT:
+					printf("[%02i:%02i] token[%02i]: %s, value: %f\n", 
+							i, 
+							chid,
+							type,
+							token_strings[type], 
+							lit._float);
+				break;
 				case LIT_STRING:
 					printf("[%02i:%02i] token[%02i]: %s, value: %.*s\n", 
 							i, 
@@ -173,9 +190,9 @@ token_array_s* tokenize ( file_s src )
 	char *c = (char*) src.data,
 			 *start = (char*) src.data;
 	size_t len = src.size;
-	int line = 0;
+	int line = 1;
 
-	printf("Scanning for tokens ...\n");
+	printf("Scanning %s for tokens ...\n", src.path);
 	for (c = (char*) src.data; c - start < len; c++) {
 		if (char_is_digit(*c)) {
 			// skip over numbers
@@ -187,6 +204,32 @@ token_array_s* tokenize ( file_s src )
 				num = (num * 10) + (*c - '0');
 			}
 			if (peek(c) == '.') {
+				c++;
+				c++;
+				if (!char_is_digit(*c) && !(*c == 'f') && !(*c == 'd')) {
+					printf("ERROR: extra period after number %i at line %i\n", num, line);
+				}
+				else {
+					double pnum = 0;
+					int level = 1;
+					while(char_is_digit(*c)) 
+					{
+						double temp = 0;
+						// printf("char: %c\n", *c);
+						temp = (*c - '0');
+						for (int i = 0; i < level; i++) temp /= 10;
+						c++;
+						level++;
+						pnum += temp;
+					}
+					pnum += num;
+					// printf("PNUM: %f\n", pnum);
+					push_token_lit(tkn,
+							TKN_DOUBLE_FLOATING_LITERAL, 
+							MAKE_LIT_DOUBLE(pnum),
+							c - start
+							);
+				}
 			}
 			push_token_lit(tkn,
 					TKN_INTEGER_LITERAL, 
@@ -289,7 +332,12 @@ token_array_s* tokenize ( file_s src )
 					int str_start = ++c-start;
 					char* str_ptr = c;
 					while( peek(c) != '"' && ((c - start) != len) ) {
-						if ( peek(c) == '\n' ) line++;
+						if ( peek(c) == '\n' ) {
+							c++;
+							printf("WARNING: Unterminated string on a newline at line %i\n", line);
+							line++;
+							// continue;
+						}
 						c++;
 					}
 

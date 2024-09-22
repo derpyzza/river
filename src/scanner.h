@@ -51,15 +51,16 @@ typedef enum token_type {
 	TKN_DEFER,
 	TKN_NAMESPACE,
 	TKN_PRINT,
-	TKN_TRUE,
-	TKN_FALSE,
 
 	TKN_VALUE,
 	TKN_IDENTIFIER,
 	TKN_INTEGER_LITERAL,
 	TKN_FLOATING_LITERAL,
+	TKN_DOUBLE_FLOATING_LITERAL,
 	TKN_CHAR_LITERAL,
 	TKN_STRING_LITERAL,
+	TKN_TRUE,
+	TKN_FALSE,
 
 	// operators
 	TKN_BANG,
@@ -111,15 +112,16 @@ static const char* token_strings[] = {
 	"DEFER",
 	"NAMESPACE",
 	"PRINT",
-	"TRUE",
-	"FALSE",
 
 	"VALUE",
 	"IDENTIFIER",
 	"INTEGER LITERAL",
 	"FLOATING LITERAL",
+	"DOUBLE FLOATING LITERAL",
 	"CHAR LITERAL",
 	"STRING LITERAL",
+	"TRUE",
+	"FALSE",
 
 	// operators
 	"TKN_BANG",
@@ -142,6 +144,7 @@ typedef enum literal_type {
 	LIT_NONE = 0,
 	LIT_INT,
 	LIT_FLOAT,
+	LIT_DOUBLE,
 	LIT_CHAR,
 	LIT_STRING,
 	LIT_TRUE,
@@ -156,6 +159,7 @@ typedef struct {
 typedef union literal_u {
 	int _int;
 	float _float;
+	double _double;
 	char _char;
 	short _bool;
 	substr_s _str;
