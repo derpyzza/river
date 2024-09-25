@@ -1,5 +1,12 @@
+step one:
+expression -> INT | ( INT '+' INT ) EOF
+
+---
+
 statement -> expression ";"
 
-expression -> term ( '+' | '-' ) term;
+expression -> term ( ( '+' | '-' ) term )*;
 
-term -> integer;
+term -> factor ( ( '*' | '-' ) factor )*;
+
+factor -> INT;

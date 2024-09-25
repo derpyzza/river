@@ -84,20 +84,20 @@ typedef enum token_type {
 static const char* token_strings[] = {
 	"NONE",
 	// Single Character tokens
-	"TKN_EQUAL_SIGN",
-	"TKN_PAREN_OPEN",
-	"TKN_PAREN_CLOSE",
-	"TKN_BRACE_OPEN",
-	"TKN_BRACE_CLOSE",
+	"EQUAL SIGN",
+	"PAREN OPEN",
+	"PAREN CLOSE",
+	"BRACE OPEN",
+	"BRACE CLOSE",
 	"OPEN QUOTE",
 	"CLOSE QUOTE",
-	"TKN_COMMA",
-	"TKN_DOT",
-	"TKN_PLUS",
-	"TKN_MINUS",
-	"TKN_ASTERISK",
-	"TKN_FORWARD_SLASH",
-	"TKN_SEMI",
+	"COMMA",
+	"DOT",
+	"PLUS",
+	"MINUS",
+	"ASTERISK",
+	"FORWARD SLASH",
+	"SEMI",
 
 	// keywords
 	"INT",
@@ -124,20 +124,20 @@ static const char* token_strings[] = {
 	"FALSE",
 
 	// operators
-	"TKN_BANG",
-	"TKN_BANG_EQ",
-	"TKN_DIV_EQ",
-	"TKN_MULT_EQ",
-	"TKN_ADD_EQ",
-	"TKN_SUB_EQ",
-	"TKN_NOT_EQ",
-	"TKN_EQ_EQ",
-	"TKN_LESS_THAN",
-	"TKN_LESS_THAN_EQ",
-	"TKN_GREATER_THAN",
-	"TKN_GREATER_THAN_EQ",
+	"BANG",
+	"BANG EQ",
+	"DIV EQ",
+	"MULT EQ",
+	"ADD EQ",
+	"SUB EQ",
+	"NOT EQ",
+	"EQ EQ",
+	"LESS THAN",
+	"LESS THAN EQ",
+	"GREATER THAN",
+	"GREATER THAN EQ",
 
-	"TKN_EOF",
+	"EOF",
 };
 
 typedef enum literal_type {
@@ -168,7 +168,6 @@ typedef union literal_u {
 typedef struct literal_s {
 	literal_type type;
 	literal_u literal;
-	// int line, offset, len;
 } literal_s;
 
 typedef struct token_s {
@@ -179,17 +178,24 @@ typedef struct token_s {
 } token_s;
 
 // Dynamic array of tokens;
-typedef struct ast_s {
+typedef struct token_array_s {
 	long max_tokens;
-	long current_token;
-	token_s* token_list;
+	long final_token;
 	long max_literals;
-	long current_literal;
+	long final_literal;
+	token_s* token_list;
 	literal_s* literal_list;
 } token_array_s;
 
-// token_array_s* init_token_array(void);
-// void push_token(token_array_s* tkn, token_type token, int chr_index);
-// void push_token_val( token_array_s* tkn, token_type token, literal_s lit, int chr_index );
-void print_token_array(file_s src, token_array_s tkn);
-token_array_s* tokenize (file_s src);
+void print_token_array(string_s src, token_array_s tkn);
+token_array_s* tokenize (string_s src);
+
+// Returns an eof token. useful for termination
+static inline token_s token_eof(void) {
+	return (token_s) {
+		.type = TKN_EOF,
+		.chr_index = 0,
+		.has_literal = 0,
+		.literal_id = 0
+	};
+} 

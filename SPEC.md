@@ -77,6 +77,7 @@ i32 t = 124;
 
 type int -> u32;
 
+
 int x = 10; // base type: u32
 
 // Types can be composed of multiple base times
@@ -129,6 +130,22 @@ User admin;
 printf("user.name = %s", admin.username); // => "user.name = Admin"
 admin.name = "Administrator";
 printf("user.name = %s, user.pin = %i", admin.username, admin.pin) // => "user.name = Administrator, user.pin = 0000"; 
+
+struct Cat {
+
+    Vector3_s pos, orientation;
+    str name;
+    str mew_style;
+
+    // Structs can contain methods within them
+    void Meow(Self) {
+        printf("%s", Self.mew_style);
+    }
+};
+
+Cat kitty = new Cat;
+kitty.mew_style = "mewmewmew";
+kitty.Meow(); // mewmewmew
 
 ```
 
@@ -286,6 +303,24 @@ public private sticky
 new delete namespace macro
 
 
+## Notes
+you can ignore this bit
+
 how about smarter comments?
 tagged comments
 like @todo @error @bug @note, which the compiler could build notes out of and then store in a file somewhere?
+
+maybe add language packs as a build flag, or a file annotation?
+like
+
+```c 
+@lang: 'ur'
+
+اگر (x = y) {
+    لکہو("سلام")؛
+}
+// struct
+شکل {
+حندسہ x, r
+}
+```

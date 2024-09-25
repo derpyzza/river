@@ -3,14 +3,4 @@
 // Parse the following text and make it return a .c file
 // With the exact same text!
 
-1231
-123.7145f
-
-123213.d
-
-33131.13123
-
-int x = "hello there i am a string 
-hello multiline strings
-pls no memory dumps ;-; ok byeee";
 3 * ( 4 + 2 );

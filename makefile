@@ -21,7 +21,9 @@ $(EXEC): $(OBJ_FILES)
 	$(CC) $^ -o $@ $(CFLAGS) $(LDFLAGS)
 
 run: $(EXEC)
-	$(EXEC) in.rvr
+	$(EXEC)
+
+# in.rvr
 
 clean:
 	rm -rf $(BIN)/*
