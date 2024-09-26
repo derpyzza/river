@@ -75,9 +75,10 @@ main(int argc, char** argv) {
 			string_s source = (string_s) {.size = strlen(buf), .string = buf};
 			token_array_s* tkn = tokenize(source);
 
-			print_token_array(source, *tkn);
-
-			// node_s node = parse_tokens(*tkn, source);
+			// print_token_array(source, *tkn);
+			node_s *node = parse_tokens(tkn, source);
+			print_ast(*node);
+			printf("\n");
 			// interpret(node);
 			free(tkn);
 		}
@@ -95,7 +96,7 @@ main(int argc, char** argv) {
 		}
 
 		token_array_s* tkn = tokenize(source->data);
-		print_ast(parse_tokens(*tkn, source->data));
+		// print_ast(*parse_tokens(*tkn, source->data));
 		free(tkn);
 	}
 	return 0;

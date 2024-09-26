@@ -36,6 +36,7 @@ typedef enum token_type {
 	TKN_ASTERISK,
 	TKN_FORWARD_SLASH,
 	TKN_SEMI,
+	TKN_BANG,
 
 	// keywords
 	TKN_INT,
@@ -51,7 +52,6 @@ typedef enum token_type {
 	TKN_NAMESPACE,
 	TKN_PRINT,
 
-	TKN_VALUE,
 	TKN_IDENTIFIER,
 	TKN_INTEGER_LITERAL,
 	TKN_FLOATING_LITERAL,
@@ -62,7 +62,6 @@ typedef enum token_type {
 	TKN_FALSE,
 
 	// operators
-	TKN_BANG,
 	TKN_BANG_EQ,
 	TKN_DIV_EQ,
 	TKN_MULT_EQ,
@@ -96,6 +95,7 @@ static const char* token_strings[] = {
 	"ASTERISK",
 	"FORWARD SLASH",
 	"SEMI",
+	"BANG",
 
 	// keywords
 	"INT",
@@ -111,7 +111,6 @@ static const char* token_strings[] = {
 	"NAMESPACE",
 	"PRINT",
 
-	"VALUE",
 	"IDENTIFIER",
 	"INTEGER LITERAL",
 	"FLOATING LITERAL",
@@ -122,7 +121,6 @@ static const char* token_strings[] = {
 	"FALSE",
 
 	// operators
-	"BANG",
 	"BANG EQ",
 	"DIV EQ",
 	"MULT EQ",
@@ -211,3 +209,13 @@ static inline token_s token_none(void) {
 		.literal_id = 0
 	};
 } 
+
+static inline char token_to_char(token_type token) {
+	if (token - 1 <= TKN_BANG && token - 1 >= TKN_EQUAL_SIGN) {
+		char tokens[(TKN_INT - TKN_EQUAL_SIGN)] = {
+			'=', '(', ')', '{', '}', '\"', ',', '.', '+', '-', '*', '/', ';', '!',
+		};
+		return tokens[token - 1];
+	}
+	return 0;
+}

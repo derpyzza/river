@@ -6,7 +6,7 @@ TESTS = tests
 
 EXEC = $(BIN)/$(PROGNAME)
 
-CFLAGS := -Wall -pedantic -g
+CFLAGS := -Wall -pedantic -Wswitch -g
 LDFLAGS :=
 
 SRC_FILES := $(wildcard $(SRC)/*.c) $(wildcard $(SRC)/**/*.c) $(wildcard $(SRC)/**/**/*.c)

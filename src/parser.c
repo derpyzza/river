@@ -23,90 +23,78 @@ static inline node_s 		node_none(void);
 static inline void 			error_unexpected(token_type expected);
 static inline void 			consume(void);
 static inline int 			expect(token_type type);
+static inline int 			match(token_type type);
 static inline int 			expect_n(int offset, token_type expected);
 static char* 						node_to_str(node_s node);
 
-static node_s *new_node();
+static node_s *new_node(void);
 static node_s *new_bin_expr(node_s *lhs, node_s *rhs, int op);
 static node_s *new_unary_expr(node_s *right, int op);
 
-
-static node_s *parse_expr();
-static node_s *parse_term();
-static node_s *parse_factor();
-static node_s *parse_unary();
-static node_s *parse_primary();
+static node_s *parse_expr(void);
+static node_s *parse_term(void);
+static node_s *parse_factor(void);
+static node_s *parse_unary(void);
+static node_s *parse_primary(void);
 static node_s parse_program(void);
 
-node_s parse_tokens( token_array_s tokens, string_s src ) 
+node_s *parse_tokens( token_array_s *tokens, string_s src ) 
 { 
-	parser.tokens = &tokens;
+	parser.tokens = tokens;
 	parser.current = -1;
 
 	node_s *node = malloc(sizeof(node_s));
 	node = parse_expr();
 
-	return node_none();
+	return node;
 }
 
-static node_s *parse_expr() {
+static node_s *parse_expr(void) {
 	node_s *expr = parse_term();
 
-	while (expect(TKN_PLUS) || expect(TKN_MINUS)) {
+	while (match(TKN_PLUS) || match(TKN_MINUS)) {
 		int op = current().type;
-		consume();
+		// printf("expr: %s, %c, %i\n", token_to_str(op), token_to_char(op), op);
 		node_s *rhs = parse_term();
 		expr = new_bin_expr(expr, rhs, op);
 	}
 	return expr;
 }
 
-static node_s *parse_term() {
+static node_s *parse_term(void) {
 	node_s *expr = parse_factor();
 
-	while (expect(TKN_ASTERISK) || expect(TKN_FORWARD_SLASH)) {
+	while (match(TKN_ASTERISK) || match(TKN_FORWARD_SLASH)) {
 		int op = current().type;
-		consume();
+		// printf("term: %s, %c\n", token_to_str(op), token_to_char(op));
 		node_s *rhs = parse_factor();
 		expr = new_bin_expr(expr, rhs, op);
 	}
 	return expr;
 }
 
-static node_s *parse_factor() {
-	node_s *expr = parse_unary();
+static node_s *parse_factor(void) {
 
-	while (expect(TKN_ASTERISK) || expect(TKN_FORWARD_SLASH)) {
+	if (match(TKN_BANG) || match(TKN_MINUS)) {
 		int op = current().type;
-		consume();
-		node_s *rhs = parse_unary();
-		expr = new_bin_expr(expr, rhs, op);
-	}
-	return expr;
-}
-
-static node_s *parse_unary() {
-	if (expect(TKN_BANG) || expect(TKN_MINUS)) {
-		int op = current().type;
-		consume();
-		node_s *right = parse_unary();
+		node_s *right = parse_factor();
 		node_s *expr = new_unary_expr(right, op);
+		return expr;
 	}
 	return parse_primary();
 }
 
-static node_s *parse_primary() {
-	if (expect(TKN_INTEGER_LITERAL)){
-		consume();
+static node_s *parse_primary(void) {
+	if (match(TKN_INTEGER_LITERAL)){
 		node_s *node = new_node();
 		node->type = N_LIT_INT;
-		node->node.int_lit = lit_at(current().literal_id).literal._int;
+		node->node.int_lit = lit_at(parser.current).literal._int; // current == 2
 		return node;
 	}
 	return NULL;
 }
 
-static node_s *new_node() {
+static node_s *new_node(void) {
 	node_s* node = malloc(sizeof(node_s));
 	if (node == NULL) {
 		printf("ERROR: couldn't malloc a new node\n");
@@ -174,7 +162,15 @@ static inline int expect_n(int offset, token_type expected)
 	return (peek_n(offset).type == expected);
 }
 
-static inline token_s current() {
+static inline int match(token_type expected) {
+	if (expect(expected)) {
+		consume();
+		return 1;
+	}
+	return 0;
+}
+
+static inline token_s current(void) {
 	return parser.tokens->token_list[parser.current];
 }
 
@@ -206,22 +202,38 @@ static inline literal_s lit_at(long tok_id)
 	return parser.tokens->literal_list[lit_id];
 }
 
-static inline node_s node_none() {
+static inline node_s node_none(void) {
 	return (node_s){.type = N_NONE};
 }
 
-void print_ast(node_s tree)
+void print_ast(node_s node)
 {
-	printf("tree: (\n");
-	switch (tree.type) {
+	// printf("\n(\n");
+	switch (node.type) {
 		case N_NONE:
+			printf("none");
 		break;
 		case N_LIT_INT:
-			// sprintf(output, "(int: %i)", node.node.int_lit);
-			// return output;
+			printf(" %i", node.node.int_lit);
+			// return;
 		break;
 		case N_EXP_BIN:
-			
+		{
+			printf(" (");	
+			print_ast(*node.node.expr.binary.lhs);
+			char c = token_to_char( node.node.expr.binary.operator_type );
+			printf(" %c", c);
+			print_ast(*node.node.expr.binary.rhs);
+			printf(" )");
+			// return;
+		}
+		break;
+		case N_EXP_UN:
+		{
+			char c = token_to_char( node.node.expr.unary.operator_type );
+			printf(" %c", c);
+			print_ast(*node.node.expr.unary.operand);
+		}
 		break;
 		default:
 			// return "tree";

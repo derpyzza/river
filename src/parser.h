@@ -29,5 +29,5 @@ typedef struct node_s {
 	} node;
 } node_s;
 
-void print_ast(node_s tree);
-node_s parse_tokens( struct token_array_s tokens, struct string_s src ); 
+void print_ast(node_s node);
+node_s *parse_tokens( struct token_array_s *tokens, struct string_s src ); 
