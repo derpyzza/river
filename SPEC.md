@@ -272,7 +272,7 @@ char return_char() {
 ```c
 
 // Function Pointers
-func* void(int x, float y);
+func* (void name)(int x, float y);
 
 ```
 

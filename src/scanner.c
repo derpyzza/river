@@ -3,6 +3,13 @@
 #include <stdio.h>
 #include <string.h>
 
+struct scanner_s {
+	char *start;
+	int line;
+};
+
+static struct scanner_s scanner;
+
 #define MAKE_LIT_STR(x) (literal_s){ LIT_STRING , (literal_u) { ._str = x }}
 #define MAKE_LIT_INT(x) (literal_s){ LIT_INT , (literal_u) { ._int = x }}
 #define MAKE_LIT_FLOAT(x) (literal_s){ LIT_FLOAT , (literal_u) { ._float = x }}
@@ -10,7 +17,7 @@
 
 static token_array_s* init_token_array(void);
 static void push_token(token_array_s* tkn, token_type token, int chr_index);
-static void push_token_lit ( token_array_s* tkn, token_type token, literal_s lit, int chr_index );
+static void push_token_lit ( token_array_s* tkn, token_type token, literal_s lit, int chr_index);
 static char* strip_whitespace(const char* string);
 
 static inline int char_is_digit(char c)
@@ -39,6 +46,10 @@ static inline char peek(char* s)
 	return (*++s);
 }
 
+static inline int line() {
+	return scanner.line;
+}
+
 static char* strip_whitespace(const char* string)
 {
 	int index = 0, str_size = strlen(string);
@@ -60,22 +71,22 @@ static token_array_s* init_token_array(void)
 {
 	token_array_s* tkn = malloc(sizeof(token_array_s));
 	tkn->max_tokens = 512;
-	tkn->final_token = 0;
+	tkn->current_token = 0;
 	tkn->token_list = malloc(sizeof(token_s) * tkn->max_tokens);
 	// Empty out the array
 	tkn->token_list = memset(tkn->token_list, 0, sizeof(token_s) * tkn->max_tokens);
 
 	tkn->max_literals = 512;
-	tkn->final_literal = 0;
+	tkn->current_literal = 0;
 	tkn->literal_list = malloc(sizeof(literal_s) * tkn->max_literals);
 	tkn->literal_list = memset(tkn->literal_list, 0, sizeof(literal_s) * tkn->max_literals);
 
 	return tkn;
 }
 
-static void push_token(token_array_s* tkn, token_type token, int chr_index) 
+static void push_token(token_array_s* tkn, token_type token, int chr_index ) 
 {
-	push_token_lit(tkn, token, (literal_s){.type = LIT_NONE}, chr_index);
+	push_token_lit(tkn, token, (literal_s){.type = LIT_NONE}, chr_index );
 }
 
 static void push_token_lit (
@@ -86,27 +97,28 @@ static void push_token_lit (
 	) 
 {
 	// Check for buffer overflows
-	if (tkn->final_token + 1 > tkn->max_tokens) {
+	if (tkn->current_token + 1 > tkn->max_tokens) {
 		tkn->max_tokens += 1024;
 		tkn->token_list = realloc(tkn->token_list, tkn->max_tokens);
 	}
-	if (tkn->final_literal + 1 > tkn->max_literals) {
+	if (tkn->current_literal + 1 > tkn->max_literals) {
 		tkn->max_literals += 1024;
 		tkn->literal_list = realloc(tkn->literal_list, tkn->max_literals);
 	}
 	
-	tkn->token_list[tkn->final_token].type = token;
-	tkn->token_list[tkn->final_token].chr_index = chr_index;
+	tkn->token_list[tkn->current_token].type = token;
+	tkn->token_list[tkn->current_token].chr_index = chr_index;
+	tkn->token_list[tkn->current_token].line = line();
 	if (lit.type != LIT_NONE) {
-		tkn->literal_list[tkn->final_literal] = lit;
-		tkn->token_list[tkn->final_token].literal_id = tkn->final_literal;
-		tkn->token_list[tkn->final_token].has_literal = 1;
+		tkn->literal_list[tkn->current_literal] = lit;
+		tkn->token_list[tkn->current_token].literal_id = tkn->current_literal;
+		tkn->token_list[tkn->current_token].has_literal = 1;
 
-		tkn->final_literal++;
+		tkn->current_literal++;
 	}
 
 	if (!(token == TKN_EOF))
-		tkn->final_token++;
+		tkn->current_token++;
 }
 
 void print_token_array(string_s src, token_array_s tkn)
@@ -116,7 +128,7 @@ void print_token_array(string_s src, token_array_s tkn)
 	printf("[TI:CI] token[TN]: tkn, value: val\n"
 				 "----------------------------------\n");
 	int i = 0;
-	for (i = 0; i < tkn.final_token; i++ ) {
+	for (i = 0; i <= tkn.current_token; i++ ) {
 		token_s current = tkn.token_list[i];
 		if (current.has_literal) {
 			literal_s cur_lit = tkn.literal_list[current.literal_id];
@@ -125,20 +137,24 @@ void print_token_array(string_s src, token_array_s tkn)
 			token_type type = current.type;
 			switch(cur_lit.type) {
 				case LIT_INT:
-					printf("[%02i:%02i] token[%02i]: %s, value: %i\n", 
+					printf("[%02i:%02i] token[%02i]: %s, value: [%02i:%02i]\n", 
 							i, 
 							chid,
 							type,
 							token_strings[type], 
-							lit._int);
+							current.literal_id,
+							lit._int
+							);
 				break;
 				case LIT_DOUBLE:
-					printf("[%02i:%02i] token[%02i]: %s, value: %lf\n", 
+					printf("[%02i:%02i] token[%02i]: %s, value: [%02i:%lf]\n", 
 							i, 
 							chid,
 							type,
 							token_strings[type], 
-							lit._double);
+							current.literal_id,
+							lit._double
+							);
 				break;
 				case LIT_FLOAT:
 					printf("[%02i:%02i] token[%02i]: %s, value: %f\n", 
@@ -146,7 +162,8 @@ void print_token_array(string_s src, token_array_s tkn)
 							chid,
 							type,
 							token_strings[type], 
-							lit._float);
+							lit._float
+							);
 				break;
 				case LIT_STRING:
 					printf("[%02i:%02i] token[%02i]: %s, value: %.*s\n", 
@@ -178,8 +195,8 @@ void print_token_array(string_s src, token_array_s tkn)
 					token_strings[current.type]);
 		}
 	}
-	printf("Total used tokens: %ld, Unused tokens: %ld\n", tkn.final_token - 1, tkn.max_tokens - tkn.final_token);
-	printf("Total used literals: %ld, Unused literals: %ld\n", tkn.final_literal - 1, tkn.max_literals - tkn.final_literal);
+	printf("Total used tokens: %ld, Unused tokens: %ld\n", tkn.current_token, tkn.max_tokens - tkn.current_token);
+	printf("Total used literals: %ld, Unused literals: %ld\n", tkn.current_literal, tkn.max_literals - tkn.current_literal);
 }
 
 // convert input string into list of tokens
@@ -192,7 +209,7 @@ token_array_s* tokenize ( string_s src )
 	// and the current character
 	char *start = (char*) src.string;
 	size_t len = src.size;
-	int line = 1;
+	scanner.line = 1;
 
 	// printf("Scanning %s for tokens ...\n", src.path);
 	for (char *c = (char*) src.string; c - start < len; c++) {
@@ -209,7 +226,7 @@ token_array_s* tokenize ( string_s src )
 				c++;
 				c++;
 				if (!char_is_digit(*c) && !(*c == 'f') && !(*c == 'd')) {
-					printf("ERROR: extra period after number %i at line %i\n", num, line);
+					printf("ERROR: extra period after number %i at line %i\n", num, line());
 				}
 				else {
 					double pnum = 0;
@@ -281,7 +298,7 @@ token_array_s* tokenize ( string_s src )
 					);
 		}
 		else if (char_is_whitespace(*c)){
-			if (*c == '\n') line++;
+			if (*c == '\n') scanner.line++;
 		}
 		else {
 			switch (*c) {
@@ -372,13 +389,28 @@ token_array_s* tokenize ( string_s src )
 				// STRING HANDLING
 				case '"':
 				{
+					if(peek(c) == '"') {
+
+					push_token_lit(
+							tkn,
+							TKN_STRING_LITERAL,
+							(literal_s) {
+								.type = LIT_STRING,
+								.literal = (literal_u) {
+									._str = (substr_s){.c_ptr = c, .len = 1}
+								}
+							},
+							c - start);
+					c += 2;
+					break;
+					}
 					int str_start = ++c-start;
 					char* str_ptr = c;
 					while( peek(c) != '"' && ((c - start) != len) ) {
 						if ( peek(c) == '\n' ) {
 							c++;
-							printf("WARNING: Unterminated string on a newline at line %i\n", line);
-							line++;
+							printf("WARNING: Unterminated string on a newline at line %i\n", line());
+							scanner.line++;
 							// continue;
 						}
 						c++;
@@ -402,8 +434,7 @@ token_array_s* tokenize ( string_s src )
 									._str = substr
 								}
 							},
-							c - start
-							);
+							c - start);
 					break;
 				}
 				case '\'':
@@ -423,7 +454,7 @@ token_array_s* tokenize ( string_s src )
 									._char = *c
 								}
 								},
-								c - start
+								c - start 
 								);
 						c++;
 					}
@@ -431,7 +462,7 @@ token_array_s* tokenize ( string_s src )
 				break;
 				default:
 					printf("Unknown character encountered: %c at l:%i\n", *c,
-							line);
+							line());
 				break;
 			}
 		}

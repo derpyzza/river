@@ -28,9 +28,8 @@ typedef enum token_type {
 	TKN_PAREN_CLOSE,
 	TKN_BRACE_OPEN,
 	TKN_BRACE_CLOSE,
-	TKN_OPEN_QUOTE,
-	TKN_CLOSE_QUOTE,
-	TKN_COMMA,
+	TKN_QUOTE,
+	TKN_COMMA, 
 	TKN_DOT,
 	TKN_PLUS,
 	TKN_MINUS,
@@ -89,8 +88,7 @@ static const char* token_strings[] = {
 	"PAREN CLOSE",
 	"BRACE OPEN",
 	"BRACE CLOSE",
-	"OPEN QUOTE",
-	"CLOSE QUOTE",
+	"QUOTE",
 	"COMMA",
 	"DOT",
 	"PLUS",
@@ -173,16 +171,17 @@ typedef struct literal_s {
 typedef struct token_s {
 	token_type type;
 	int chr_index; // the starting character index
-	int has_literal; // whether or not it has a literal;
+	int has_literal;
 	int literal_id;
+	int line;
 } token_s;
 
 // Dynamic array of tokens;
 typedef struct token_array_s {
 	long max_tokens;
-	long final_token;
+	long current_token;
 	long max_literals;
-	long final_literal;
+	long current_literal;
 	token_s* token_list;
 	literal_s* literal_list;
 } token_array_s;
@@ -190,10 +189,23 @@ typedef struct token_array_s {
 void print_token_array(string_s src, token_array_s tkn);
 token_array_s* tokenize (string_s src);
 
-// Returns an eof token. useful for termination
+static inline char* token_to_str(token_type type) {
+	return (char*) token_strings[type];
+}
+
+// useful for termination
 static inline token_s token_eof(void) {
 	return (token_s) {
 		.type = TKN_EOF,
+		.chr_index = 0,
+		.has_literal = 0,
+		.literal_id = 0
+	};
+} 
+
+static inline token_s token_none(void) {
+	return (token_s) {
+		.type = TKN_NONE,
 		.chr_index = 0,
 		.has_literal = 0,
 		.literal_id = 0

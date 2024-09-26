@@ -1,23 +1,32 @@
 #pragma once
 
+#include "scanner.h"
 typedef enum {
 	N_NONE,
-	N_INT_LIT,
-	N_B_EXPR,
+	N_LIT_INT,
+	N_EXP_UN,
+	N_EXP_BIN,
 } node_type;
 
-typedef struct bin_expr {
-	int lhs, rhs;
-	char op;
-} bin_expr_s;
+union expr{
+	struct binary {
+		struct node_s *lhs, *rhs;
+		int operator_type;
+	} binary;
+	struct unary {
+		struct node_s *operand;
+		int operator_type;
+	} unary;
+};
 
+// AST Node 
 typedef struct node_s {
-	// struct node_s *next;
-	node_type type;
+	int type;
+
 	union {
 		int int_lit;
-		bin_expr_s bexpr;
-	};
+		union expr expr;
+	} node;
 } node_s;
 
 void print_ast(node_s tree);
