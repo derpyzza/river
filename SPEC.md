@@ -88,7 +88,6 @@ number x = 10; // valid
 number y = 52.32; // also valid
 number z = 42.4d; // not valid, as it is a double value
 
-
 ```
 
 ## structs 
@@ -146,6 +145,18 @@ struct Cat {
 Cat kitty = new Cat;
 kitty.mew_style = "mewmewmew";
 kitty.Meow(); // mewmewmew
+
+```
+
+## Tuples
+```c 
+
+// tuples are like structs, except they don't have named parameters
+
+(u32, string) x = (23, "hello");
+
+let (id, name) = (2332, "derpy");
+let tup = (23, "dwe", 36);
 
 ```
 
@@ -217,7 +228,6 @@ x = 3 // outputs 3
 {
     return x;
 } // This whole block is an expression
-let x = if (bool) 10 else if (other_bool) 11 else 23; // this is an expression wrapped up in a statement;
 
 
 // Statements
@@ -227,28 +237,44 @@ let x = if (bool) 10 else if (other_bool) 11 else 23; // this is an expression w
 
 ## Control flow
 
-```c 
-if ( expression ) {
+```rs
+
+// all the following control flow structures are expressions rather than statements
+
+let x = if bool { 10 } else if other_bool { 11 } else { 23 };
+
+
+if expression {
     // do stuff
-} else if ( other_expression ) {
+} else if other_expression {
     // do other stuff
 } else {
     // do yet more stuff
 }
 
-while(expression) {
+if expression { statement };
+
+while expression {
     // do stuff
 }
 
 do {
-    // do stuff 
-} while(expression);
 
-for (init; condition; step) {
+} while expression;
+
+for init; condition; step {
 
 }
 
-foreach ( item, iterable ) {
+for let x = 0; x < 10; x++ {
+
+}
+
+for x in range(0..=10) {
+
+}
+
+for item in iterable {
 
 }
 
