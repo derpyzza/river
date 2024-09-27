@@ -147,7 +147,7 @@ typedef enum literal_type {
 	LIT_FALSE,
 } literal_type;
 
-typedef struct {
+typedef struct substr_s{
 	int len;
 	char* c_ptr;
 }substr_s;

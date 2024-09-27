@@ -1,7 +1,7 @@
 # Introduction
 This is the language spec for river.
 
-## comments
+# Comments
 ```c 
 
 // Double slashes indicate a single line comment 
@@ -14,7 +14,7 @@ This is the language spec for river.
 
 ```
 
-## Data types and literals
+# Data types and literals
 ```c 
 
 // River comes with several builtin basic data types
@@ -26,29 +26,25 @@ This is the language spec for river.
  * u16      - Unsigned 16 bit integer
  * u32      - Unsigned 32 bit integer
  * u64      - Unsigned 64 bit integer
- * u128     - Unsigned 128 bit integer
  * i8       - Signed 8 bit integer
  * i16      - Signed 16 bit integer
  * i32      - Signed 32 bit integer
  * i64      - Signed 64 bit integer
- * i128     - Signed 128 bit integer
  * f32      - Floating point number
  * f64      - Double precision floating point number
  * isize    - Signed pointer sized integer
  * usize    - Unsigned pointer sized integer
- * char     - A Single utf-8 code point i.e represents a single utf-8 character, and is not a byte like in C.
- * str      -  A statically sized utf-8 string literal
- * string   - A dynamically sized utf-8 string literal;
+ // maybe replace char with rune for better clarity?
+ * char     - A Single utf-8 code point i.e represents a single utf-8 character,
+              and is therefore four bytes and not a byte like in C.
+ * str      - A statically sized utf-8 string literal
 */
-
-// Numeric type literals can have underscores in-between as a visual separator to help with readability
-i32 million = 1_000_000; // Same as 1000000
 
 ```
 
 
 
-## Variable Definition & Declaration
+# Variable Definition & Declaration
 
 ```c
 
@@ -67,30 +63,199 @@ y = 13314.3f;
 // you can also explicitly define a variable with a type.
 i32 t = 124;
 
+// You can assign multiple variables at once:
+u32 x = 20, y = 50, z = 40;
+// Even if the types are separate:
+let x = "X", y = 230, z = false; // perfectly valid
+
+// Multiple variables can be initialized with the same value, but their types must be the same
+u32 x, y, z, w = 1;
+
+// variables are non-nullable by default
+// to have a nullable variable, it must be explicitly marked as such
+// by appending a '?' to the variable name
+// Unlike pointers, nullability is a datatype
+str? name = get_name();
+
+// nullable variables must be checked before use 
+printf(name); // ERROR: Value is nullable
+if name {
+    printf(name); // compiles
+}
+
 ```
 
-## types
+# Functions 
 
 ```c
 
-// You can define your own types
+// functions are defined using the following syntax:
+u32 add ( u32 x, u32 y ) {
+    return ( x + y );
+}
 
-type int -> u32;
+// functions are called as such:
+add(10, 20); // => 30
 
+// Code blocks, including functions, support implicit returns
+// the last expression within a block is returned
+u32 sub ( u32 x, u32 y ) {
+    x + y // returns x + y
+} 
 
-int x = 10; // base type: u32
+struct Colour(u32: r, g, b, a);
 
-// Types can be composed of multiple base times
-// this type can represent both u32 or f32 values
-type number -> u32 | f32;
+// Functions support default parameter values
+// If an argument is not passed for a particular parameter,
+// the default value is used instead.
+Colour Colour_from_rgba ( u32 r, u32 g, u32 b, u32 a = 255 ) {
+    return Colour(r, g, b, a);
+}
 
-number x = 10; // valid
-number y = 52.32; // also valid
-number z = 42.4d; // not valid, as it is a double value
+// Arguments with default parameters can be omitted
+Colour_from_rgba(125, 125, 125); // param 'a' => 255;
+Colour_from_rgba(125, 125, 125, 125); // param 'a' => 125;
+
+// Function calls also look similar to C
+Colour_from_rgba(125, 125, 125, 255);
+
+// Function arguments can be named when calling functions
+// Take the following function for example:
+Rectangle draw_rect_pro (u32 x, u32 y, u32 width, u32 height, f64 rotation, Colour col);
+// You can call the function by naming the individual arguments
+Rectangle rect = draw_rect_pro(x: 20, y: 30, width: 240, height: 360, col: (10,10,10,255));
+// The advantage of named arguments is that you can rearrange the order in which you pass them:
+draw_rect_pro(width: 240, height: 360, x: 20, y: 30, col: (10,10,10,255)); // perfectly valid
+
+// functions can have multiple return values by utilizing tuples
+(File, Error) read_file (str path) {
+    // ... file reading logic ...
+
+    return (file, err);
+}
+
+let (file, err) = read_file("SPEC.md");
+if err {
+    error(err);
+}
+
+// In the case of functions that return nullable values, you can unwrap
+// the value using the '?' operator:
+str name = get_name()?; // => if get_name() returns null then the program panics;
+
+// functions can be declared using this alternate syntax:
+u32 add => (u32 x, u32 y) { ... }
+
+// NOTE: are closures necessary?
+// This syntax is handy for closures
+let x => () {
+    30
+};
+x(); // => 30
+
+// Closures can have function parameters:
+let x => (u32 x) {
+    10 * x
+}; 
+x(10); // => 100
+
+// functions are first class in river, so you can pass them around as values
+// TODO: workshop the function callback syntax a bit more
+u32 example_func(f32 val, func => <void(u32, u32)> ) 
+{
+    func(20, 20); // => calls the passed-in function
+}
+
+// what should the closure function signature syntax be?
+u32 example_func(f32 val, func => void(u32, u32)); 
+
+u32 example_func(f32 val, func => <void(u32, u32)>); 
+
+u32 example_func(f32 val, func => void|u32, u32|);
+
+u32 example_func(f32 val, void func => (u32, u32));
+
+u32 example_func(f32 val, void func(u32, u32));
+
+// functions can return other functions
+bool(u32) func () {
+    // functions can be defined inline as closures
+    return bool(u32 x) => {
+        if x {
+            true
+        } else {
+            false
+        }
+    };
+}
 
 ```
 
-## structs 
+# Control flow
+
+```rs
+
+// all the following control flow structures are expressions rather than statements
+
+let x = if bool { 10 } else if other_bool { 11 } else { 23 };
+let x = if (bool) 10 else if (other_bool) 11 else 23;
+
+if x == "string" {
+    do_something();
+}
+if ( x == "string" ) {
+    do_something();
+}
+
+
+if ( expression ) {
+    // do stuff
+} else if ( other_expression ) {
+    // do other stuff
+} else {
+    // do yet more stuff
+}
+
+if expression { statement };
+
+while ( expression ) {
+    // do stuff
+}
+
+do {
+
+} while expression;
+
+for (init; condition; step) {
+
+}
+
+for (x = 0; x < 10; x++) {
+
+}
+
+foreach x in range(0..=10) {
+
+}
+
+foreach item in iterable {
+
+}
+
+match expr {
+    case => expr,
+    case => {...},
+    case,
+    case,
+    case => {...},
+    _    => {...}, // default case
+}
+
+```
+
+
+
+# structs 
 
 ```c
 
@@ -131,7 +296,6 @@ admin.name = "Administrator";
 printf("user.name = %s, user.pin = %i", admin.username, admin.pin) // => "user.name = Administrator, user.pin = 0000"; 
 
 struct Cat {
-
     Vector3_s pos, orientation;
     str name;
     str mew_style;
@@ -146,9 +310,15 @@ Cat kitty = new Cat;
 kitty.mew_style = "mewmewmew";
 kitty.Meow(); // mewmewmew
 
+// If you have a struct where all it's members are the same type, you can define it 
+// using the following bit of syntactic sugar:
+struct Colour(u32: r, g, b, a);
+// With the syntax pattern being:
+struct name(type: val1, val2, val3 ...);
+
 ```
 
-## Tuples
+# Tuples
 ```c 
 
 // tuples are like structs, except they don't have named parameters
@@ -160,7 +330,30 @@ let tup = (23, "dwe", 36);
 
 ```
 
-## Namespaces
+
+
+# Custom Types
+
+```c
+
+// You can define your own types
+
+type int -> u32;
+
+
+int x = 10; // base type: u32
+
+// Types can be composed of multiple base times
+// this type can represent both u32 or f32 values
+type number -> u32 | f32;
+
+number x = 10; // valid
+number y = 52.32; // also valid
+number z = 42.4d; // not valid, as it is a double value
+
+```
+
+# Namespaces
 ```c
 
 // the namespace keyword declares a new namespace
@@ -182,7 +375,7 @@ Vector3::add();
 
 ```
 
-## Interfaces 
+# Interfaces 
 ```c 
 
 // Interfaces define polymorphic functions
@@ -212,7 +405,63 @@ printf("%s", Vector3_s::to_string(v)); // prints "x: 130, y: 24, z: 53"
 
 ```
 
-## Statements and Expressions
+# Arrays & Slices
+
+```c
+
+// river's arrays are almost the same as C's, with some key differences
+// Unlike in C, river's arrays are a distinct type and cannot dissolve down to pointers
+u32[4] numbers = { 10, 20, 30, 40 };
+// first, arrays have their length encoded into them
+// Do note: the array length is equal to the number of elements in it, not the max index
+// i.e an array of of size 4 with have four elements in it but the final element will have 
+// the index [3], as indices begin at [0]
+numbers.length // => 4
+// second, you can initialize arrays with default values
+u32[0;10] numbers; // => array of size 10 with every element being initialized to 0
+u32[5;8] numbers; // => array of size 8 with every element being initialized to 5
+
+// Unlike in C, river's arrays are a distinct type and cannot dissolve down to pointers
+u32 print_num_array ( u32[10] numbers ) { ... }
+
+u32 *nums;
+print_num_array(nums); // ERROR: Incompatible types; expected type u32[10], got u32* instead;
+
+
+// A Slice is a referenced subset of another array
+str[6] animals = { "cat", "dog", "cow", "sheep", "chicken", "lion" }; 
+// Slice of all the farm animals
+str[] farm_animals = animals[2..4]; // => { "cow", "sheep", "chicken" };
+
+```
+
+# Strings
+
+```c
+
+```
+
+# Goto 
+
+```c
+
+// Gotos work the same as in C, except labels are more explicit
+// Jump labels are required to be marked with the label keyboard
+
+{
+  // jump label
+  label jumpHere:
+    // code block
+}
+
+if expr {
+    goto jumpHere;
+}
+
+
+```
+
+# Statements and Expressions
 
 Expressions are strings of code that evaluate to a value,
 whereas statements produce a side-effect;
@@ -234,76 +483,21 @@ x = 3 // outputs 3
 
 ```
 
-
-## Control flow
-
-```rs
-
-// all the following control flow structures are expressions rather than statements
-
-let x = if bool { 10 } else if other_bool { 11 } else { 23 };
-
-
-if expression {
-    // do stuff
-} else if other_expression {
-    // do other stuff
-} else {
-    // do yet more stuff
-}
-
-if expression { statement };
-
-while expression {
-    // do stuff
-}
-
-do {
-
-} while expression;
-
-for init; condition; step {
-
-}
-
-for let x = 0; x < 10; x++ {
-
-}
-
-for x in range(0..=10) {
-
-}
-
-for item in iterable {
-
-}
-
-```
-
-## Returns 
-
-```c 
-
-char return_char() {
-    char c = 'g';
-
-    c
-}
-
-
-```
-
-## Pointers
+# Pointers
 
 ```c
 
-// Function Pointers
-func* (void name)(int x, float y);
+// pointers take the following form:
+*type ptr = val;
+
+u32 val = 10;
+u32 *ptr = val;
+*ptr // => 10
+&ptr // => address of val
 
 ```
 
-
-## strings
+# Misc + Reference
 
 ## Character / operator list:
 \+ \- \* / % ! != += -= *= /= %= ^ ~ & | && ||
@@ -350,3 +544,5 @@ like
 حندسہ x, r
 }
 ```
+
+# Grammar specification
