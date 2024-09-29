@@ -66,20 +66,14 @@ main(int argc, char** argv) {
 				printf("k, bye then\n");
 				exit(0);
 			}
-			// else if (!strcmp(buf, "tokens")) {
-			// 	print_tokens = !print_tokens;
-			// 	printf("tokens set to %s\n", print_tokens ? "true" : "false");
-			// }
 
 			// This is ugly, should change this.
 			string_s source = (string_s) {.size = strlen(buf), .string = buf};
 			token_array_s* tkn = tokenize(source);
 
-			// print_token_array(source, *tkn);
 			node_s *node = parse_tokens(tkn, source);
 			print_ast(*node);
 			printf("\n");
-			// interpret(node);
 			free(tkn);
 		}
 		exit(0);

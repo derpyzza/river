@@ -8,4 +8,4 @@ expr -> term ( ('+'|'-') term )*;
 term -> factor ( ('*' | '/') factor)*;
 factor -> unary | ( '-' | '!' unary);
 unary -> primary;
-primary -> INT | FLOAT | DOUBLE;
+primary -> INT | FLOAT | DOUBLE | "true" | "false";

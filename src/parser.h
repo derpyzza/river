@@ -2,10 +2,17 @@
 
 #include "scanner.h"
 typedef enum {
-	N_NONE,
-	N_LIT_INT,
+	N_UNKNOWN = -1,
+	N_NONE = 0,
 	N_EXP_UN,
 	N_EXP_BIN,
+
+	// literals:
+	N_LIT_INT,
+	N_LIT_DOUBLE,
+	N_LIT_TRUE,
+	N_LIT_FALSE,
+	N_LIT_STRING,
 } node_type;
 
 union expr{
@@ -25,6 +32,8 @@ typedef struct node_s {
 
 	union {
 		int int_lit;
+		double double_lit;
+		substr_s str_lit;
 		union expr expr;
 	} node;
 } node_s;

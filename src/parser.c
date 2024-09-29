@@ -13,21 +13,22 @@ static struct parser parser;
 // Forward declarations so that i can rearrange the definitions as i wish
 
 static inline literal_s lit_at(long tok_id);
-static inline token_s 	peek(void);
-static inline token_s 	prev(void);
-static inline token_s 	peek_n(int offset);
-static inline token_s 	prev_n(int offset);
-static inline token_s 	current(void);
-static inline token_s 	token_at(long id);
-static inline node_s 	node_none(void);
-static inline void 		error_unexpected(token_type expected);
-static inline void 		consume(void);
-static inline int 		expect(token_type type);
-static inline int 		match(token_type type);
-static inline int 		expect_n(int offset, token_type expected);
-static char* 			node_to_str(node_s node);
+static inline token_s peek(void);
+static inline token_s prev(void);
+static inline token_s peek_n(int offset);
+static inline token_s prev_n(int offset);
+static inline token_s current(void);
+static inline token_s token_at(long id);
+static inline node_s node_none(void);
+static inline void error_unexpected(token_type expected);
+static inline void consume(void);
+static inline int expect(token_type type);
+static inline int match(token_type type);
+static inline int expect_n(int offset, token_type expected);
+static char* node_to_str(node_s node);
 
-static node_s *new_node(void);
+static node_s *new_node(node_type type);
+static node_s *node_unknown(void);
 static node_s *new_bin_expr(node_s *lhs, node_s *rhs, int op);
 static node_s *new_unary_expr(node_s *right, int op);
 
@@ -43,7 +44,7 @@ node_s *parse_tokens( token_array_s *tokens, string_s src )
 	parser.tokens = tokens;
 	parser.current = -1;
 
-	node_s *node = malloc(sizeof(node_s));
+	node_s *node = new_node(N_NONE);
 	node = parse_expr();
 
 	return node;
@@ -86,26 +87,53 @@ static node_s *parse_factor(void) {
 
 static node_s *parse_primary(void) {
 	if (match(TKN_INTEGER_LITERAL)){
-		node_s *node = new_node();
-		node->type = N_LIT_INT;
-		node->node.int_lit = lit_at(parser.current).literal._int; // current == 2
+		node_s *node = new_node(N_LIT_INT);
+		node->node.int_lit = lit_at(parser.current).literal._int;
 		return node;
 	}
-	return NULL;
+
+	if (match(TKN_DOUBLE_FLOATING_LITERAL)){
+		node_s *node = new_node(N_LIT_DOUBLE);
+		node->node.double_lit = lit_at(parser.current).literal._double;
+		return node;
+	}
+
+	if (match(TKN_STRING_LITERAL)){
+		node_s *node = new_node(N_LIT_STRING);
+		node->node.str_lit = lit_at(parser.current).literal._str;
+		return node;
+	}
+
+	if (match(TKN_TRUE)){
+		node_s *node = new_node(N_LIT_TRUE);
+		return node;
+	}
+
+	if (match(TKN_FALSE)){
+		node_s *node = new_node(N_LIT_FALSE);
+		return node;
+	}
+
+
+	return node_unknown();
 }
 
-static node_s *new_node(void) {
+static node_s *new_node(node_type type) {
 	node_s* node = malloc(sizeof(node_s));
 	if (node == NULL) {
 		printf("ERROR: couldn't malloc a new node\n");
 		return NULL;
 	}
+	node->type = type;
 	return node;
 }
 
+static node_s *node_unknown(void) {
+	return new_node(N_UNKNOWN);
+}
+
 static node_s *new_bin_expr(node_s *lhs, node_s *rhs, int op) {
-	node_s *node = new_node();
-	node->type = N_EXP_BIN;
+	node_s *node = new_node(N_EXP_BIN);
 	node->node.expr.binary = (struct binary) {
 		.lhs = lhs,
 		.rhs = rhs,
@@ -115,8 +143,7 @@ static node_s *new_bin_expr(node_s *lhs, node_s *rhs, int op) {
 }
 
 static node_s *new_unary_expr(node_s *right, int op) {
-	node_s *node = new_node();
-	node->type = N_EXP_UN;
+	node_s *node = new_node(N_EXP_UN);
 	node->node.expr.unary = (struct unary) {
 		.operator_type = op,
 		.operand = right
@@ -212,6 +239,9 @@ void print_ast(node_s node)
 	switch (node.type) {
 		case N_NONE:
 			printf("none");
+		break;
+		case N_UNKNOWN:
+			printf("unknown node");
 		break;
 		case N_LIT_INT:
 			printf(" %i", node.node.int_lit);

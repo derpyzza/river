@@ -18,20 +18,20 @@ This is the language spec for river.
 ```c 
 
 // River comes with several builtin basic data types
-// The builtin type literals are as follows:
+// The builtin types are as follows:
 /*
  * null     - No type / no value
  * bool     - boolean type / true | false
- * u8       - Unsigned 8 bit integer
- * u16      - Unsigned 16 bit integer
- * u32      - Unsigned 32 bit integer
- * u64      - Unsigned 64 bit integer
- * i8       - Signed 8 bit integer
- * i16      - Signed 16 bit integer
- * i32      - Signed 32 bit integer
- * i64      - Signed 64 bit integer
- * f32      - Floating point number
- * f64      - Double precision floating point number
+ * ubyte    - Unsigned 8 bit integer
+ * ushort   - Unsigned 16 bit integer
+ * uint     - Unsigned 32 bit integer
+ * ulong    - Unsigned 64 bit integer
+ * byte     - Signed 8 bit integer
+ * short    - Signed 16 bit integer
+ * int      - Signed 32 bit integer
+ * long     - Signed 64 bit integer
+ * float    - Floating point number
+ * double   - Double precision floating point number
  * isize    - Signed pointer sized integer
  * usize    - Unsigned pointer sized integer
  // maybe replace char with rune for better clarity?

@@ -2,11 +2,8 @@
 
 #include "common.h"
 
-#define NUM_KEY_WORDS 14
+#define NUM_KEY_WORDS 10
 static const char* key_words[NUM_KEY_WORDS] = {
-	"int", 
-	"bool",
-	"string",
 	"return",
 	"if",
 	"else",
@@ -15,7 +12,6 @@ static const char* key_words[NUM_KEY_WORDS] = {
 	"struct",
 	"defer",
 	"namespace", 
-	"print",
 	"true",
 	"false"
 };
@@ -39,9 +35,6 @@ typedef enum token_type {
 	TKN_BANG,
 
 	// keywords
-	TKN_INT,
-	TKN_BOOL,
-	TKN_STRING,
 	TKN_RETURN, 
 	TKN_IF,
 	TKN_ELSE,
@@ -50,7 +43,8 @@ typedef enum token_type {
 	TKN_STRUCT,
 	TKN_DEFER,
 	TKN_NAMESPACE,
-	TKN_PRINT,
+	TKN_TRUE,
+	TKN_FALSE,
 
 	TKN_IDENTIFIER,
 	TKN_INTEGER_LITERAL,
@@ -58,8 +52,6 @@ typedef enum token_type {
 	TKN_DOUBLE_FLOATING_LITERAL,
 	TKN_CHAR_LITERAL,
 	TKN_STRING_LITERAL,
-	TKN_TRUE,
-	TKN_FALSE,
 
 	// operators
 	TKN_BANG_EQ,
@@ -98,9 +90,6 @@ static const char* token_strings[] = {
 	"BANG",
 
 	// keywords
-	"INT",
-	"BOOL",
-	"STRING",
 	"RETURN", 
 	"IF",
 	"ELSE",
@@ -109,7 +98,8 @@ static const char* token_strings[] = {
 	"STRUCT",
 	"DEFER",
 	"NAMESPACE",
-	"PRINT",
+	"TRUE",
+	"FALSE",
 
 	"IDENTIFIER",
 	"INTEGER LITERAL",
@@ -117,8 +107,6 @@ static const char* token_strings[] = {
 	"DOUBLE FLOATING LITERAL",
 	"CHAR LITERAL",
 	"STRING LITERAL",
-	"TRUE",
-	"FALSE",
 
 	// operators
 	"BANG EQ",
@@ -212,7 +200,7 @@ static inline token_s token_none(void) {
 
 static inline char token_to_char(token_type token) {
 	if (token - 1 <= TKN_BANG && token - 1 >= TKN_EQUAL_SIGN) {
-		char tokens[(TKN_INT - TKN_EQUAL_SIGN)] = {
+		char tokens[(TKN_RETURN - TKN_EQUAL_SIGN)] = {
 			'=', '(', ')', '{', '}', '\"', ',', '.', '+', '-', '*', '/', ';', '!',
 		};
 		return tokens[token - 1];

@@ -1,6 +1,11 @@
 // Welcome to river!
 // Your first task:
 // Parse the following text and make it return a .c file
-// With the exact same text!
+// With the exact same code!
 
-3 * ( 4 + 2 );
+int main() {
+	return 180;
+}
+
+// output should be:
+// int main(void) { return 180; }

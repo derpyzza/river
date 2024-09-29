@@ -121,84 +121,6 @@ static void push_token_lit (
 		tkn->current_token++;
 }
 
-void print_token_array(string_s src, token_array_s tkn)
-{
-	printf("===DUMPING TKNS===\n");
-	// printf("File: %s\n", src.path);
-	printf("[TI:CI] token[TN]: tkn, value: val\n"
-				 "----------------------------------\n");
-	int i = 0;
-	for (i = 0; i <= tkn.current_token; i++ ) {
-		token_s current = tkn.token_list[i];
-		if (current.has_literal) {
-			literal_s cur_lit = tkn.literal_list[current.literal_id];
-			literal_u lit = cur_lit.literal;
-			int chid = current.chr_index;
-			token_type type = current.type;
-			switch(cur_lit.type) {
-				case LIT_INT:
-					printf("[%02i:%02i] token[%02i]: %s, value: [%02i:%02i]\n", 
-							i, 
-							chid,
-							type,
-							token_strings[type], 
-							current.literal_id,
-							lit._int
-							);
-				break;
-				case LIT_DOUBLE:
-					printf("[%02i:%02i] token[%02i]: %s, value: [%02i:%lf]\n", 
-							i, 
-							chid,
-							type,
-							token_strings[type], 
-							current.literal_id,
-							lit._double
-							);
-				break;
-				case LIT_FLOAT:
-					printf("[%02i:%02i] token[%02i]: %s, value: %f\n", 
-							i, 
-							chid,
-							type,
-							token_strings[type], 
-							lit._float
-							);
-				break;
-				case LIT_STRING:
-					printf("[%02i:%02i] token[%02i]: %s, value: %.*s\n", 
-							i, 
-							chid,
-							type,
-							token_strings[type], 
-							cur_lit.literal._str.len,
-							cur_lit.literal._str.c_ptr
-							);
-				break;
-				case LIT_CHAR:
-					printf("[%02i:%02i] token[%02i]: %s, value: %c\n", 
-							i, 
-							chid,
-							type,
-							token_strings[type], 
-							cur_lit.literal._char);
-				default:
-
-				break;
-			}
-		}
-		else  {
-			printf("[%02i:%02i] token[%02i]: %s\n",
-					i,
-					current.chr_index,
-					current.type,
-					token_strings[current.type]);
-		}
-	}
-	printf("Total used tokens: %ld, Unused tokens: %ld\n", tkn.current_token, tkn.max_tokens - tkn.current_token);
-	printf("Total used literals: %ld, Unused literals: %ld\n", tkn.current_literal, tkn.max_literals - tkn.current_literal);
-}
-
 // convert input string into list of tokens
 token_array_s* tokenize ( string_s src )
 {
@@ -257,45 +179,51 @@ token_array_s* tokenize ( string_s src )
 					c - start
 					);
 		} else if (char_is_alpha(*c)) {
-			// skip over strings
-			int str_start = c-start;
-			char* str_ptr = c;
-			while(char_is_alpha(peek(c))) 
-			{
-				c++;
-			}
-			c++;
-			int str_len = c-start-str_start;
-			substr_s substr = (substr_s){.c_ptr = str_ptr, .len = str_len};
 
-			// char* substr = substring(start, str_start, str_len);
+			switch(*c) {
+				break;
+				default: {
+					// skip over strings
+					int str_start = c-start;
+					char* str_ptr = c;
+					while(char_is_alpha(peek(c))) 
+					{
+						c++;
+					}
+					c++;
+					int str_len = c-start-str_start;
+					substr_s substr = (substr_s){.c_ptr = str_ptr, .len = str_len};
 
-			// This flag is here because i couldn't figure out the
-			// proper control flow needed to make sure that keyword
-			// identifiers get stored as keyword tokens and not keyword AND
-			// identifier tokens. This flag is my little hack.
-			int flag = 0;
-			for(int i = 0; i < NUM_KEY_WORDS; i++) {
-				if (!strcmp(substr.c_ptr, key_words[i])) {
-					
-					token_type token = i + TKN_INT;
+					// char* substr = substring(start, str_start, str_len);
 
+					// This flag is here because i couldn't figure out the
+					// proper control flow needed to make sure that keyword
+					// identifiers get stored as keyword tokens and not keyword AND
+					// identifier tokens. This flag is my little hack.
+					int flag = 0;
+					for(int i = 0; i < NUM_KEY_WORDS; i++) {
+						if (!strcmp(substr.c_ptr, key_words[i])) {
+							
+							token_type token = i + TKN_RETURN;
+
+							push_token(
+							tkn, 
+							token,
+							c - start
+							);
+							flag = 1;
+						}
+					}
+					if (!flag)
 					push_token_lit(
-					tkn, 
-					token,
-					(literal_s){ LIT_STRING, (literal_u) {._str = substr}}, 
-					c - start
-					);
-					flag = 1;
+							tkn, 
+							TKN_IDENTIFIER,
+							MAKE_LIT_STR(substr),
+							c - start
+							);
 				}
+				break;
 			}
-			if (!flag)
-			push_token_lit(
-					tkn, 
-					TKN_IDENTIFIER,
-					MAKE_LIT_STR(substr),
-					c - start
-					);
 		}
 		else if (char_is_whitespace(*c)){
 			if (*c == '\n') scanner.line++;
@@ -402,7 +330,6 @@ token_array_s* tokenize ( string_s src )
 							},
 							c - start);
 					c += 2;
-					break;
 					}
 					int str_start = ++c-start;
 					char* str_ptr = c;
@@ -468,8 +395,86 @@ token_array_s* tokenize ( string_s src )
 		}
 	}
 	push_token(tkn, TKN_EOF, len);
-	// print_token_array(src, *tkn);
-	// printf("Scanning complete!\n");
 
 	return tkn;
 }
+
+void print_token_array(string_s src, token_array_s tkn)
+{
+	printf("===DUMPING TKNS===\n");
+	// printf("File: %s\n", src.path);
+	// printf("[TI:CI] token[TN]: tkn, value: val\n"
+				 // "----------------------------------\n");
+	int i = 0;
+	for (i = 0; i <= tkn.current_token; i++ ) {
+		token_s current = tkn.token_list[i];
+		if (current.has_literal) {
+			literal_s cur_lit = tkn.literal_list[current.literal_id];
+			literal_u lit = cur_lit.literal;
+			int chid = current.chr_index;
+			token_type type = current.type;
+			switch(cur_lit.type) {
+				case LIT_INT:
+					printf("[%02i:%02i] token[%02i]: %s, value: [%02i:%02i]\n", 
+							i, 
+							chid,
+							type,
+							token_strings[type], 
+							current.literal_id,
+							lit._int
+							);
+				break;
+				case LIT_DOUBLE:
+					printf("[%02i:%02i] token[%02i]: %s, value: [%02i:%lf]\n", 
+							i, 
+							chid,
+							type,
+							token_strings[type], 
+							current.literal_id,
+							lit._double
+							);
+				break;
+				case LIT_FLOAT:
+					printf("[%02i:%02i] token[%02i]: %s, value: %f\n", 
+							i, 
+							chid,
+							type,
+							token_strings[type], 
+							lit._float
+							);
+				break;
+				case LIT_STRING:
+					printf("[%02i:%02i] token[%02i]: %s, value: %.*s\n", 
+							i, 
+							chid,
+							type,
+							token_strings[type], 
+							cur_lit.literal._str.len,
+							cur_lit.literal._str.c_ptr
+							);
+				break;
+				case LIT_CHAR:
+					printf("[%02i:%02i] token[%02i]: %s, value: %c\n", 
+							i, 
+							chid,
+							type,
+							token_strings[type], 
+							cur_lit.literal._char);
+				default:
+
+				break;
+			}
+		}
+		else  {
+			printf("[%02i:%02i] token[%02i]: %s\n",
+					i,
+					current.chr_index,
+					current.type,
+					token_strings[current.type]);
+		}
+	}
+	printf("Total used tokens: %ld, Unused tokens: %ld\n", tkn.current_token, tkn.max_tokens - tkn.current_token);
+	printf("Total used literals: %ld, Unused literals: %ld\n", tkn.current_literal, tkn.max_literals - tkn.current_literal);
+}
+
+
