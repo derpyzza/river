@@ -1,6 +1,12 @@
-A Small superset of C that's transpiled down to C, with lots of syntax sugar.
 
-All ( or rather, most ) C code is valid river code, but river code is not at all valid C code.
+> [!CAUTION]
+> This project is currently under construction, so most of what you see here is:
+> 1. very, very broken right now, and
+> 2. subject to change.
+> ---
+> With that in mind however, feel free to take a look around, and drop some feedback if you'd like. 
+
+A Small superset of C that's transpiled down to C, with lots of syntax sugar.
 
 named river
 cause it flows down to C
@@ -8,8 +14,6 @@ cause it flows down to C
 Both a scripting language and a compiled one?
 
 # Language Goals and Motivations
->   "Abstraction is layering ignorance on top of reality." -- Richard Gabriel
-
 # Ecosystem Features
 ## Testing Framework
 ## Documentation Generation
