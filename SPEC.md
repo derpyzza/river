@@ -20,7 +20,7 @@ This is the language spec for river.
 // River comes with several builtin basic data types
 // The builtin types are as follows:
 /*
- * null     - No type / no value
+ * void     - No type / no value
  * bool     - boolean type / true | false
  * ubyte    - Unsigned 8 bit integer
  * ushort   - Unsigned 16 bit integer
@@ -39,6 +39,15 @@ This is the language spec for river.
               and is therefore four bytes and not a byte like in C.
  * str      - A statically sized utf-8 string literal
 */
+
+// River has the following literal types:
+/*
+ *  null        - no value. compiles down to (void*)0;
+ *  numbers     - signed, unsigned, integer, floating point. 
+ *  string      - "string"
+ *  true
+ *  false
+ */
 
 ```
 
@@ -82,6 +91,7 @@ printf(name); // ERROR: Value is nullable
 if name {
     printf(name); // compiles
 }
+
 
 ```
 
@@ -376,7 +386,7 @@ Vector3::add();
 ```
 
 # Interfaces 
-```c 
+```cpp
 
 // Interfaces define polymorphic functions
 interface debug {
@@ -388,9 +398,9 @@ struct Vector3_s {
     f32 x, y, z;
 }
 
-impl Vector3_s::debug {
+impl debug for Vector3_s {
     
-    string to_string(Vector3_s t) {
+    string to_string(Vector3_s t) => {
         string x = new string();
         x.concat(`x: {f32::to_string(t.x)}, `);
         x.concat(`y: {f32::to_string(t.y)}, `);
@@ -402,6 +412,15 @@ impl Vector3_s::debug {
 
 Vector3_s v = (Vector3_s){130, 24, 53};
 printf("%s", Vector3_s::to_string(v)); // prints "x: 130, y: 24, z: 53"
+
+interface add<T> => where T is Numeric {}
+interface cat<T> => where T is Stringy {}
+
+int count_entities(T entities) => where T impls Entity {
+    for t in entities {
+        t.print_name();
+    }
+}
 
 ```
 
@@ -488,11 +507,11 @@ x = 3 // outputs 3
 ```c
 
 // pointers take the following form:
-*type ptr = val;
+^type ptr = val;
 
 u32 val = 10;
-u32 *ptr = val;
-*ptr // => 10
+^u32 ptr = val;
+*ptr // => dereference pointer, 10
 &ptr // => address of val
 
 ```
@@ -502,25 +521,24 @@ u32 *ptr = val;
 ## Character / operator list:
 \+ \- \* / % ! != += -= *= /= %= ^ ~ & | && ||
 . , > >= <= < ? : ; ' " """ ` = == ( ) { } [ ]
-@
+@ .. ...
 
 ## Keyword list 
 
-C keywords:
+keywords from C:
 
 short char int long float double void
-signed unsigned 
 if else for while break continue
 switch case goto struct return 
-enum union typedef sizeof const
+enum union sizeof const
 
 river keywords:
 
-usize isize let string bool array
-i8 i16 i32 i64 u8 u16 u32 u64 f32 f64
+usize isize let str bool array byte
 foreach defer match label
 public private sticky
 new delete namespace macro
+impl interface import as from with is
 
 
 ## Notes

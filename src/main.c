@@ -6,6 +6,7 @@
 #include "common.h"
 #include "scanner.h"
 #include "parser.h"
+#include "codegen.h"
 
 file_s *read_file(char* path) {
 	file_s *out = malloc(sizeof(file_s));
@@ -40,6 +41,28 @@ file_s *read_file(char* path) {
 	return out;
 }
 
+typedef struct path_s {
+	char* path;
+	char* ext;
+} path_s;
+
+path_s split_path(char* path) {
+	char* _path = malloc(sizeof(path));
+	int len = sizeof(path);
+	int id = 0;
+	char* c = path;
+	for(c = path; *c != '.'; c++) {
+		_path[id] = *c;
+		id++;
+	}
+	_path[id] = 0;
+
+	char* _ext = malloc(len - id * sizeof(char) + 1);
+	strcpy(_ext, c);
+	return (path_s){ .path = _path, .ext = _ext };
+}
+
+
 int
 main(int argc, char** argv) {
 	printf("Welcome to the river compiler!\n");
@@ -70,10 +93,11 @@ main(int argc, char** argv) {
 			// This is ugly, should change this.
 			string_s source = (string_s) {.size = strlen(buf), .string = buf};
 			token_array_s* tkn = tokenize(source);
+			print_token_array(source, *tkn);
 
-			node_s *node = parse_tokens(tkn, source);
-			print_ast(*node);
-			printf("\n");
+			// node_s *node = parse_tokens(tkn, source);
+			// print_ast(*node);
+			// printf("\n");
 			free(tkn);
 		}
 		exit(0);
@@ -81,16 +105,34 @@ main(int argc, char** argv) {
 
 	// Compile all the files given in turn
 	for (int i = 1; i < argc; i++) {
-		char* path = argv[i];
-		printf("Compiling file %s...\n", path);
-		file_s* source = read_file(path);
+		char* raw_path = argv[i];
+		path_s path = split_path(raw_path);
+		if (strcmp(path.ext, ".rvr")) {
+			printf("Error: invalid filetype, expected \".rvr\", got \"%s\"\n", path.ext);
+			continue;
+		}
+		printf("Compiling file %s...\n", raw_path);
+		file_s* source = read_file(raw_path);
 		if (!source->is_valid) {
-			printf("ERROR: source file %s not valid\n", path);
+			printf("ERROR: source file %s not valid\n", raw_path);
 			exit(1);
 		}
 
+		FILE* out_file = fopen(strcat(path.path, ".c"), "wb");
+		if (out_file == NULL) {
+			printf("Error: Couldn't create output file %s.c\n", path.path);
+			fclose(out_file);
+			continue;
+		}
+
 		token_array_s* tkn = tokenize(source->data);
-		// print_ast(*parse_tokens(*tkn, source->data));
+		// print_token_array(source->data, *tkn);
+		node_s *node = parse_tokens(tkn, source->data);
+		// print_ast(*node);
+		// printf("\n");
+		fprintf(out_file, "%s", codegen(node));
+		fprintf(out_file, "\n");
+		fclose(out_file);
 		free(tkn);
 	}
 	return 0;

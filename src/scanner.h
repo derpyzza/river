@@ -2,8 +2,16 @@
 
 #include "common.h"
 
-#define NUM_KEY_WORDS 10
+#define NUM_KEY_WORDS 25
 static const char* key_words[NUM_KEY_WORDS] = {
+
+	"ubyte", "ushort", "uint", "ulong",
+	"byte", "short", "int", "long",
+
+	"float", "double",
+
+	"void", "bool", "char", "str",
+
 	"return",
 	"if",
 	"else",
@@ -13,7 +21,8 @@ static const char* key_words[NUM_KEY_WORDS] = {
 	"defer",
 	"namespace", 
 	"true",
-	"false"
+	"false",
+	"null"
 };
 
 typedef enum token_type {
@@ -33,8 +42,33 @@ typedef enum token_type {
 	TKN_FORWARD_SLASH,
 	TKN_SEMI,
 	TKN_BANG,
+	TKN_QUESTION,
+	TKN_COLON,
+	TKN_AMP,
+	TKN_PIPE,
+	TKN_TILDE,
+	TKN_HAT,
 
 	// keywords
+
+	TKN_UBYTE,
+	TKN_USHORT,
+	TKN_UINT,
+	TKN_ULONG,
+
+	TKN_BYTE,
+	TKN_SHORT,
+	TKN_INT,
+	TKN_LONG,
+
+	TKN_FLOAT,
+	TKN_DOUBLE,
+
+	TKN_VOID,
+	TKN_BOOL,
+	TKN_CHAR,
+	TKN_STR,
+
 	TKN_RETURN, 
 	TKN_IF,
 	TKN_ELSE,
@@ -45,6 +79,7 @@ typedef enum token_type {
 	TKN_NAMESPACE,
 	TKN_TRUE,
 	TKN_FALSE,
+	TKN_NULL,
 
 	TKN_IDENTIFIER,
 	TKN_INTEGER_LITERAL,
@@ -75,21 +110,36 @@ static const char* token_strings[] = {
 	"NONE",
 	// Single Character tokens
 	"EQUAL SIGN",
-	"PAREN OPEN",
-	"PAREN CLOSE",
-	"BRACE OPEN",
-	"BRACE CLOSE",
-	"QUOTE",
-	"COMMA",
-	"DOT",
-	"PLUS",
-	"MINUS",
-	"ASTERISK",
-	"FORWARD SLASH",
-	"SEMI",
-	"BANG",
+	"PAREN OPEN", "PAREN CLOSE",
+	"BRACE OPEN", "BRACE CLOSE",
+	"QUOTE", "COMMA", "DOT",
+	"PLUS", "MINUS",
+	"ASTERISK", "FORWARD SLASH",
+	"SEMI", "BANG",
+	"QUESTION", "COLON",
+	"AMP", "PIPE",
+	"TILDE", "HAT",
 
 	// keywords
+	//
+	// unsigned int types
+	"UBYTE","USHORT",
+	"UINT","ULONG",
+
+	// signed int types
+	"BYTE","SHORT",
+	"INT","LONG",
+
+	// float types
+	"FLOAT", "DOUBLE",
+
+	// other types
+	"VOID",
+	"BOOL",
+	"CHAR",
+	"STR",
+
+	// reserved words
 	"RETURN", 
 	"IF",
 	"ELSE",
@@ -100,6 +150,7 @@ static const char* token_strings[] = {
 	"NAMESPACE",
 	"TRUE",
 	"FALSE",
+	"NULL",
 
 	"IDENTIFIER",
 	"INTEGER LITERAL",

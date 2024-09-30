@@ -1,11 +1,11 @@
 // Welcome to river!
 // Your first task:
 // Parse the following text and make it return a .c file
-// With the exact same code!
+// With the equivalent code
 
 int main() {
-	return 180;
+  32 * 2 + 8 / 6
 }
 
 // output should be:
-// int main(void) { return 180; }
+// int main(void) { return 32 * 2; }

@@ -1,6 +1,11 @@
 program -> statement* EOF;
 
-assignment -> type iden "=" expr ";";
+program -> declaration*;
+
+declaration -> func;
+
+func -> "int main" "( )" block;
+block -> "{" expr "}";
 
 statement -> expr ";";
 

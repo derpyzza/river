@@ -132,6 +132,7 @@ token_array_s* tokenize ( string_s src )
 	char *start = (char*) src.string;
 	size_t len = src.size;
 	scanner.line = 1;
+	char* line_start = start;
 
 	// printf("Scanning %s for tokens ...\n", src.path);
 	for (char *c = (char*) src.string; c - start < len; c++) {
@@ -168,7 +169,7 @@ token_array_s* tokenize ( string_s src )
 					push_token_lit(tkn,
 							TKN_DOUBLE_FLOATING_LITERAL, 
 							MAKE_LIT_DOUBLE(pnum),
-							c - start
+							c - line_start
 							);
 				}
 				break;
@@ -176,25 +177,21 @@ token_array_s* tokenize ( string_s src )
 			push_token_lit(tkn,
 					TKN_INTEGER_LITERAL, 
 					(literal_s){ LIT_INT , (literal_u) { ._int = num }},
-					c - start
+					c - line_start
 					);
 		} else if (char_is_alpha(*c)) {
 
 			switch(*c) {
 				break;
 				default: {
-					// skip over strings
 					int str_start = c-start;
 					char* str_ptr = c;
 					while(char_is_alpha(peek(c))) 
 					{
 						c++;
 					}
-					c++;
-					int str_len = c-start-str_start;
+					int str_len = c-start-str_start + 1;
 					substr_s substr = (substr_s){.c_ptr = str_ptr, .len = str_len};
-
-					// char* substr = substring(start, str_start, str_len);
 
 					// This flag is here because i couldn't figure out the
 					// proper control flow needed to make sure that keyword
@@ -202,14 +199,13 @@ token_array_s* tokenize ( string_s src )
 					// identifier tokens. This flag is my little hack.
 					int flag = 0;
 					for(int i = 0; i < NUM_KEY_WORDS; i++) {
-						if (!strcmp(substr.c_ptr, key_words[i])) {
-							
-							token_type token = i + TKN_RETURN;
+						if (!memcmp(substr.c_ptr, key_words[i], substr.len)) {
+							token_type token = i + TKN_UBYTE;
 
 							push_token(
 							tkn, 
 							token,
-							c - start
+							c - line_start
 							);
 							flag = 1;
 						}
@@ -219,100 +215,124 @@ token_array_s* tokenize ( string_s src )
 							tkn, 
 							TKN_IDENTIFIER,
 							MAKE_LIT_STR(substr),
-							c - start
+							c - line_start
 							);
 				}
 				break;
 			}
 		}
 		else if (char_is_whitespace(*c)){
-			if (*c == '\n') scanner.line++;
+			if (*c == '\n') {
+				scanner.line++;
+				line_start = c;
+			}
 		}
 		else {
 			switch (*c) {
 				case '(':
-					push_token(tkn, TKN_PAREN_OPEN, c - start);
+					push_token(tkn, TKN_PAREN_OPEN, c - line_start);
 				break;
 				case ')':
-					push_token(tkn, TKN_PAREN_CLOSE, c - start);
+					push_token(tkn, TKN_PAREN_CLOSE, c - line_start);
 				break;
 				case '{':
-					push_token(tkn, TKN_BRACE_OPEN, c - start);
+					push_token(tkn, TKN_BRACE_OPEN, c - line_start);
 				break;
 				case '}':
-					push_token(tkn, TKN_BRACE_CLOSE, c - start);
+					push_token(tkn, TKN_BRACE_CLOSE, c - line_start);
 				break;
 				case ';':
-					push_token(tkn, TKN_SEMI, c - start);
+					push_token(tkn, TKN_SEMI, c - line_start);
 				break;
 				case ',':
-					push_token(tkn, TKN_COMMA, c - start);
+					push_token(tkn, TKN_COMMA, c - line_start);
+				break;
+				case '?':
+					push_token(tkn, TKN_QUESTION, c - line_start);
+				break;
+				case ':':
+					push_token(tkn, TKN_COLON, c - line_start);
+				break;
+				case '&':
+					push_token(tkn, TKN_AMP, c - line_start);
+				break;
+				case '|':
+					push_token(tkn, TKN_PIPE, c - line_start);
+				break;
+				case '~':
+					push_token(tkn, TKN_TILDE, c - line_start);
+				break;
+				case '^':
+					push_token(tkn, TKN_HAT, c - line_start);
 				break;
 				case '.':
-					push_token(tkn, TKN_DOT, c - start);
+					push_token(tkn, TKN_DOT, c - line_start);
 				break;
 				case '*':
 					if (peek(c) == '=') {
-						push_token(tkn, TKN_MULT_EQ, c - start);
+						push_token(tkn, TKN_MULT_EQ, c - line_start);
 						c++;
 					}
-					else push_token(tkn, TKN_ASTERISK, c - start);
+					else push_token(tkn, TKN_ASTERISK, c - line_start);
 				break;
 				case '+':
 					if (peek(c) == '=') {
-						push_token(tkn, TKN_ADD_EQ, c - start);
+						push_token(tkn, TKN_ADD_EQ, c - line_start);
 						c++;
 					}
-					else push_token(tkn, TKN_PLUS, c - start);
+					else push_token(tkn, TKN_PLUS, c - line_start);
 				break;
 				case '-':
 					if (peek(c) == '=') {
-						push_token(tkn, TKN_SUB_EQ, c - start);
+						push_token(tkn, TKN_SUB_EQ, c - line_start);
 						c++;
 					}
-					else push_token(tkn, TKN_MINUS, c - start);
+					else push_token(tkn, TKN_MINUS, c - line_start);
 				break;
 				case '/':
 					if (peek(c) == '=') { 
-						push_token(tkn, TKN_DIV_EQ, c - start);
+						push_token(tkn, TKN_DIV_EQ, c - line_start);
 						c++;
 					} 
 					// COMMENT
 					else if  (peek(c) == '/')
 					{
-						while(peek(c) != '\n') c++;
+						while(peek(c) != '\n') {
+							c++;
+						}
+						line_start = c;
 					}
-					else push_token(tkn, TKN_FORWARD_SLASH, c - start);
+					else push_token(tkn, TKN_FORWARD_SLASH, c - line_start);
 				break;
 				case '!':
 					if (peek(c) == '=') {
-						push_token(tkn, TKN_BANG_EQ, c - start);
+						push_token(tkn, TKN_BANG_EQ, c - line_start);
 						c++;
 					}
-					else push_token(tkn, TKN_BANG, c - start);
+					else push_token(tkn, TKN_BANG, c - line_start);
 				break;
 				case '=':
 					if (peek(c) == '=')
 					{
-						push_token(tkn, TKN_EQ_EQ, c - start);
+						push_token(tkn, TKN_EQ_EQ, c - line_start);
 						c++;
 					}
-					else push_token(tkn, TKN_EQUAL_SIGN, c - start);
+					else push_token(tkn, TKN_EQUAL_SIGN, c - line_start);
 				break;
 				case '<':
 					if (peek(c) == '=') {
-						push_token(tkn, TKN_LESS_THAN_EQ, c - start);
+						push_token(tkn, TKN_LESS_THAN_EQ, c - line_start);
 						c++;
 					}
-					else push_token(tkn, TKN_LESS_THAN, c - start);
+					else push_token(tkn, TKN_LESS_THAN, c - line_start);
 				break;
 				case '>':
 					if (peek(c) == '=')
 					{
-						push_token(tkn, TKN_GREATER_THAN_EQ, c - start);
+						push_token(tkn, TKN_GREATER_THAN_EQ, c - line_start);
 						c++;
 					}
-					else push_token(tkn, TKN_GREATER_THAN, c - start);
+					else push_token(tkn, TKN_GREATER_THAN, c - line_start);
 				break;
 				// STRING HANDLING
 				case '"':
@@ -328,7 +348,7 @@ token_array_s* tokenize ( string_s src )
 									._str = (substr_s){.c_ptr = c, .len = 1}
 								}
 							},
-							c - start);
+							c - line_start);
 					c += 2;
 					}
 					int str_start = ++c-start;
@@ -361,7 +381,7 @@ token_array_s* tokenize ( string_s src )
 									._str = substr
 								}
 							},
-							c - start);
+							c - line_start);
 					break;
 				}
 				case '\'':
@@ -381,7 +401,7 @@ token_array_s* tokenize ( string_s src )
 									._char = *c
 								}
 								},
-								c - start 
+								c - line_start 
 								);
 						c++;
 					}

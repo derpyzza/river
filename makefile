@@ -1,5 +1,5 @@
 CC = clang
-PROGNAME = rvrcc
+PROGNAME = rcc
 SRC = src
 BIN = bin
 TESTS = tests
