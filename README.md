@@ -13,50 +13,29 @@ Both a scripting language and a compiled one?
 # Ecosystem Features
 ## Testing Framework
 ## Documentation Generation
+## Package management
 
-# Data Structures
-## Hashmaps / Dictionaries
-## Strings 
-multiline strings
-## Arrays
-two array types: a regular C-style array, as well as a better array type
-```c 
+# Language Features
 
-// Regular C style array. dissolves down into a pointer.
-int array[4] = { 0, 1, 2, 3 };
-
-// Better array type. holds the length
-Array array(int, 4) = { 0, 1, 2, 3};
-
-```
-
-## Enums
-
-new tagged enum type;
-``` c
-sum name {
-    variant,
-    variant,
-    variant(string)
-};
-```
-enums are namespaced:
+## Automatic type inference
 
 ```c 
 
-enum name {
-    var1,
-    var2,
-    var3
-};
+// This
+let x = 23; // implicitly int
+let y = 20.; // or 20.0, 20f; all = 20.0
 
-enum x = name::var1;
+// equals:
+int x = 23;
+double y = 23.0d; // floating point numbers evaluate to double by default
+
 
 ```
+
 ## Tuples
 
 ```c rvr
-let x = (23, 59, f: "String");
+let x = (23, 59, "String");
 
 (int, float) x = (23, 34.0);
 
@@ -66,65 +45,20 @@ float b;
 // a gets set to x.0, b gets set to x.1
 (a, b) = x;
 ```
-
-```c 
-struct tup_x x = struct {.0=23, .1=59, .f="string"};
-
-```
-
-# Language Features & Syntax Sugar
-
-## Debug / Print interfaces
-
-Structs can implement debug / print interfaces, which will then be used by the print functions
-
-```c 
-
-struct vec3 {
-    float x, y, z;
-} 
-
-impl print::vec3 {
-    char* to_string(vec3* v) {
-        return `x: ${v->x}, y: ${v->y}, z: ${v->z}`;
-    }
-}
-
-vec3 v = { 3, 5, 6 };
-
-print v; // "x: 3, y: 5, z: 6"
-
-
-```
-
-## Constructors and destructors
-```c 
-
-struct object {
-    int x, y;
-};
-
-// object* obj = malloc(sizeof(object));
-object obj = new object();
-
-object* object(object* self, int x, int y) {
-    self.x = 10;
-}
-
-// object() => { 10, 0 };
-object obj = new object();
-
-```
 ## String Formatting
+## Generics
+## Algebraic Data Types
 ## Comptime code execution 
-## Rust style errors / Optional types / Result types
 ## Defers
 The `defer` keyword just executes the given statement at the end of the current scope.
 
 ```c 
+
+struct object;
+
 {
-    object x = new object();
-    defer delete object;
+    object x = new_object();
+    defer delete_object;
 
     /*
      * do stuff ...
@@ -150,9 +84,6 @@ for ( 0 to 10) {
 
 ```
 
-## Joint allocations?
-https://github.com/BSVino/JaiPrimer/blob/master/JaiPrimer.md#proposed-features
-
 ## For in / for each statements
 ```c 
 
@@ -176,7 +107,7 @@ void function_definition ( int x, int y = 20, bool open = true ) {
 
 ```
 
-## Match statements 
+## Pattern matching & Destructuring
 ```c 
 match user.name {
     "Sami" => {},
@@ -186,7 +117,7 @@ match user.name {
 ```
 ## Closures 
 ```c
-int x = (int)() {
+int x = () => {
     int x = 20;
     x += 12;
     x
@@ -222,72 +153,6 @@ let x = x()
 Type x = x(y(c(t(4))));
 
 ```
-## Variables 
-
-```c 
-
-// This
-let x = 23; // implicitly int
-let y = 20.; // or 20.0, 20f; all = 20.0
-
-
-// To This
-int x = 23;
-float y = 23.0f;
-
-
-```
-
-## Classes
-
-Classes are just a prettier struct
-
-```cpp
-
-// This
-class ClassName {
-    int i, j, k;
-    bool x;
-
-    new (int _i, bool _x) {
-        _i = i;
-        _x = x;
-    }
-
-    destroy () {
-
-    }
-
-    void func() {
-        if self.x {
-            10
-        } else {
-            4
-        }
-    }
-}
-
-ClassName c = new ClassName(3, 5);
-c.func();
-
-// Translates to 
-struct ClassName {
-    int i, j, k;
-    bool x;
-}
-
-void func (ClassName* self) {
-    if (self->x) {
-        return 10;
-    } else {
-        return 4;
-    }
-}
-
-ClassName c = new_class_name(3, 5);
-func(&c);
-
-```
 
 ## Namespaces 
 
@@ -306,10 +171,10 @@ namespace vector {
 {
     using namespace matrix;
 
-    x := multiply(v);
+    let x = multiply(v);
 }
 
-x := matrix:multiply(v);
+let x = matrix:multiply(v);
 
 // Translates to
 

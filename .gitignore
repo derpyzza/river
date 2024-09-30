@@ -1,5 +1,6 @@
 in.c
 in.rvr
+in.*
 *.rvr
 bin/
 .vscode/

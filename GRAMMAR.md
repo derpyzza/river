@@ -2,9 +2,9 @@ program -> statement* EOF;
 
 program -> declaration*;
 
-declaration -> func;
+declaration -> func*;
 
-func -> "int main" "( )" block;
+func -> "int" ID "( )" block;
 block -> "{" expr "}";
 
 statement -> expr ";";

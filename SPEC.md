@@ -63,6 +63,15 @@ This is the language spec for river.
 let x = 45;
 x = "str"; // illegal
 
+// Variables are immutable by default
+// And also private to their scope
+
+// to declare a mutable variable add the mut keyword before a variable name:
+int mut x = 0;
+x = 10;
+
+let mut x = 0;
+
 // Currently the variable y simply has a none type;
 let y;
 
@@ -91,6 +100,14 @@ printf(name); // ERROR: Value is nullable
 if name {
     printf(name); // compiles
 }
+
+
+```
+
+# Operators
+
+```c 
+
 
 
 ```
@@ -171,24 +188,16 @@ x(10); // => 100
 
 // functions are first class in river, so you can pass them around as values
 // TODO: workshop the function callback syntax a bit more
-u32 example_func(f32 val, func => <void(u32, u32)> ) 
+u32 example_func(f32 val, void func => (u32, u32) ) 
 {
     func(20, 20); // => calls the passed-in function
 }
 
 // what should the closure function signature syntax be?
-u32 example_func(f32 val, func => void(u32, u32)); 
-
-u32 example_func(f32 val, func => <void(u32, u32)>); 
-
-u32 example_func(f32 val, func => void|u32, u32|);
-
-u32 example_func(f32 val, void func => (u32, u32));
-
-u32 example_func(f32 val, void func(u32, u32));
+u32 example_func(f32 val, void func => (u32, u32)); 
 
 // functions can return other functions
-bool(u32) func () {
+(bool => (u32)) func () {
     // functions can be defined inline as closures
     return bool(u32 x) => {
         if x {
@@ -198,6 +207,11 @@ bool(u32) func () {
         }
     };
 }
+
+func()();
+
+// though it's nicer to just give the return functions a type alias
+type callback -> (bool => (u32));
 
 ```
 
@@ -340,26 +354,58 @@ let tup = (23, "dwe", 36);
 
 ```
 
+# Enums 
+```c 
+
+// just like C's enums, except with their own namespace
+
+enum Colour {
+    Red, Blue, Green, White, Yellow, Brown
+};
+
+enum MnMs {
+    Red, Blue, Green, Yellow, Brown, Orange
+};
+
+let x = Red; // => Error: Assigning variable <x> to nknown value <Red>;
+let x = Colour.Red; // => compiles
+let y = MnMs.Red; // => Also compiles
+
+
+```
+
 
 
 # Custom Types
 
 ```c
 
-// You can define your own types
+// You can define your own types by aliasing other types
+type u32 -> int;
 
-type int -> u32;
+u32 x = 10; // base type: u32
 
-
-int x = 10; // base type: u32
-
-// Types can be composed of multiple base times
+// Types can be composed of multiple base types
 // this type can represent both u32 or f32 values
-type number -> u32 | f32;
+type number -> int | float;
 
 number x = 10; // valid
 number y = 52.32; // also valid
 number z = 42.4d; // not valid, as it is a double value
+
+// Types can also be made up of literals
+// This way, a type can represent legal values and guard against illegal ones
+type curry -> "Katsu" 
+            | "Vegetable" 
+            | "Chicken";
+
+// ( BBQ curry?! )
+curry bbq_curry = "BBQ"; 
+// => Error: Invalid value "BBQ style" for type <curry>
+//  | type union <curry> only supports the following values:
+//  | {"Katsu", "Vegetable", "Chicken"}
+
+curry butter_chicken = "Chicken"; // => works just fine
 
 ```
 
@@ -373,15 +419,16 @@ namespace Vector3 {
 }
 
 // using a function from a namespace
-Vector3::add();
+Vector3:add();
 // or
-// declaring an automatic namespace
+// declaring a scoped namespace
 {
-    using namespace::Vector3;
+    using namespace:Vector3;
 
     add(x, y); // Vector3::add();
     sub(y, x); // Vector3::sub();
 }
+add(x, y); // => Error: call to undefined function <add>
 
 ```
 
@@ -389,7 +436,7 @@ Vector3::add();
 ```cpp
 
 // Interfaces define polymorphic functions
-interface debug {
+interface debug => {
     string to_string(T t);
     void debug_print(T t);
 }
@@ -414,9 +461,9 @@ Vector3_s v = (Vector3_s){130, 24, 53};
 printf("%s", Vector3_s::to_string(v)); // prints "x: 130, y: 24, z: 53"
 
 interface add<T> => where T is Numeric {}
-interface cat<T> => where T is Stringy {}
+interface cat<T> => where T is Array {}
 
-int count_entities(T entities) => where T impls Entity {
+int count_entities(T entities) => where T has Entity {
     for t in entities {
         t.print_name();
     }
@@ -430,21 +477,25 @@ int count_entities(T entities) => where T impls Entity {
 
 // river's arrays are almost the same as C's, with some key differences
 // Unlike in C, river's arrays are a distinct type and cannot dissolve down to pointers
-u32[4] numbers = { 10, 20, 30, 40 };
+int[4] numbers = { 10, 20, 30, 40 };
 // first, arrays have their length encoded into them
 // Do note: the array length is equal to the number of elements in it, not the max index
 // i.e an array of of size 4 with have four elements in it but the final element will have 
 // the index [3], as indices begin at [0]
 numbers.length // => 4
 // second, you can initialize arrays with default values
-u32[0;10] numbers; // => array of size 10 with every element being initialized to 0
-u32[5;8] numbers; // => array of size 8 with every element being initialized to 5
+int[0;10] numbers; // => array of size 10 with every element being initialized to 0
+int[5;8] numbers; // => array of size 8 with every element being initialized to 5
 
 // Unlike in C, river's arrays are a distinct type and cannot dissolve down to pointers
-u32 print_num_array ( u32[10] numbers ) { ... }
+int print_num_array ( int[10] numbers ) { /*...*/ }
 
-u32 *nums;
+int *nums;
 print_num_array(nums); // ERROR: Incompatible types; expected type u32[10], got u32* instead;
+
+// arrays can be concatenated with the '..' operator
+int[5] x = {0, 1, 2, 3, 4};
+int[10] y = {-5, -4, -3, -2, -1} .. x; // => {-5, -4, -3, -2, -1, 0, 1, 2, 3, 4}
 
 
 // A Slice is a referenced subset of another array
@@ -538,7 +589,7 @@ usize isize let str bool array byte
 foreach defer match label
 public private sticky
 new delete namespace macro
-impl interface import as from with is
+impl interface import as from with is mut
 
 
 ## Notes

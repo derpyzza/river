@@ -54,11 +54,9 @@ node_s *parse_tokens( token_array_s *tokens, string_s src )
 
 static node_s *program(void) {
 
-	if (match_expect(TKN_INT) && match_expect(TKN_IDENTIFIER)) {
+	while (match_expect(TKN_INT) && match_expect(TKN_IDENTIFIER)) {
 		return function();		
 	}
-
-	return node_unknown();
 }
 
 static node_s *function(void) {

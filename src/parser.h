@@ -24,11 +24,11 @@ typedef enum {
 
 union expr{
 	struct binary {
-		struct node_s *lhs, *rhs;
+		struct node *lhs, *rhs;
 		int operator_type;
 	} binary;
 	struct unary {
-		struct node_s *operand;
+		struct node *operand;
 		int operator_type;
 	} unary;
 };
@@ -40,17 +40,21 @@ struct func_sig {
 };
 
 // AST Node 
-typedef struct node_s {
+typedef struct node {
 	int type;
 
 	union {
 		int int_lit;
 		double double_lit;
 		substr_s str_lit;
+		struct block {
+			int num_children;
+			struct node** children;
+		} block;
 		union expr expr;
 		struct func_def {
 			struct func_sig func_sig;
-			struct node_s* body;
+			struct node *body;
 		} func_def;
 		struct func_sig func_call;
 	} node;
