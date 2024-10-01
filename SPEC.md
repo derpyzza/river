@@ -170,34 +170,36 @@ if err {
 // the value using the '?' operator:
 str name = get_name()?; // => if get_name() returns null then the program panics;
 
-// functions can be declared using this alternate syntax:
-u32 add => (u32 x, u32 y) { ... }
+// one liner functions can also be declared using the following syntax:
+int add (int x, int y) => x + y;
 
-// NOTE: are closures necessary?
+// for one liners without params the parenthesis can be omitted 
+char next_char => scanner.char++;
+
 // This syntax is handy for closures
-let x => () {
+// NOTE: are closures necessary?
+let x = () => {
     30
 };
 x(); // => 30
 
 // Closures can have function parameters:
-let x => (u32 x) {
+let x (int x) => {
     10 * x
 }; 
 x(10); // => 100
 
 // functions are first class in river, so you can pass them around as values
 // TODO: workshop the function callback syntax a bit more
-u32 example_func(f32 val, void func => (u32, u32) ) 
+u32 example_func(float val, void func => (int, int) ) 
 {
-    func(20, 20); // => calls the passed-in function
+    func( (int)val, 20); // => calls the passed-in function
 }
 
-// what should the closure function signature syntax be?
-u32 example_func(f32 val, void func => (u32, u32)); 
+u32 example_func(float val, void func => (int, int)); 
 
 // functions can return other functions
-(bool => (u32)) func () {
+(bool => int) func () {
     // functions can be defined inline as closures
     return bool(u32 x) => {
         if x {
@@ -211,13 +213,13 @@ u32 example_func(f32 val, void func => (u32, u32));
 func()();
 
 // though it's nicer to just give the return functions a type alias
-type callback -> (bool => (u32));
+type callback -> (bool => int, float);
 
 ```
 
 # Control flow
 
-```rs
+```c
 
 // all the following control flow structures are expressions rather than statements
 
@@ -235,7 +237,7 @@ if ( x == "string" ) {
 if ( expression ) {
     // do stuff
 } else if ( other_expression ) {
-    // do other stuff
+
 } else {
     // do yet more stuff
 }
@@ -250,19 +252,21 @@ do {
 
 } while expression;
 
-for (init; condition; step) {
+// river style ( taken from rust )
+for x in range(0..=10) {
 
 }
 
-for (x = 0; x < 10; x++) {
+for item in list {
 
 }
 
-foreach x in range(0..=10) {
+for (id, item) in list {
 
 }
 
-foreach item in iterable {
+// C style ( taken from C )
+for let x = 0; x < 10; x++ {
 
 }
 
@@ -319,26 +323,17 @@ printf("user.name = %s", admin.username); // => "user.name = Admin"
 admin.name = "Administrator";
 printf("user.name = %s, user.pin = %i", admin.username, admin.pin) // => "user.name = Administrator, user.pin = 0000"; 
 
-struct Cat {
-    Vector3_s pos, orientation;
-    str name;
-    str mew_style;
+// NOTE: Do structs really need methods?
+// what if instead of "true" methods there was Uniform function call syntax instead?
 
-    // Structs can contain methods within them
-    void Meow(Self) {
-        printf("%s", Self.mew_style);
-    }
-};
+int add(int x, int y) {
+    return x + y;
+}
 
-Cat kitty = new Cat;
-kitty.mew_style = "mewmewmew";
-kitty.Meow(); // mewmewmew
-
-// If you have a struct where all it's members are the same type, you can define it 
-// using the following bit of syntactic sugar:
-struct Colour(u32: r, g, b, a);
-// With the syntax pattern being:
-struct name(type: val1, val2, val3 ...);
+let x = 10;
+let y = 30;
+let z = x.add(y); // => 40
+let w = z.add(y).add(x); // => 80. equivalent to add(z, add(y, x));
 
 ```
 
@@ -351,6 +346,10 @@ struct name(type: val1, val2, val3 ...);
 
 let (id, name) = (2332, "derpy");
 let tup = (23, "dwe", 36);
+
+type Colour -> (ubyte, ubyte, ubyte, ubyte);
+
+Colour red = (255, 0, 0, 255);
 
 ```
 
@@ -408,6 +407,37 @@ curry bbq_curry = "BBQ";
 curry butter_chicken = "Chicken"; // => works just fine
 
 ```
+
+## File imports 
+
+```c
+
+// import modules with the import keyword
+import std.io;
+
+int 
+main() {
+    io:println("Hello!");
+}
+
+import math as m;
+
+m:abs();
+
+
+import std.io;
+using namespace io;
+
+int 
+main() {
+    
+}
+
+
+
+```
+
+
 
 # Namespaces
 ```c
@@ -571,8 +601,8 @@ u32 val = 10;
 
 ## Character / operator list:
 \+ \- \* / % ! != += -= *= /= %= ^ ~ & | && ||
-. , > >= <= < ? : ; ' " """ ` = == ( ) { } [ ]
-@ .. ...
+. , > >= <= < ? : ; ' " = == ( ) { } [ ]
+@ .. ... -> =>
 
 ## Keyword list 
 

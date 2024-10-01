@@ -21,7 +21,7 @@ $(EXEC): $(OBJ_FILES)
 	$(CC) $^ -o $@ $(CFLAGS) $(LDFLAGS)
 
 run: $(EXEC)
-	$(EXEC)
+	$(EXEC) in.rvr
 
 # in.rvr
 

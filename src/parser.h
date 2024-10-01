@@ -15,6 +15,8 @@ typedef enum {
 	N_LIT_FALSE,
 	N_LIT_STRING,
 
+	N_BLOCK,
+
 	N_FN_CALL,
 	N_FN_DEF,
 

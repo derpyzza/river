@@ -1,11 +1,30 @@
--[] Implement separate multiline strings
--[] Allow for floating var scanning
--[] Implement proper parsing for floating point literals to end with an 'f' indicating a float type and a 'd' indicating a double type
+-[x] Allow for floating var scanning
 
--[] Get started with the parser
--[] Parse a simple arithmetic expression
+-[x] Get started with the parser
+-[x] Parse a simple arithmetic expression
+
+>!![BOSS EVENT]!!
+> memory handling in this compiler is actually messed up. fix that sometime.
 
 ERROR HANDING
 ===
 
 -[] input int too large
+
+
+# ROADMAP
+
+-[] Version 0: working river-to-c-compiler that fully implements the basic river spec
+-[] Version 1: Simple stdlib: io, string, math, vector, hashmap, sort, json log etc.
+-[] Version 2: Package management, documentation generation, etc.
+
+## Scanner
+-[] Implement proper parsing for floating point literals to end with an 'f' indicating a float type and a 'd' indicating a double type
+-[] Implement separate multiline strings
+
+## Parser
+
+## Type checking
+
+## Codegen
+

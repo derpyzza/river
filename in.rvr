@@ -3,9 +3,14 @@
 // Parse the following text and make it return a .c file
 // With the equivalent code
 
+int add() {
+	3 + 5
+}
+
+int sub() {
+	6 - 2
+}
+
 int main() {
   32 * 2 + 8 / 6
 }
-
-// output should be:
-// int main(void) { return 32 * 2; }

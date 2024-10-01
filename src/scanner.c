@@ -117,7 +117,7 @@ static void push_token_lit (
 		tkn->current_literal++;
 	}
 
-	if (!(token == TKN_EOF))
+	if (!(token == T_EOF))
 		tkn->current_token++;
 }
 
@@ -167,15 +167,15 @@ token_array_s* tokenize ( string_s src )
 					pnum += num;
 					// printf("PNUM: %f\n", pnum);
 					push_token_lit(tkn,
-							TKN_DOUBLE_FLOATING_LITERAL, 
+							T_DOUBLE_FLOATING_LITERAL, 
 							MAKE_LIT_DOUBLE(pnum),
 							c - line_start
 							);
 				}
-				break;
+				continue;
 			}
 			push_token_lit(tkn,
-					TKN_INTEGER_LITERAL, 
+					T_INTEGER_LITERAL, 
 					(literal_s){ LIT_INT , (literal_u) { ._int = num }},
 					c - line_start
 					);
@@ -197,10 +197,18 @@ token_array_s* tokenize ( string_s src )
 					// proper control flow needed to make sure that keyword
 					// identifiers get stored as keyword tokens and not keyword AND
 					// identifier tokens. This flag is my little hack.
+
+					// NOTE: remove this keyword for loop and replace it 
+					// with a switch statement that checks the first character
+					// later. this is fine for now though as the flexibility it provides
+					// is really nice
 					int flag = 0;
 					for(int i = 0; i < NUM_KEY_WORDS; i++) {
-						if (!memcmp(substr.c_ptr, key_words[i], substr.len)) {
-							token_type token = i + TKN_UBYTE;
+						int id = i + T_UBYTE;
+						if (
+								strlen(token_strings[i+T_UBYTE]) == substr.len &&
+								memcmp(substr.c_ptr, token_strings[i + T_UBYTE], substr.len) == 0) {
+							token_type token = i + T_UBYTE;
 
 							push_token(
 							tkn, 
@@ -213,7 +221,7 @@ token_array_s* tokenize ( string_s src )
 					if (!flag)
 					push_token_lit(
 							tkn, 
-							TKN_IDENTIFIER,
+							T_IDENTIFIER,
 							MAKE_LIT_STR(substr),
 							c - line_start
 							);
@@ -230,68 +238,97 @@ token_array_s* tokenize ( string_s src )
 		else {
 			switch (*c) {
 				case '(':
-					push_token(tkn, TKN_PAREN_OPEN, c - line_start);
+					push_token(tkn, T_PAREN_OPEN, c - line_start);
 				break;
 				case ')':
-					push_token(tkn, TKN_PAREN_CLOSE, c - line_start);
+					push_token(tkn, T_PAREN_CLOSE, c - line_start);
 				break;
 				case '{':
-					push_token(tkn, TKN_BRACE_OPEN, c - line_start);
+					push_token(tkn, T_BRACE_OPEN, c - line_start);
 				break;
 				case '}':
-					push_token(tkn, TKN_BRACE_CLOSE, c - line_start);
+					push_token(tkn, T_BRACE_CLOSE, c - line_start);
+				break;
+				case '[':
+					push_token(tkn, T_BRACKET_OPEN, c - line_start);
+				break;
+				case ']':
+					push_token(tkn, T_BRACKET_CLOSE, c - line_start);
 				break;
 				case ';':
-					push_token(tkn, TKN_SEMI, c - line_start);
+					push_token(tkn, T_SEMI, c - line_start);
 				break;
 				case ',':
-					push_token(tkn, TKN_COMMA, c - line_start);
+					push_token(tkn, T_COMMA, c - line_start);
 				break;
 				case '?':
-					push_token(tkn, TKN_QUESTION, c - line_start);
+					push_token(tkn, T_QUESTION, c - line_start);
 				break;
 				case ':':
-					push_token(tkn, TKN_COLON, c - line_start);
-				break;
-				case '&':
-					push_token(tkn, TKN_AMP, c - line_start);
-				break;
-				case '|':
-					push_token(tkn, TKN_PIPE, c - line_start);
+					push_token(tkn, T_COLON, c - line_start);
 				break;
 				case '~':
-					push_token(tkn, TKN_TILDE, c - line_start);
+					push_token(tkn, T_TILDE, c - line_start);
 				break;
 				case '^':
-					push_token(tkn, TKN_HAT, c - line_start);
+					push_token(tkn, T_HAT, c - line_start);
+				break;
+				case '&':
+					if (peek(c) == '=')
+					{
+						push_token(tkn, T_AND_EQ, c - line_start);
+						c++;
+					} else if (peek(c) == '&') {
+						push_token(tkn, T_LOG_AND, c - line_start);
+						c++;
+					}
+					else push_token(tkn, T_AMP, c - line_start);
+				break;
+				case '|':
+					if (peek(c) == '=')
+					{
+						push_token(tkn, T_OR_EQ, c - line_start);
+						c++;
+					} else if (peek(c) == '|') {
+						push_token(tkn, T_LOG_OR, c - line_start);
+						c++;
+					}
+					else push_token(tkn, T_PIPE, c - line_start);
 				break;
 				case '.':
-					push_token(tkn, TKN_DOT, c - line_start);
+					if (peek(c) == '.') {
+						push_token(tkn, T_DOT_DOT, c - line_start);
+						c++;
+					}
+					else push_token(tkn, T_DOT, c - line_start);
 				break;
 				case '*':
 					if (peek(c) == '=') {
-						push_token(tkn, TKN_MULT_EQ, c - line_start);
+						push_token(tkn, T_MULT_EQ, c - line_start);
 						c++;
 					}
-					else push_token(tkn, TKN_ASTERISK, c - line_start);
+					else push_token(tkn, T_ASTERISK, c - line_start);
 				break;
 				case '+':
 					if (peek(c) == '=') {
-						push_token(tkn, TKN_ADD_EQ, c - line_start);
+						push_token(tkn, T_ADD_EQ, c - line_start);
 						c++;
 					}
-					else push_token(tkn, TKN_PLUS, c - line_start);
+					else push_token(tkn, T_PLUS, c - line_start);
 				break;
 				case '-':
 					if (peek(c) == '=') {
-						push_token(tkn, TKN_SUB_EQ, c - line_start);
+						push_token(tkn, T_SUB_EQ, c - line_start);
+						c++;
+					} else if (peek(c) == '>') {
+						push_token(tkn, T_ARROW, c - line_start);
 						c++;
 					}
-					else push_token(tkn, TKN_MINUS, c - line_start);
+					else push_token(tkn, T_MINUS, c - line_start);
 				break;
 				case '/':
 					if (peek(c) == '=') { 
-						push_token(tkn, TKN_DIV_EQ, c - line_start);
+						push_token(tkn, T_DIV_EQ, c - line_start);
 						c++;
 					} 
 					// COMMENT
@@ -302,37 +339,47 @@ token_array_s* tokenize ( string_s src )
 						}
 						line_start = c;
 					}
-					else push_token(tkn, TKN_FORWARD_SLASH, c - line_start);
+					else push_token(tkn, T_FORWARD_SLASH, c - line_start);
+				break;
+				case '%':
+					if (peek(c) == '=') {
+						push_token(tkn, T_MOD_EQ, c - line_start);
+						c++;
+					}
+					else push_token(tkn, T_MODULUS, c - line_start);
 				break;
 				case '!':
 					if (peek(c) == '=') {
-						push_token(tkn, TKN_BANG_EQ, c - line_start);
+						push_token(tkn, T_NOT_EQ, c - line_start);
 						c++;
 					}
-					else push_token(tkn, TKN_BANG, c - line_start);
+					else push_token(tkn, T_BANG, c - line_start);
 				break;
 				case '=':
 					if (peek(c) == '=')
 					{
-						push_token(tkn, TKN_EQ_EQ, c - line_start);
+						push_token(tkn, T_EQ_EQ, c - line_start);
+						c++;
+					} else if (peek(c) == '>') {
+						push_token(tkn, T_FAT_ARROW, c - line_start);
 						c++;
 					}
-					else push_token(tkn, TKN_EQUAL_SIGN, c - line_start);
+					else push_token(tkn, T_EQUAL_SIGN, c - line_start);
 				break;
 				case '<':
 					if (peek(c) == '=') {
-						push_token(tkn, TKN_LESS_THAN_EQ, c - line_start);
+						push_token(tkn, T_LESS_THAN_EQ, c - line_start);
 						c++;
 					}
-					else push_token(tkn, TKN_LESS_THAN, c - line_start);
+					else push_token(tkn, T_LESS_THAN, c - line_start);
 				break;
 				case '>':
 					if (peek(c) == '=')
 					{
-						push_token(tkn, TKN_GREATER_THAN_EQ, c - line_start);
+						push_token(tkn, T_GREATER_THAN_EQ, c - line_start);
 						c++;
 					}
-					else push_token(tkn, TKN_GREATER_THAN, c - line_start);
+					else push_token(tkn, T_GREATER_THAN, c - line_start);
 				break;
 				// STRING HANDLING
 				case '"':
@@ -341,7 +388,7 @@ token_array_s* tokenize ( string_s src )
 
 					push_token_lit(
 							tkn,
-							TKN_STRING_LITERAL,
+							T_STRING_LITERAL,
 							(literal_s) {
 								.type = LIT_STRING,
 								.literal = (literal_u) {
@@ -374,7 +421,7 @@ token_array_s* tokenize ( string_s src )
 					substr_s substr = (substr_s){ .c_ptr = str_ptr, .len = len };
 					push_token_lit(
 							tkn,
-							TKN_STRING_LITERAL,
+							T_STRING_LITERAL,
 							(literal_s) {
 								.type = LIT_STRING,
 								.literal = (literal_u) {
@@ -394,7 +441,7 @@ token_array_s* tokenize ( string_s src )
 					else {
 						push_token_lit(
 								tkn,
-								TKN_CHAR_LITERAL,
+								T_CHAR_LITERAL,
 								(literal_s){
 								.type = LIT_CHAR,
 								.literal = (literal_u) {
@@ -414,14 +461,14 @@ token_array_s* tokenize ( string_s src )
 			}
 		}
 	}
-	push_token(tkn, TKN_EOF, len);
+	push_token(tkn, T_EOF, len);
 
 	return tkn;
 }
 
 void print_token_array(string_s src, token_array_s tkn)
 {
-	printf("===DUMPING TKNS===\n");
+	printf("===DUMPING TS===\n");
 	// printf("File: %s\n", src.path);
 	// printf("[TI:CI] token[TN]: tkn, value: val\n"
 				 // "----------------------------------\n");
@@ -435,9 +482,10 @@ void print_token_array(string_s src, token_array_s tkn)
 			token_type type = current.type;
 			switch(cur_lit.type) {
 				case LIT_INT:
-					printf("[%02i:%02i] token[%02i]: %s, value: [%02i:%02i]\n", 
-							i, 
+					printf("[%02i:%02i] token[%02i:%02i]: %s, value: [%02i:%02i]\n", 
+							current.line,
 							chid,
+							i, 
 							type,
 							token_strings[type], 
 							current.literal_id,
@@ -445,8 +493,9 @@ void print_token_array(string_s src, token_array_s tkn)
 							);
 				break;
 				case LIT_DOUBLE:
-					printf("[%02i:%02i] token[%02i]: %s, value: [%02i:%lf]\n", 
+					printf("[%02i:%02i] token[%02i:%02i]: %s, value: [%02i:%lf]\n", 
 							i, 
+							current.line,
 							chid,
 							type,
 							token_strings[type], 
@@ -455,18 +504,20 @@ void print_token_array(string_s src, token_array_s tkn)
 							);
 				break;
 				case LIT_FLOAT:
-					printf("[%02i:%02i] token[%02i]: %s, value: %f\n", 
-							i, 
+					printf("[%02i:%02i] token[%02i:%02i]: %s, value: %f\n", 
+							current.line,
 							chid,
+							i, 
 							type,
 							token_strings[type], 
 							lit._float
 							);
 				break;
 				case LIT_STRING:
-					printf("[%02i:%02i] token[%02i]: %s, value: %.*s\n", 
-							i, 
+					printf("[%02i:%02i] token[%02i:%02i]: %s, value: %.*s\n", 
+							current.line,
 							chid,
+							i, 
 							type,
 							token_strings[type], 
 							cur_lit.literal._str.len,
@@ -474,9 +525,10 @@ void print_token_array(string_s src, token_array_s tkn)
 							);
 				break;
 				case LIT_CHAR:
-					printf("[%02i:%02i] token[%02i]: %s, value: %c\n", 
-							i, 
+					printf("[%02i:%02i] token[%02i:%02i]: %s, value: %c\n", 
+							current.line,
 							chid,
+							i, 
 							type,
 							token_strings[type], 
 							cur_lit.literal._char);
@@ -486,9 +538,10 @@ void print_token_array(string_s src, token_array_s tkn)
 			}
 		}
 		else  {
-			printf("[%02i:%02i] token[%02i]: %s\n",
-					i,
+			printf("[%02i:%02i] token[%02i:%02i]: %s\n",
+					current.line,
 					current.chr_index,
+					i,
 					current.type,
 					token_strings[current.type]);
 		}

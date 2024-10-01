@@ -91,6 +91,7 @@ main(int argc, char** argv) {
 			}
 
 			// This is ugly, should change this.
+			printf("bufsize: %li\n", strlen(buf));
 			string_s source = (string_s) {.size = strlen(buf), .string = buf};
 			token_array_s* tkn = tokenize(source);
 			print_token_array(source, *tkn);
@@ -127,9 +128,10 @@ main(int argc, char** argv) {
 
 		token_array_s* tkn = tokenize(source->data);
 		// print_token_array(source->data, *tkn);
+
 		node_s *node = parse_tokens(tkn, source->data);
-		// print_ast(*node);
-		// printf("\n");
+		print_ast(*node);
+		printf("\n");
 		fprintf(out_file, "%s", codegen(node));
 		fprintf(out_file, "\n");
 		fclose(out_file);

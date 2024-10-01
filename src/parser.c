@@ -54,30 +54,38 @@ node_s *parse_tokens( token_array_s *tokens, string_s src )
 
 static node_s *program(void) {
 
-	while (match_expect(TKN_INT) && match_expect(TKN_IDENTIFIER)) {
-		return function();		
+	node_s* node = new_node(N_BLOCK);
+	node->node.block.num_children = 0;
+	node->node.block.children = (node_s**)malloc(sizeof(node_s*) * 8);
+
+	while ( peek().type != T_EOF && match_expect(T_INT) && match_expect(T_IDENTIFIER)) {
+		node->node.block.children[
+			node->node.block.num_children
+		] = function();		
+		node->node.block.num_children++;
 	}
+	return node;
 }
 
 static node_s *function(void) {
 	struct func_sig sig = {
 		.func_name = lit_at(parser.current).literal._str,
-		.return_type = TKN_INT,
+		.return_type = T_INT,
 	};
-	match_expect(TKN_PAREN_OPEN);
-	match_expect(TKN_PAREN_CLOSE);
-	match_expect(TKN_BRACE_OPEN);
+	match_expect(T_PAREN_OPEN);
+	match_expect(T_PAREN_CLOSE);
+	match_expect(T_BRACE_OPEN);
 	node_s* fn_node = new_node(N_FN_DEF);
 	fn_node->node.func_def.func_sig = sig;
 	fn_node->node.func_def.body = expr();
-	match_expect(TKN_BRACE_CLOSE);
+	match_expect(T_BRACE_CLOSE);
 	return fn_node;
 }
 
 static node_s *expr(void) {
 	node_s *expr = term();
 
-	while (match(TKN_PLUS) || match(TKN_MINUS)) {
+	while (match(T_PLUS) || match(T_MINUS)) {
 		int op = current().type;
 		// printf("expr: %s, %c, %i\n", token_to_str(op), token_to_char(op), op);
 		node_s *rhs = term();
@@ -89,7 +97,7 @@ static node_s *expr(void) {
 static node_s *term(void) {
 	node_s *expr = factor();
 
-	while (match(TKN_ASTERISK) || match(TKN_FORWARD_SLASH)) {
+	while (match(T_ASTERISK) || match(T_FORWARD_SLASH)) {
 		int op = current().type;
 		// printf("term: %s, %c\n", token_to_str(op), token_to_char(op));
 		node_s *rhs = factor();
@@ -100,7 +108,7 @@ static node_s *term(void) {
 
 static node_s *factor(void) {
 
-	if (match(TKN_BANG) || match(TKN_MINUS)) {
+	if (match(T_BANG) || match(T_MINUS)) {
 		int op = current().type;
 		node_s *right = factor();
 		node_s *expr = new_unary_expr(right, op);
@@ -110,30 +118,30 @@ static node_s *factor(void) {
 }
 
 static node_s *primary(void) {
-	if (match(TKN_INTEGER_LITERAL)){
+	if (match(T_INTEGER_LITERAL)){
 		node_s *node = new_node(N_LIT_INT);
 		node->node.int_lit = lit_at(parser.current).literal._int;
 		return node;
 	}
 
-	if (match(TKN_DOUBLE_FLOATING_LITERAL)){
+	if (match(T_DOUBLE_FLOATING_LITERAL)){
 		node_s *node = new_node(N_LIT_DOUBLE);
 		node->node.double_lit = lit_at(parser.current).literal._double;
 		return node;
 	}
 
-	if (match(TKN_STRING_LITERAL)){
+	if (match(T_STRING_LITERAL)){
 		node_s *node = new_node(N_LIT_STRING);
 		node->node.str_lit = lit_at(parser.current).literal._str;
 		return node;
 	}
 
-	if (match(TKN_TRUE)){
+	if (match(T_TRUE)){
 		node_s *node = new_node(N_LIT_TRUE);
 		return node;
 	}
 
-	if (match(TKN_FALSE)){
+	if (match(T_FALSE)){
 		node_s *node = new_node(N_LIT_FALSE);
 		return node;
 	}
@@ -302,9 +310,17 @@ void print_ast(node_s node)
 		case N_UNKNOWN:
 			printf("unknown node");
 		break;
+		case N_BLOCK: {
+			int count = node.node.block.num_children;
+			printf("block, children: %i\n", count);
+			for (int i = 0; i < count; i++ ) {
+				print_ast(*node.node.block.children[i]);
+			}
+			break;
+		}
 		case N_FN_DEF: {
 			struct func_sig sig = node.node.func_def.func_sig;
-			printf("fn: %.*s, ret: %s, body: \n", 
+			printf("\nfn: %.*s, ret: %s, body: \n\t", 
 					sig.func_name.len,
 					sig.func_name.c_ptr,
 					token_to_str(sig.return_type)
@@ -313,15 +329,15 @@ void print_ast(node_s node)
 		}
 		break;
 		case N_LIT_INT:
-			printf(" %i", node.node.int_lit);
+			printf("%i", node.node.int_lit);
 			// return;
 		break;
 		case N_EXP_BIN:
 		{
-			printf(" (");	
+			printf("( ");	
 			print_ast(*node.node.expr.binary.lhs);
 			char c = token_to_char( node.node.expr.binary.operator_type );
-			printf(" %c", c);
+			printf(" %c ", c);
 			print_ast(*node.node.expr.binary.rhs);
 			printf(" )");
 			// return;

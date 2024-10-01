@@ -1,5 +1,5 @@
 #pragma once
 
-struct node_s;
+struct node;
 
-char* codegen(struct node_s *node);
+char* codegen(struct node *node);

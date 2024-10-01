@@ -5,6 +5,8 @@
 > 2. subject to change.
 > ---
 > With that in mind however, feel free to take a look around, and drop some feedback if you'd like. 
+> However, do note that since this project is currently in it's infancy, i'm not accepting any proper contributions for now.
+
 
 A Small superset of C that's transpiled down to C, with lots of syntax sugar.
 

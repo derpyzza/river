@@ -2,175 +2,169 @@
 
 #include "common.h"
 
-#define NUM_KEY_WORDS 25
+#define NUM_KEY_WORDS 47
 static const char* key_words[NUM_KEY_WORDS] = {
 
+	// types
+	// int
 	"ubyte", "ushort", "uint", "ulong",
 	"byte", "short", "int", "long",
-
+	// float
 	"float", "double",
-
+	// other
 	"void", "bool", "char", "str",
+	"usize", "isize",
+	// variable decl
+	"mut", "pub", "let",
 
-	"return",
-	"if",
-	"else",
-	"while",
-	"for",
-	"struct",
-	"defer",
-	"namespace", 
-	"true",
-	"false",
-	"null"
+	// keywords
+	"return", 
+	"if", "else", "do", "while", "for", "in",
+	"goto", "label", "break", "continue", "defer", 
+	"struct", "type", "enum", "union",
+	"using", "namespace", "import", "as",
+	"switch", "case", "match", 
+	"sizeof", "typeof",
+
+	// literals
+	"true", "false","null"
 };
 
 typedef enum token_type {
-	TKN_NONE = 0,
+	T_NONE = 0,
 	// Single Character tokens
-	TKN_EQUAL_SIGN,
-	TKN_PAREN_OPEN,
-	TKN_PAREN_CLOSE,
-	TKN_BRACE_OPEN,
-	TKN_BRACE_CLOSE,
-	TKN_QUOTE,
-	TKN_COMMA, 
-	TKN_DOT,
-	TKN_PLUS,
-	TKN_MINUS,
-	TKN_ASTERISK,
-	TKN_FORWARD_SLASH,
-	TKN_SEMI,
-	TKN_BANG,
-	TKN_QUESTION,
-	TKN_COLON,
-	TKN_AMP,
-	TKN_PIPE,
-	TKN_TILDE,
-	TKN_HAT,
+	T_EQUAL_SIGN,
+	T_PAREN_OPEN, T_PAREN_CLOSE,
+	T_BRACE_OPEN, T_BRACE_CLOSE,
+	T_BRACKET_OPEN, T_BRACKET_CLOSE,
+	T_COMMA, T_DOT,
+	T_PLUS, T_MINUS,
+	T_ASTERISK, T_FORWARD_SLASH,
+	T_MODULUS, T_SEMI, T_BANG,
+	T_LESS_THAN, T_GREATER_THAN,
+	T_QUESTION, T_COLON,
+	T_AMP, T_PIPE, 
+	T_TILDE, T_HAT,
 
-	// keywords
+	// combo operators
+	T_DIV_EQ,
+	T_MULT_EQ,
+	T_ADD_EQ,
+	T_SUB_EQ,
+	T_MOD_EQ,
+	T_NOT_EQ,
+	T_AND_EQ,
+	T_OR_EQ,
+	T_EQ_EQ,
+	T_LESS_THAN_EQ,
+	T_GREATER_THAN_EQ,
+	T_ARROW,
+	T_FAT_ARROW,
+	T_DOT_DOT,
+	T_LOG_AND,
+	T_LOG_OR,
 
-	TKN_UBYTE,
-	TKN_USHORT,
-	TKN_UINT,
-	TKN_ULONG,
+	T_IDENTIFIER,
+	T_INTEGER_LITERAL,
+	T_FLOATING_LITERAL,
+	T_DOUBLE_FLOATING_LITERAL,
+	T_CHAR_LITERAL,
+	T_STRING_LITERAL,
 
-	TKN_BYTE,
-	TKN_SHORT,
-	TKN_INT,
-	TKN_LONG,
+	// == keywords ==
 
-	TKN_FLOAT,
-	TKN_DOUBLE,
+	// int types
+	T_UBYTE, T_USHORT, T_UINT,T_ULONG,
+	T_BYTE, T_SHORT, T_INT, T_LONG,
 
-	TKN_VOID,
-	TKN_BOOL,
-	TKN_CHAR,
-	TKN_STR,
+	T_FLOAT, T_DOUBLE,
 
-	TKN_RETURN, 
-	TKN_IF,
-	TKN_ELSE,
-	TKN_WHILE,
-	TKN_FOR,
-	TKN_STRUCT,
-	TKN_DEFER,
-	TKN_NAMESPACE,
-	TKN_TRUE,
-	TKN_FALSE,
-	TKN_NULL,
+	T_VOID, T_BOOL, T_CHAR, T_STR,
+	T_USIZE, T_ISIZE,
 
-	TKN_IDENTIFIER,
-	TKN_INTEGER_LITERAL,
-	TKN_FLOATING_LITERAL,
-	TKN_DOUBLE_FLOATING_LITERAL,
-	TKN_CHAR_LITERAL,
-	TKN_STRING_LITERAL,
+	// misc keywords
+	T_RETURN, 
+	T_IF, T_ELSE, T_DO, T_WHILE, T_FOR, T_IN,
+	T_GOTO, T_LABEL, T_BREAK, T_CONTINUE, T_DEFER,
+	T_STRUCT, T_TYPE, T_ENUM, T_UNION,
+	T_USING, T_NAMESPACE, T_IMPORT, T_AS,
+	T_SWITCH, T_CASE, T_MATCH,
+	T_SIZEOF, T_TYPEOF,
+	T_MUT, T_PUB, T_LET,
 
-	// operators
-	TKN_BANG_EQ,
-	TKN_DIV_EQ,
-	TKN_MULT_EQ,
-	TKN_ADD_EQ,
-	TKN_SUB_EQ,
-	TKN_NOT_EQ,
-	TKN_EQ_EQ,
-	TKN_LESS_THAN,
-	TKN_LESS_THAN_EQ,
-	TKN_GREATER_THAN,
-	TKN_GREATER_THAN_EQ,
+	// literals
+	T_TRUE, T_FALSE, T_NULL,
 
-	TKN_EOF,
+	T_EOF,
 
-	MAX_TKNS
+	MAX_TKNS,
 } token_type;
 
-static const char* token_strings[] = {
+static const char* token_strings[MAX_TKNS] = {
 	"NONE",
 	// Single Character tokens
-	"EQUAL SIGN",
-	"PAREN OPEN", "PAREN CLOSE",
-	"BRACE OPEN", "BRACE CLOSE",
-	"QUOTE", "COMMA", "DOT",
-	"PLUS", "MINUS",
-	"ASTERISK", "FORWARD SLASH",
-	"SEMI", "BANG",
-	"QUESTION", "COLON",
-	"AMP", "PIPE",
-	"TILDE", "HAT",
+	"equal sign",
+	"paren open", "paren close",
+	"brace open", "brace close",
+	"bracket open", "bracket close",
+	"comma", "dot",
+	"plus", "minus",
+	"asterisk", "forward slash",
+	"modulus", "semi", "bang",
+	"less than", "greater than",
+	"question", "colon",
+	"amp", "pipe",
+	"tilde", "hat",
+
+	// combo operators
+	"div eq",
+	"mult eq",
+	"add eq",
+	"sub eq",
+	"mod eq",
+	"not eq",
+	"and eq",
+	"or eq",
+	"eq eq",
+	"less than eq",
+	"greater than eq",
+	"arrow",
+	"fat arrow",
+	"dot dot",
+	"logical and",
+	"logical or",
+
+	"identifier",
+	"integer literal",
+	"float literal",
+	"double literal",
+	"char literal",
+	"string literal",
+
+	// ==keywords==
+	// types
+	// int
+	"ubyte", "ushort", "uint", "ulong",
+	"byte", "short", "int", "long",
+	// float
+	"float", "double",
+	// other
+	"void", "bool", "char",  "str",
+	"usize", "isize",
 
 	// keywords
-	//
-	// unsigned int types
-	"UBYTE","USHORT",
-	"UINT","ULONG",
+	"return", 
+	"if", "else", "do", "while", "for", "in",
+	"goto", "label", "break", "continue", "defer", 
+	"struct", "type", "enum", "union",
+	"using", "namespace", "import", "as",
+	"switch", "case", "match", 
+	"sizeof", "typeof",
+	// variable decl
+	"mut", "pub", "let",
 
-	// signed int types
-	"BYTE","SHORT",
-	"INT","LONG",
-
-	// float types
-	"FLOAT", "DOUBLE",
-
-	// other types
-	"VOID",
-	"BOOL",
-	"CHAR",
-	"STR",
-
-	// reserved words
-	"RETURN", 
-	"IF",
-	"ELSE",
-	"WHILE",
-	"FOR",
-	"STRUCT",
-	"DEFER",
-	"NAMESPACE",
-	"TRUE",
-	"FALSE",
-	"NULL",
-
-	"IDENTIFIER",
-	"INTEGER LITERAL",
-	"FLOATING LITERAL",
-	"DOUBLE FLOATING LITERAL",
-	"CHAR LITERAL",
-	"STRING LITERAL",
-
-	// operators
-	"BANG EQ",
-	"DIV EQ",
-	"MULT EQ",
-	"ADD EQ",
-	"SUB EQ",
-	"NOT EQ",
-	"EQ EQ",
-	"LESS THAN",
-	"LESS THAN EQ",
-	"GREATER THAN",
-	"GREATER THAN EQ",
+	// literals
+	"true", "false", "null",
 
 	"EOF",
 };
@@ -233,7 +227,7 @@ static inline char* token_to_str(token_type type) {
 // useful for termination
 static inline token_s token_eof(void) {
 	return (token_s) {
-		.type = TKN_EOF,
+		.type = T_EOF,
 		.chr_index = 0,
 		.has_literal = 0,
 		.literal_id = 0
@@ -242,7 +236,7 @@ static inline token_s token_eof(void) {
 
 static inline token_s token_none(void) {
 	return (token_s) {
-		.type = TKN_NONE,
+		.type = T_NONE,
 		.chr_index = 0,
 		.has_literal = 0,
 		.literal_id = 0
@@ -250,10 +244,13 @@ static inline token_s token_none(void) {
 } 
 
 static inline char token_to_char(token_type token) {
-	if (token - 1 <= TKN_BANG && token - 1 >= TKN_EQUAL_SIGN) {
-		char tokens[(TKN_RETURN - TKN_EQUAL_SIGN)] = {
-			'=', '(', ')', '{', '}', '\"', ',', '.', '+', '-', '*', '/', ';', '!',
+	if (token <= T_HAT && token >= T_EQUAL_SIGN) {
+		char tokens[(T_HAT - T_EQUAL_SIGN) + 1] = {
+			'=', '(', ')', '{', '}', '[', ']', ',', '.', '+', '-', '*', '/', '%', ';', '!',
+			'<', '>', '?', ':', '&', '|', '~', '^'
 		};
+		// the minus one is to deal with the fact that in the 
+		// token_type enum T_EQUAL_SIGN is one but in tokens it's 0
 		return tokens[token - 1];
 	}
 	return 0;
