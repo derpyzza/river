@@ -71,7 +71,6 @@ main(int argc, char** argv) {
 	if (argc < 2) {
 		int should_quit = 0;
 		printf("No input files\n");
-		int print_tokens = 0;
 		while(!should_quit) {
 			// arbitrarily sized buffer for now
 			char* buf = malloc(2048);

@@ -3,14 +3,56 @@
 // Parse the following text and make it return a .c file
 // With the equivalent code
 
-int add() {
-	3 + 5
+import x;
+import x.x;
+import x.x.x;
+import x as y;
+import x.x as y;
+import x.x.x as y;
+// and so on
+
+int add(int x, int y) => {
+	x + y
 }
 
-int sub() {
+int sub() => {
 	6 - 2
 }
 
-int main() {
+int main() => {
   32 * 2 + 8 / 6
 }
+
+int x;
+int x = 10;
+static int x;
+static int x = 10;
+mut int x;
+mut int x = 10;
+static mut int x;
+static mut int x = 10;
+
+int x, y, z;
+int q, w = 10, z;
+(int, int) z = (10, 10);
+(int x, int y) z = (10, 10);
+let x = (10, 30, 30);
+let (x, y, z) = (10, 20, 30);
+let x, y, z = (10, 30, 40); // z => (10, 30, 40); x, y => uninitialized
+
+int func => 1;
+int func () => 1;
+int func (int x) => x;
+int func (int x...) => x + y + z + w ...;
+pub int func => 1;
+pub int func () => 1;
+pub int func (int x) => x;
+pub int func (int x...) => x + y + z + w ...;
+int func => {}
+int func() => {}
+int func(int x) => {}
+int func(...) => {}
+pub int func => {}
+pub int func() => {}
+pub int func(int x) => {}
+pub int func(...) => {}

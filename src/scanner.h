@@ -2,34 +2,6 @@
 
 #include "common.h"
 
-#define NUM_KEY_WORDS 47
-static const char* key_words[NUM_KEY_WORDS] = {
-
-	// types
-	// int
-	"ubyte", "ushort", "uint", "ulong",
-	"byte", "short", "int", "long",
-	// float
-	"float", "double",
-	// other
-	"void", "bool", "char", "str",
-	"usize", "isize",
-	// variable decl
-	"mut", "pub", "let",
-
-	// keywords
-	"return", 
-	"if", "else", "do", "while", "for", "in",
-	"goto", "label", "break", "continue", "defer", 
-	"struct", "type", "enum", "union",
-	"using", "namespace", "import", "as",
-	"switch", "case", "match", 
-	"sizeof", "typeof",
-
-	// literals
-	"true", "false","null"
-};
-
 typedef enum token_type {
 	T_NONE = 0,
 	// Single Character tokens
@@ -73,14 +45,19 @@ typedef enum token_type {
 
 	// == keywords ==
 
+	// built in types
 	// int types
 	T_UBYTE, T_USHORT, T_UINT,T_ULONG,
 	T_BYTE, T_SHORT, T_INT, T_LONG,
-
+	// floats
 	T_FLOAT, T_DOUBLE,
-
-	T_VOID, T_BOOL, T_CHAR, T_STR,
+	// size
 	T_USIZE, T_ISIZE,
+	// alphanumeric
+	T_CHAR, T_STR,
+	//misc
+	T_VOID, T_BOOL,
+
 
 	// misc keywords
 	T_RETURN, 
@@ -88,9 +65,8 @@ typedef enum token_type {
 	T_GOTO, T_LABEL, T_BREAK, T_CONTINUE, T_DEFER,
 	T_STRUCT, T_TYPE, T_ENUM, T_UNION,
 	T_USING, T_NAMESPACE, T_IMPORT, T_AS,
-	T_SWITCH, T_CASE, T_MATCH,
-	T_SIZEOF, T_TYPEOF,
-	T_MUT, T_PUB, T_LET,
+	T_SWITCH, T_CASE, T_SIZEOF, T_TYPEOF,
+	T_MUT, T_PUB, T_VAL, T_STATIC, T_CONST,
 
 	// literals
 	T_TRUE, T_FALSE, T_NULL,
@@ -148,9 +124,13 @@ static const char* token_strings[MAX_TKNS] = {
 	"byte", "short", "int", "long",
 	// float
 	"float", "double",
-	// other
-	"void", "bool", "char",  "str",
+	// size
 	"usize", "isize",
+	// alphanumeric
+	"char",  "string",
+	// other
+	"void", "bool", 
+
 
 	// keywords
 	"return", 
@@ -158,10 +138,9 @@ static const char* token_strings[MAX_TKNS] = {
 	"goto", "label", "break", "continue", "defer", 
 	"struct", "type", "enum", "union",
 	"using", "namespace", "import", "as",
-	"switch", "case", "match", 
-	"sizeof", "typeof",
+	"switch", "case", "sizeof", "typeof",
 	// variable decl
-	"mut", "pub", "let",
+	"mut", "pub", "val", "static", "const",
 
 	// literals
 	"true", "false", "null",

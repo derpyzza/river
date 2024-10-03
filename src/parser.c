@@ -25,6 +25,7 @@ static inline void consume(void);
 static inline int expect(token_type type);
 static inline int match(token_type type);
 static inline int match_expect(token_type expected);
+static inline int match_range(int start, int end);
 static inline int expect_n(int offset, token_type expected);
 static char* node_to_str(node_s node);
 
@@ -38,6 +39,7 @@ static node_s *term(void);
 static node_s *factor(void);
 static node_s *unary(void);
 static node_s *primary(void);
+static node_s *global_variable(void);
 static node_s *program(void);
 static node_s *function(void);
 static node_s *statement(void);
@@ -58,6 +60,17 @@ static node_s *program(void) {
 	node->node.block.num_children = 0;
 	node->node.block.children = (node_s**)malloc(sizeof(node_s*) * 8);
 
+	if(match(T_PUB)) {
+		// function
+	}
+	// global variable
+	if(match(T_STATIC)){
+		match(T_MUT);
+	}
+	if(match(T_CONST) ) {
+
+	}
+
 	while ( peek().type != T_EOF && match_expect(T_INT) && match_expect(T_IDENTIFIER)) {
 		node->node.block.children[
 			node->node.block.num_children
@@ -74,6 +87,7 @@ static node_s *function(void) {
 	};
 	match_expect(T_PAREN_OPEN);
 	match_expect(T_PAREN_CLOSE);
+	match_expect(T_FAT_ARROW);
 	match_expect(T_BRACE_OPEN);
 	node_s* fn_node = new_node(N_FN_DEF);
 	fn_node->node.func_def.func_sig = sig;
@@ -82,7 +96,46 @@ static node_s *function(void) {
 	return fn_node;
 }
 
+static node_s *global_variable(void) {
+	// int x;
+	// int z = 0;
+	// int h, y = 0;
+	// int q, w, e, r;
+	// int t, u = 3, i, o;
+	// int a, s, d = 23;
+	// int (h, j, k, l) = (1, 2, 3, 4);
+	if(
+			match_range(T_UBYTE, T_BOOL) ||
+			match(T_IDENTIFIER)
+			) {
+		// type matched
+		if(match(T_IDENTIFIER)) {
+			// '=' which should check for a value;
+			if (match(T_EQUAL_SIGN)) {
+				if (match_range(T_INTEGER_LITERAL, T_STRING_LITERAL)){
+					if (match(T_SEMI)) {
+						// WE ARE DONE TOT
+					}
+				}
+			}
+
+			if(match(T_SEMI)) {
+				// error: provide a definition for the global variable
+				//end
+			}
+
+		}
+		else { 
+			//error 
+		}
+	} else {
+		// error
+	}
+	return node_unknown();
+}
+
 static node_s *expr(void) {
+
 	node_s *expr = term();
 
 	while (match(T_PLUS) || match(T_MINUS)) {
@@ -219,6 +272,15 @@ static inline int expect(token_type expected)
 static inline int expect_n(int offset, token_type expected)
 {
 	return (peek_n(offset).type == expected);
+}
+
+static inline int match_range(int start, int end) 
+{
+	if (peek().type >= start && peek().type <= end) {
+		consume();
+		return 1;
+	}
+	return 0;
 }
 
 static inline int match(token_type expected) {

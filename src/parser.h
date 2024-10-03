@@ -41,6 +41,10 @@ struct func_sig {
 	// void *params;
 };
 
+// modifier flags:
+// 0000 0001 = pubic
+// 0000 0010 = mutable
+
 // AST Node 
 typedef struct node {
 	int type;
@@ -57,8 +61,14 @@ typedef struct node {
 		struct func_def {
 			struct func_sig func_sig;
 			struct node *body;
+			char modifiers;
 		} func_def;
 		struct func_sig func_call;
+		struct val {
+			token_type type;
+			literal_s value;	
+			char modifiers;
+		} val;
 	} node;
 } node_s;
 

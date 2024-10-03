@@ -24,6 +24,23 @@ ERROR HANDING
 
 ## Parser
 
+
+implement module importing
+
+implement variable assignment
+implement multiple variable assignment
+
+implement structs
+implement tuples
+
+FUNCTIONS:
+- Implement function different return types
+- Implement function parameters
+- implement explicit function returns
+- implement function calling
+- implement uniform function call syntax
+
+
 ## Type checking
 
 ## Codegen

@@ -2,10 +2,14 @@ program -> statement* EOF;
 
 program -> declaration*;
 
-declaration -> func*;
+declaration -> func_decl* | global_var_decl*;
 
-func -> "int" ID "( )" block;
-block -> "{" expr "}";
+global_var_decl -> (("static" ("mut")?) | ("const"))? TYPE ID = LITERAL ";";
+
+func_decl -> "pub"? TYPE ID ( "(" ( TYPE ID ("," TYPE ID)* )? ")" )? "=>" block
+block -> "{" expr* "}";
+
+var_decl -> (TYPE | "let") "mut"? ID ( ";" | "=" LITERAL ";"); 
 
 statement -> expr ";";
 

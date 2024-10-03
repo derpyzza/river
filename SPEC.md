@@ -43,11 +43,20 @@ This is the language spec for river.
 // River has the following literal types:
 /*
  *  null        - no value. compiles down to (void*)0;
- *  numbers     - signed, unsigned, integer, floating point. 
+ *  numbers     - signed / unsigned integers, floating point. 
  *  string      - "string"
- *  true
- *  false
+ *  true        - just the value true. compiles down to the expression (0==0)
+ *  false       - just the value false. compiles down to (0!=0);
  */
+
+ 123 // integer
+ 123.223 // floating point. defaults to double
+ 123.44f // float
+ 232.24d // double
+ 12_232 // same as 12232, underscores help with readability
+ 0x32def // hex
+ 0b11010100 // binary
+ 0c232ac // octal
 
 ```
 
@@ -67,27 +76,27 @@ x = "str"; // illegal
 // And also private to their scope
 
 // to declare a mutable variable add the mut keyword before a variable name:
-int mut x = 0;
+int x = 0;
 x = 10;
 
-let mut x = 0;
+pub mut val x = 0;
 
 // Currently the variable y simply has a none type;
-let y;
+val y;
 
 // From this point on, y is now a floating point number;
 y = 13314.3f;
 
 // you can also explicitly define a variable with a type.
-i32 t = 124;
+int t = 124;
 
 // You can assign multiple variables at once:
-u32 x = 20, y = 50, z = 40;
+int x = 20, y = 50, z = 40;
 // Even if the types are separate:
-let x = "X", y = 230, z = false; // perfectly valid
+val x = "X", y = 230, z = false; // perfectly valid
 
 // Multiple variables can be initialized with the same value, but their types must be the same
-u32 x, y, z, w = 1;
+int x, y, z, w = 1;
 
 // variables are non-nullable by default
 // to have a nullable variable, it must be explicitly marked as such
@@ -116,26 +125,28 @@ if name {
 
 ```c
 
-// functions are defined using the following syntax:
-u32 add ( u32 x, u32 y ) {
-    return ( x + y );
-}
-
-// functions are called as such:
-add(10, 20); // => 30
-
 // Code blocks, including functions, support implicit returns
 // the last expression within a block is returned
-u32 sub ( u32 x, u32 y ) {
+int sub ( int x, int y ) => {
     x + y // returns x + y
 } 
 
-struct Colour(u32: r, g, b, a);
+// the above function can also be written as:
+int sub (int x, int y) => x - y;
+
+// functions without parameters can be omit the parenthesis
+int do_stuff => {
+
+}
+
+// function types can be declared as such:
+// this is a function that takes in an int and returns a bool
+type func -> ((int) => (bool));
 
 // Functions support default parameter values
 // If an argument is not passed for a particular parameter,
 // the default value is used instead.
-Colour Colour_from_rgba ( u32 r, u32 g, u32 b, u32 a = 255 ) {
+Colour Colour_from_rgba( int r, int g, int b, int a = 255 ) => {
     return Colour(r, g, b, a);
 }
 
@@ -148,64 +159,65 @@ Colour_from_rgba(125, 125, 125, 255);
 
 // Function arguments can be named when calling functions
 // Take the following function for example:
-Rectangle draw_rect_pro (u32 x, u32 y, u32 width, u32 height, f64 rotation, Colour col);
+Rectangle draw_rect_pro (int x, int y, int width, int height, float rotation, Colour col) => { /*...*/ }
 // You can call the function by naming the individual arguments
-Rectangle rect = draw_rect_pro(x: 20, y: 30, width: 240, height: 360, col: (10,10,10,255));
+Rectangle rect = draw_rect_pro(
+    x = 20,
+    y = 30,
+    width = 240,
+    height = 360,
+    col = (10,10,10,255));
 // The advantage of named arguments is that you can rearrange the order in which you pass them:
-draw_rect_pro(width: 240, height: 360, x: 20, y: 30, col: (10,10,10,255)); // perfectly valid
+draw_rect_pro(
+    width = 240,
+    height = 360,
+    x = 20,
+    y = 30,
+    col = (10,10,10,255)); // perfectly valid
 
 // functions can have multiple return values by utilizing tuples
-(File, Error) read_file (str path) {
+(File, str) read_file(str path) => {
     // ... file reading logic ...
 
-    return (file, err);
+    return (file, extension);
 }
 
-let (file, err) = read_file("SPEC.md");
-if err {
-    error(err);
+
+val (file, ext) = read_file("SPEC.md");
+if ext == ".md" {
+    parse_markdown(file);
 }
+
+int add (int x, int y) => {
+    return x + y;
+}
+
+add(4, 6);
 
 // In the case of functions that return nullable values, you can unwrap
 // the value using the '?' operator:
 str name = get_name()?; // => if get_name() returns null then the program panics;
 
-// one liner functions can also be declared using the following syntax:
-int add (int x, int y) => x + y;
-
 // for one liners without params the parenthesis can be omitted 
-char next_char => scanner.char++;
-
-// This syntax is handy for closures
-// NOTE: are closures necessary?
-let x = () => {
-    30
-};
-x(); // => 30
-
-// Closures can have function parameters:
-let x (int x) => {
-    10 * x
-}; 
-x(10); // => 100
+char consume => scanner.char += 1;
+char peek => scanner.token[scanner.char + 1];
 
 // functions are first class in river, so you can pass them around as values
 // TODO: workshop the function callback syntax a bit more
-u32 example_func(float val, void func => (int, int) ) 
+u32 example_func( float val, void func => (float, int) ) =>
 {
-    func( (int)val, 20); // => calls the passed-in function
+    func(val, 20); // => calls the passed-in function
 }
 
-u32 example_func(float val, void func => (int, int)); 
-
 // functions can return other functions
-(bool => int) func () {
+(bool => (int)) func () {
     // functions can be defined inline as closures
     return bool(u32 x) => {
         if x {
             true
         } else {
             false
+int add
         }
     };
 }
@@ -242,6 +254,7 @@ if ( expression ) {
     // do yet more stuff
 }
 
+int add
 if expression { statement };
 
 while ( expression ) {
@@ -610,7 +623,7 @@ keywords from C:
 
 short char int long float double void
 if else for while break continue
-switch case goto struct return 
+goto struct return 
 enum union sizeof const
 
 river keywords:
