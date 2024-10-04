@@ -1,5 +1,6 @@
 # Introduction
 This is the language spec for river.
+for now this is more of a sketchpad for features, but it'll get leaner and cleaner with each commit!
 
 # Comments
 ```c 
@@ -161,7 +162,7 @@ int do_stuff => {
 
 // function types can be declared as such:
 // this is a function that takes in an int and returns a bool
-type func -> ((int) => (bool));
+type func -> (int => bool);
 
 // Functions support default parameter values
 // If an argument is not passed for a particular parameter,
@@ -265,6 +266,27 @@ if ( x == "string" ) {
     do_something();
 }
 
+// optional 'then' keyword for one-liners
+if x then y else z;
+if x then y;
+
+if x {
+
+}
+
+if x then {
+
+};
+
+
+string x_to_string(X x) => match x {
+    X_XX => "XX",
+    X_XXX => "XXX",
+    X_XXXX => "XXXX"
+};
+
+
+
 
 if ( expression ) {
     // do stuff
@@ -285,6 +307,16 @@ do {
 
 } while expression;
 
+if -> expr -> ( block | then -> expr (if no else then ";")) -> ( else ) -> ( block | expr ";") 
+
+if x then y else if z then w else a;
+if x then y else while z => do_something();
+
+for x in y => do_something();
+while x => do_something();
+
+for x; y; z => do_something(); 
+
 // river style ( taken from rust )
 for x in range(0..=10) {
 
@@ -303,13 +335,16 @@ for let x = 0; x < 10; x++ {
 
 }
 
-match expr {
+switch expr {
     case => expr,
     case => {...},
-    case,
-    case,
-    case => {...},
+    case | case | case => {...},
     _    => {...}, // default case
+}
+
+int main => {
+    int x = 0;
+    while x < 10 => println("yay!"), x++;
 }
 
 ```

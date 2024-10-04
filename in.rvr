@@ -4,8 +4,4 @@
 // With the equivalent code
 
 
-int add() => 10 + 10
-
-int main() => {
-  32 * 2 + 8 / 6
-}
+int add => 10;

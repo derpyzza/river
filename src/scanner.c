@@ -50,23 +50,6 @@ static inline int line() {
 	return scanner.line;
 }
 
-static char* strip_whitespace(const char* string)
-{
-	int index = 0, str_size = strlen(string);
-	int s_index = 0;
-	char* s = malloc(sizeof(char) * str_size);
-	while (index + 1 <= str_size ) {
-		if (!char_is_whitespace(string[index])) {
-			s[s_index] = string[index];
-			s_index++;
-			index++;
-			continue;
-		}
-		index++;
-	}
-	return s;
-}
-
 static token_array_s* init_token_array(void)
 {
 	token_array_s* tkn = malloc(sizeof(token_array_s));
@@ -200,8 +183,10 @@ token_array_s* tokenize ( string_s src )
 					int flag = 0;
 					for(int i = 0; i < NUM_KEY_WORDS; i++) {
 						int id = i + T_UBYTE;
-						if (!memcmp(substr.c_ptr, token_strings[i + T_UBYTE], substr.len)) {
-							token_type token = i + T_UBYTE;
+						if (
+								substr.len == strlen(token_strings[id]) &&
+								!memcmp(substr.c_ptr, token_strings[id], substr.len)) {
+							token_type token = id;
 
 							push_token(
 							tkn, 

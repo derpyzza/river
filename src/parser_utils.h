@@ -19,7 +19,7 @@ struct literal_s lit_at(long tok_id);
 struct token_s token_at(long id);
 
 // prints an "Unexpected token error"
-void error_unexpected(token_type expected);
+void error_unexpected(struct node* node, token_type expected);
 void consume(void);
 // expect: returns whether or not the next token is as expected
 int expect(token_type type);

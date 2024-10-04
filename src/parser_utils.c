@@ -40,9 +40,15 @@ token_s prev_n(int offset)
 	return parser.tokens->token_list[parser.current - offset];
 }
 
-int expect(token_type expected) { return expect_n(1, expected); }
+int expect(token_type expected) { 
+	// printf("next is: %s\n", token_to_str(peek().type));
+	return expect_n(1, expected);
+}
 
-int expect_n(int offset, token_type expected) { return (peek_n(offset).type == expected); }
+int expect_n(int offset, token_type expected) { 
+	// printf("T: %i\n", peek_n(offset).type == expected);
+	return (peek_n(offset).type == expected); 
+}
 
 int match_range(int start, int end) 
 {
@@ -67,11 +73,6 @@ int match_expect(token_type expected)
 		consume();
 		return 1;
 	}
-	error_unexpected(expected);
-	return 0;
-}
-
-void error_unexpected( token_type expected ) {
 	printf(
 			"ERROR: Unexpected token %s at (%i:%i), expected %s\n"
 			, token_to_str(peek().type)
@@ -79,6 +80,15 @@ void error_unexpected( token_type expected ) {
 			, current_tok().chr_index
 			, token_to_str(expected)
 			);
+	return 0;
+}
+
+void error_unexpected( node_s* node, token_type expected ) {
+	node->has_error = 1;
+	node->error = (struct error) {
+		.token = peek(),
+		.expected = expected
+	};
 }
 
 token_s token_at(long id)

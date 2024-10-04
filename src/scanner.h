@@ -79,7 +79,7 @@ typedef enum token_type {
 static const int NUM_KEY_WORDS = T_NULL - T_UBYTE;
 
 static const char* token_strings[MAX_TKNS] = {
-	"NONE",
+	"==NONE==",
 	// Single Character tokens
 	"equal sign",
 	"paren open", "paren close",

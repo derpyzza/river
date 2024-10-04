@@ -89,8 +89,8 @@ main(int argc, char** argv) {
 				exit(0);
 			}
 
+			// printf("bufsize: %li\n", strlen(buf));
 			// This is ugly, should change this.
-			printf("bufsize: %li\n", strlen(buf));
 			string_s source = (string_s) {.size = strlen(buf), .string = buf};
 			token_array_s* tkn = tokenize(source);
 			// print_token_array(source, *tkn);
@@ -118,12 +118,12 @@ main(int argc, char** argv) {
 			exit(1);
 		}
 
-		FILE* out_file = fopen(strcat(path.path, ".c"), "wb");
-		if (out_file == NULL) {
-			printf("Error: Couldn't create output file %s.c\n", path.path);
-			fclose(out_file);
-			continue;
-		}
+		// FILE* out_file = fopen(strcat(path.path, ".c"), "wb");
+		// if (out_file == NULL) {
+		// 	printf("Error: Couldn't create output file %s.c\n", path.path);
+		// 	fclose(out_file);
+		// 	continue;
+		// }
 
 		token_array_s* tkn = tokenize(source->data);
 		// print_token_array(source->data, *tkn);
@@ -131,9 +131,9 @@ main(int argc, char** argv) {
 		node_s *node = parse_tokens(tkn, source->data);
 		print_ast(*node);
 		printf("\n");
-		fprintf(out_file, "%s", codegen(node));
-		fprintf(out_file, "\n");
-		fclose(out_file);
+		// fprintf(out_file, "%s", codegen(node));
+		// fprintf(out_file, "\n");
+		// fclose(out_file);
 		free(tkn);
 	}
 	return 0;

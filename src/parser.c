@@ -8,7 +8,7 @@
 static char* node_to_str(node_s node);
 
 static node_s *new_node(node_type type);
-static node_s *node_unknown(void);
+static node_s *node_error(token_type expected);
 static node_s *new_bin_expr(node_s *lhs, node_s *rhs, int op);
 static node_s *new_unary_expr(node_s *right, int op);
 
@@ -31,25 +31,34 @@ node_s *parse_tokens( token_array_s *tokens, string_s src )
 
 	return node;
 }
- 
+
+static node_s *parser_panic(node_s* node, token_type expected, token_type until) {
+	error_unexpected(node, expected);
+	while(!expect(T_EOF) && !expect(until)) consume();
+	node->type = N_NONE;
+	return node;
+}
+
 static node_s *program(void) {
 
 	node_s* node = new_node(N_BLOCK);
 	node->node.block.num_children = 0;
 	node->node.block.children = (node_s**)malloc(sizeof(node_s*) * 8);
 
-	while ( !expect(T_EOF) && match_expect(T_INT) && match_expect(T_IDENTIFIER)) {
+	while ( !expect(T_EOF) ) {
+		if (!match(T_INT)) {
+			return parser_panic(node, T_INT, T_SEMI);
+		}
+		if (!match(T_IDENTIFIER)) {
+			return parser_panic(node, T_IDENTIFIER, T_SEMI);
+		}
+
 		if (expect(T_PAREN_OPEN) || expect(T_FAT_ARROW)) {
 			node->node.block.children[
 				node->node.block.num_children
 			] = function();		
 			node->node.block.num_children++;
-		} else if (expect(T_EQUAL_SIGN)) {
-			// node->node.block.children[
-			// 	node->node.block.num_children
-			// ] = function();		
-			// node->node.block.num_children++;
-		}
+		} 
 	}
 	return node;
 }
@@ -59,16 +68,19 @@ static node_s *block(void) {
 	node->node.block.num_children = 0;
 	node->node.block.children = (node_s**)malloc(sizeof(node_s*) * 8);
 
-	if(match_expect(T_BRACE_OPEN)) {
+	if(match(T_BRACE_OPEN)) {
 		while(!match(T_BRACE_CLOSE)) {
 			node->node.block.children[
 				node->node.block.num_children
 			] = expr();		
 			node->node.block.num_children++;
-		}
+			if (expect(T_EOF)) {
+				return parser_panic(node, T_BRACE_CLOSE, T_EOF);
+			}
+		} 
 		return node;
 	} else {
-		return new_node(N_ERROR);
+		return parser_panic(node, T_BRACE_OPEN, T_INT);
 	}
 }
 
@@ -84,21 +96,23 @@ static node_s *function(void) {
 
 	if (match(T_PAREN_OPEN)) 
 	{
-		while(!match(T_PAREN_CLOSE)) {
-			match(T_INT);
-			match(T_IDENTIFIER);
+		if(!match(T_PAREN_CLOSE)) {
+			return parser_panic(node, T_PAREN_CLOSE, T_SEMI);
 		}
 	}
-	if (match_expect(T_FAT_ARROW))
+	if (match(T_FAT_ARROW))
 	{
 		if (expect(T_BRACE_OPEN)) {
 			node->node.func_def.body = block();
 		}
-
 		else {
 			node->node.func_def.body = expr();
-			match_expect(T_SEMI);
+			if(!match(T_SEMI)) {
+				return parser_panic(node, T_SEMI, T_SEMI);
+			} 
 		}
+	} else {
+		return parser_panic(node, T_FAT_ARROW, T_SEMI);
 	}
 	return node;
 }
@@ -138,7 +152,7 @@ static node_s *global_variable(void) {
 	} else {
 		// error
 	}
-	return node_unknown();
+	// return node_error();
 }
 
 static node_s *expr(void) {
@@ -205,9 +219,7 @@ static node_s *primary(void) {
 		node_s *node = new_node(N_LIT_FALSE);
 		return node;
 	}
-
-
-	return node_unknown();
+	// return node_unknown();
 }
 
 static node_s *new_node(node_type type) {
@@ -217,11 +229,12 @@ static node_s *new_node(node_type type) {
 		return NULL;
 	}
 	node->type = type;
+	node->has_error = 0;
+	node->error = (struct error) {
+		.expected = T_NONE,
+		.token = (token_s) { 0 }
+	};
 	return node;
-}
-
-static node_s *node_unknown(void) {
-	return new_node(N_UNKNOWN);
 }
 
 static node_s *new_bin_expr(node_s *lhs, node_s *rhs, int op) {
@@ -231,6 +244,7 @@ static node_s *new_bin_expr(node_s *lhs, node_s *rhs, int op) {
 		.rhs = rhs,
 		.operator_type = op
 	};
+
 	return node;
 }
 
@@ -269,12 +283,17 @@ char* node_to_string(char* string, node_s node) {
 void print_ast(node_s node)
 {
 	// printf("\n(\n");
+	if(node.has_error) {
+		printf("Error: Unexpected token %s at (%i:%i), expected: %s",
+				token_to_str(node.error.token.type),
+				node.error.token.line, node.error.token.chr_index,
+				token_to_str(node.error.expected)
+				);
+		return;
+	} else
 	switch (node.type) {
 		case N_NONE:
 			printf("none");
-		break;
-		case N_UNKNOWN:
-			printf("unknown node");
 		break;
 		case N_BLOCK: {
 			int count = node.node.block.num_children;
