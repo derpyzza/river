@@ -2,31 +2,9 @@
 
 #include "scanner.h"
 #include "parser.h"
-
-struct parser {
-	token_array_s *tokens;
-	long current;
-};
-
-static struct parser parser;
+#include "parser_utils.h"
 
 // Forward declarations so that i can rearrange the definitions as i wish
-
-static inline literal_s lit_at(long tok_id);
-static inline token_s peek(void);
-static inline token_s prev(void);
-static inline token_s peek_n(int offset);
-static inline token_s prev_n(int offset);
-static inline token_s current(void);
-static inline token_s token_at(long id);
-static inline node_s node_none(void);
-static inline void error_unexpected(token_type expected);
-static inline void consume(void);
-static inline int expect(token_type type);
-static inline int match(token_type type);
-static inline int match_expect(token_type expected);
-static inline int match_range(int start, int end);
-static inline int expect_n(int offset, token_type expected);
 static char* node_to_str(node_s node);
 
 static node_s *new_node(node_type type);
@@ -47,8 +25,7 @@ static node_s *statement(void);
 
 node_s *parse_tokens( token_array_s *tokens, string_s src ) 
 { 
-	parser.tokens = tokens;
-	parser.current = -1;
+	init_parser(tokens);
 
 	node_s *node = program();
 
@@ -97,7 +74,7 @@ static node_s *block(void) {
 
 static node_s *function(void) {
 	struct func_sig sig = {
-		.func_name = lit_at(parser.current).literal._str,
+		.func_name = lit_at(current()).literal._str,
 		.return_type = T_INT,
 		.num_params = 0,
 		.params = NULL
@@ -169,7 +146,7 @@ static node_s *expr(void) {
 	node_s *expr = term();
 
 	while (match(T_PLUS) || match(T_MINUS)) {
-		int op = current().type;
+		int op = current_tok().type;
 		// printf("expr: %s, %c, %i\n", token_to_str(op), token_to_char(op), op);
 		node_s *rhs = term();
 		expr = new_bin_expr(expr, rhs, op);
@@ -181,7 +158,7 @@ static node_s *term(void) {
 	node_s *expr = factor();
 
 	while (match(T_ASTERISK) || match(T_FORWARD_SLASH)) {
-		int op = current().type;
+		int op = current_tok().type;
 		// printf("term: %s, %c\n", token_to_str(op), token_to_char(op));
 		node_s *rhs = factor();
 		expr = new_bin_expr(expr, rhs, op);
@@ -192,7 +169,7 @@ static node_s *term(void) {
 static node_s *factor(void) {
 
 	if (match(T_BANG) || match(T_MINUS)) {
-		int op = current().type;
+		int op = current_tok().type;
 		node_s *right = factor();
 		node_s *expr = new_unary_expr(right, op);
 		return expr;
@@ -203,19 +180,19 @@ static node_s *factor(void) {
 static node_s *primary(void) {
 	if (match(T_INTEGER_LITERAL)){
 		node_s *node = new_node(N_LIT_INT);
-		node->node.int_lit = lit_at(parser.current).literal._int;
+		node->node.int_lit = lit_at(current()).literal._int;
 		return node;
 	}
 
 	if (match(T_DOUBLE_FLOATING_LITERAL)){
 		node_s *node = new_node(N_LIT_DOUBLE);
-		node->node.double_lit = lit_at(parser.current).literal._double;
+		node->node.double_lit = lit_at(current()).literal._double;
 		return node;
 	}
 
 	if (match(T_STRING_LITERAL)){
 		node_s *node = new_node(N_LIT_STRING);
-		node->node.str_lit = lit_at(parser.current).literal._str;
+		node->node.str_lit = lit_at(current()).literal._str;
 		return node;
 	}
 
@@ -264,109 +241,6 @@ static node_s *new_unary_expr(node_s *right, int op) {
 		.operand = right
 	};
 	return node;
-}
-
-static inline void consume(void) {
-	parser.current++;
-}
-
-static inline token_s peek(void) {
-	return peek_n(1);
-}
-
-static inline token_s peek_n(int offset) {
-	if (parser.current + offset >= parser.tokens->current_token ) {
-		return token_eof();
-	}
-	return parser.tokens->token_list[parser.current + offset];
-}
-
-// opposite of peek
-static inline token_s prev(void) {
-	return prev_n(1);
-}
-
-static inline token_s prev_n(int offset)
-{
-	if (parser.current + offset < 0 ) {
-		return token_none();
-	}
-	return parser.tokens->token_list[parser.current - offset];
-}
-
-static inline int expect(token_type expected)
-{
-	return expect_n(1, expected);
-}
-
-static inline int expect_n(int offset, token_type expected)
-{
-	return (peek_n(offset).type == expected);
-}
-
-static inline int match_range(int start, int end) 
-{
-	if (peek().type >= start && peek().type <= end) {
-		consume();
-		return 1;
-	}
-	return 0;
-}
-
-static inline int match(token_type expected) {
-	if (expect(expected)) {
-		consume();
-		return 1;
-	}
-	return 0;
-}
-
-static inline int match_expect(token_type expected)
-{
-	if (expect(expected)) {
-		consume();
-		return 1;
-	}
-	error_unexpected(expected);
-	return 0;
-}
-
-
-
-static inline token_s current(void) {
-	return parser.tokens->token_list[parser.current];
-}
-
-static inline void error_unexpected( token_type expected ) {
-	printf(
-			"ERROR: Unexpected token %s at (%i:%i), expected %s\n"
-			, token_to_str(peek().type)
-			, current().line
-			, current().chr_index
-			, token_to_str(expected)
-			);
-}
-
-static inline token_s token_at(long id)
-{
-	if (id >= parser.tokens->current_token ) {
-		return token_eof();
-	}
-	return parser.tokens->token_list[id];
-}
-
-static inline literal_s lit_at(long tok_id)
-{
-	if (tok_id >= parser.tokens->current_token) {
-		printf("ERROR: tok_id exceeds total number of tokens\n");
-		return (literal_s){.type=LIT_NONE};
-	}
-	int lit_id = token_at(tok_id).literal_id;	
-	return parser.tokens->literal_list[lit_id];
-}
-
-static inline node_s node_none(void) {
-	return (node_s){.type = N_NONE};
 }
 
 char* node_to_string(char* string, node_s node) {

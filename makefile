@@ -9,7 +9,7 @@ EXEC = $(BIN)/$(PROGNAME)
 CFLAGS := -Wall -pedantic -Wswitch -g
 LDFLAGS :=
 
-SRC_FILES := $(wildcard $(SRC)/*.c) $(wildcard $(SRC)/**/*.c) $(wildcard $(SRC)/**/**/*.c)
+SRC_FILES := $(wildcard $(SRC)/**.c) $(wildcard $(SRC)/**/**.c) $(wildcard $(SRC)/**/**/**.c)
 OBJ_FILES := $(patsubst $(SRC)/%.c, $(BIN)/%.o, $(SRC_FILES))
 
 all: $(EXEC)
