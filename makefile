@@ -20,6 +20,9 @@ $(BIN)/%.o: $(SRC)/%.c
 $(EXEC): $(OBJ_FILES)
 	$(CC) $^ -o $@ $(CFLAGS) $(LDFLAGS)
 
+repl: $(EXEC)
+	$(EXEC)
+
 run: $(EXEC)
 	$(EXEC) in.rvr
 

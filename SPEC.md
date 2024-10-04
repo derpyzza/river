@@ -75,11 +75,9 @@ x = "str"; // illegal
 // Variables are immutable by default
 // And also private to their scope
 
-// to declare a mutable variable add the mut keyword before a variable name:
-int x = 0;
+// to declare a mutable variable add the mut keyword before the type name:
+mut int x = 0;
 x = 10;
-
-pub mut val x = 0;
 
 // Currently the variable y simply has a none type;
 val y;
@@ -112,6 +110,28 @@ if name {
 
 
 ```
+
+## Variable modifiers
+
+```c
+
+// Modifiers are keywords that modify the nature of a variable
+// Modifiers must be placed before a variable's type, 
+// and applies to every subsequent variable
+
+// river supports the following variable modifiers:
+
+// the const keyword copy pastes the value of the const expression everywhere 
+// it's used. it's used as a replacement for C's preprocessor #define macros
+const
+// the mutable variable marks the variable as mutable
+// the mutable keyword is placed right before the variable name
+mut;
+
+const int x, mut y, z; 
+
+```
+
 
 # Operators
 

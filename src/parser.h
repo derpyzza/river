@@ -3,6 +3,7 @@
 #include "scanner.h"
 #include <stdio.h>
 typedef enum {
+	N_ERROR = -2,
 	N_UNKNOWN = -1,
 	N_NONE = 0,
 	N_EXP_UN,
@@ -35,15 +36,23 @@ union expr{
 	} unary;
 };
 
+struct var {
+	token_type type;
+	substr_s id;
+};
+
 struct func_sig {
 	substr_s func_name;
 	token_type return_type;
-	// void *params;
+	int num_params;
+	struct var* params;
 };
 
 // modifier flags:
-// 0000 0001 = pubic
+// 0001 0000 = public
+// 0000 0001 = static
 // 0000 0010 = mutable
+// 0000 0100 = const
 
 // AST Node 
 typedef struct node {
@@ -69,6 +78,10 @@ typedef struct node {
 			literal_s value;	
 			char modifiers;
 		} val;
+		struct error {
+			token_s token;
+			token_type expected;
+		} error;
 	} node;
 } node_s;
 

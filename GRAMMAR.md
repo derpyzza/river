@@ -2,7 +2,7 @@ program -> statement* EOF;
 
 program -> declaration*;
 
-declaration -> func_decl* | global_var_decl*;
+declaration -> func_decl* | global_var_decl* | ("static"? | "const"?) declaration;
 
 global_var_decl -> (("static" ("mut")?) | ("const"))? TYPE ID = LITERAL ";";
 

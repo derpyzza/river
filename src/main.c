@@ -93,11 +93,11 @@ main(int argc, char** argv) {
 			printf("bufsize: %li\n", strlen(buf));
 			string_s source = (string_s) {.size = strlen(buf), .string = buf};
 			token_array_s* tkn = tokenize(source);
-			print_token_array(source, *tkn);
+			// print_token_array(source, *tkn);
 
-			// node_s *node = parse_tokens(tkn, source);
-			// print_ast(*node);
-			// printf("\n");
+			node_s *node = parse_tokens(tkn, source);
+			print_ast(*node);
+			printf("\n");
 			free(tkn);
 		}
 		exit(0);

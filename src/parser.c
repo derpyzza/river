@@ -39,6 +39,7 @@ static node_s *term(void);
 static node_s *factor(void);
 static node_s *unary(void);
 static node_s *primary(void);
+static node_s *block(void);
 static node_s *global_variable(void);
 static node_s *program(void);
 static node_s *function(void);
@@ -53,47 +54,76 @@ node_s *parse_tokens( token_array_s *tokens, string_s src )
 
 	return node;
 }
-
+ 
 static node_s *program(void) {
 
 	node_s* node = new_node(N_BLOCK);
 	node->node.block.num_children = 0;
 	node->node.block.children = (node_s**)malloc(sizeof(node_s*) * 8);
 
-	if(match(T_PUB)) {
-		// function
-	}
-	// global variable
-	if(match(T_STATIC)){
-		match(T_MUT);
-	}
-	if(match(T_CONST) ) {
-
-	}
-
-	while ( peek().type != T_EOF && match_expect(T_INT) && match_expect(T_IDENTIFIER)) {
-		node->node.block.children[
-			node->node.block.num_children
-		] = function();		
-		node->node.block.num_children++;
+	while ( !expect(T_EOF) && match_expect(T_INT) && match_expect(T_IDENTIFIER)) {
+		if (expect(T_PAREN_OPEN) || expect(T_FAT_ARROW)) {
+			node->node.block.children[
+				node->node.block.num_children
+			] = function();		
+			node->node.block.num_children++;
+		} else if (expect(T_EQUAL_SIGN)) {
+			// node->node.block.children[
+			// 	node->node.block.num_children
+			// ] = function();		
+			// node->node.block.num_children++;
+		}
 	}
 	return node;
+}
+
+static node_s *block(void) {
+	node_s* node = new_node(N_BLOCK);
+	node->node.block.num_children = 0;
+	node->node.block.children = (node_s**)malloc(sizeof(node_s*) * 8);
+
+	if(match_expect(T_BRACE_OPEN)) {
+		while(!match(T_BRACE_CLOSE)) {
+			node->node.block.children[
+				node->node.block.num_children
+			] = expr();		
+			node->node.block.num_children++;
+		}
+		return node;
+	} else {
+		return new_node(N_ERROR);
+	}
 }
 
 static node_s *function(void) {
 	struct func_sig sig = {
 		.func_name = lit_at(parser.current).literal._str,
 		.return_type = T_INT,
+		.num_params = 0,
+		.params = NULL
 	};
-	match_expect(T_PAREN_OPEN);
-	match_expect(T_PAREN_CLOSE);
-	match_expect(T_FAT_ARROW);
-	match_expect(T_BRACE_OPEN);
-	node_s* fn_node = new_node(N_FN_DEF);
-	fn_node->node.func_def.func_sig = sig;
-	fn_node->node.func_def.body = expr();
-	match_expect(T_BRACE_CLOSE);
-	return fn_node;
+	node_s* node = new_node(N_FN_DEF);
+	node->node.func_def.func_sig = sig;
+
+	if (match(T_PAREN_OPEN)) 
+	{
+		while(!match(T_PAREN_CLOSE)) {
+			match(T_INT);
+			match(T_IDENTIFIER);
+		}
+	}
+	if (match_expect(T_FAT_ARROW))
+	{
+		if (expect(T_BRACE_OPEN)) {
+			node->node.func_def.body = block();
+		}
+
+		else {
+			node->node.func_def.body = expr();
+			match_expect(T_SEMI);
+		}
+	}
+	return node;
 }
 
 static node_s *global_variable(void) {
@@ -391,12 +421,12 @@ void print_ast(node_s node)
 		}
 		break;
 		case N_LIT_INT:
-			printf("%i", node.node.int_lit);
+			printf("(int %i)", node.node.int_lit);
 			// return;
 		break;
 		case N_EXP_BIN:
 		{
-			printf("( ");	
+			printf("(bexpr ");	
 			print_ast(*node.node.expr.binary.lhs);
 			char c = token_to_char( node.node.expr.binary.operator_type );
 			printf(" %c ", c);
@@ -408,7 +438,7 @@ void print_ast(node_s node)
 		case N_EXP_UN:
 		{
 			char c = token_to_char( node.node.expr.unary.operator_type );
-			printf(" %c", c);
+			printf("(unexpr %c)", c);
 			print_ast(*node.node.expr.unary.operand);
 		}
 		break;

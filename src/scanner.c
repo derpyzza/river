@@ -197,17 +197,10 @@ token_array_s* tokenize ( string_s src )
 					// proper control flow needed to make sure that keyword
 					// identifiers get stored as keyword tokens and not keyword AND
 					// identifier tokens. This flag is my little hack.
-
-					// NOTE: remove this keyword for loop and replace it 
-					// with a switch statement that checks the first character
-					// later. this is fine for now though as the flexibility it provides
-					// is really nice
 					int flag = 0;
 					for(int i = 0; i < NUM_KEY_WORDS; i++) {
 						int id = i + T_UBYTE;
-						if (
-								strlen(token_strings[i+T_UBYTE]) == substr.len &&
-								memcmp(substr.c_ptr, token_strings[i + T_UBYTE], substr.len) == 0) {
+						if (!memcmp(substr.c_ptr, token_strings[i + T_UBYTE], substr.len)) {
 							token_type token = i + T_UBYTE;
 
 							push_token(
@@ -482,10 +475,9 @@ void print_token_array(string_s src, token_array_s tkn)
 			token_type type = current.type;
 			switch(cur_lit.type) {
 				case LIT_INT:
-					printf("[%02i:%02i] token[%02i:%02i]: %s, value: [%02i:%02i]\n", 
-							current.line,
-							chid,
+					printf("[%02i:%02i] token[%02i]: %s, value: [%02i:%02i]\n", 
 							i, 
+							chid,
 							type,
 							token_strings[type], 
 							current.literal_id,
@@ -493,9 +485,8 @@ void print_token_array(string_s src, token_array_s tkn)
 							);
 				break;
 				case LIT_DOUBLE:
-					printf("[%02i:%02i] token[%02i:%02i]: %s, value: [%02i:%lf]\n", 
+					printf("[%02i:%02i] token[%02i]: %s, value: [%02i:%lf]\n", 
 							i, 
-							current.line,
 							chid,
 							type,
 							token_strings[type], 
@@ -504,20 +495,18 @@ void print_token_array(string_s src, token_array_s tkn)
 							);
 				break;
 				case LIT_FLOAT:
-					printf("[%02i:%02i] token[%02i:%02i]: %s, value: %f\n", 
-							current.line,
-							chid,
+					printf("[%02i:%02i] token[%02i]: %s, value: %f\n", 
 							i, 
+							chid,
 							type,
 							token_strings[type], 
 							lit._float
 							);
 				break;
 				case LIT_STRING:
-					printf("[%02i:%02i] token[%02i:%02i]: %s, value: %.*s\n", 
-							current.line,
-							chid,
+					printf("[%02i:%02i] token[%02i]: %s, value: %.*s\n", 
 							i, 
+							chid,
 							type,
 							token_strings[type], 
 							cur_lit.literal._str.len,
@@ -525,10 +514,9 @@ void print_token_array(string_s src, token_array_s tkn)
 							);
 				break;
 				case LIT_CHAR:
-					printf("[%02i:%02i] token[%02i:%02i]: %s, value: %c\n", 
-							current.line,
-							chid,
+					printf("[%02i:%02i] token[%02i]: %s, value: %c\n", 
 							i, 
+							chid,
 							type,
 							token_strings[type], 
 							cur_lit.literal._char);
@@ -538,10 +526,9 @@ void print_token_array(string_s src, token_array_s tkn)
 			}
 		}
 		else  {
-			printf("[%02i:%02i] token[%02i:%02i]: %s\n",
-					current.line,
-					current.chr_index,
+			printf("[%02i:%02i] token[%02i]: %s\n",
 					i,
+					current.chr_index,
 					current.type,
 					token_strings[current.type]);
 		}

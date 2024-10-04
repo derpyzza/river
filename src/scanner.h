@@ -66,7 +66,7 @@ typedef enum token_type {
 	T_STRUCT, T_TYPE, T_ENUM, T_UNION,
 	T_USING, T_NAMESPACE, T_IMPORT, T_AS,
 	T_SWITCH, T_CASE, T_SIZEOF, T_TYPEOF,
-	T_MUT, T_PUB, T_VAL, T_STATIC, T_CONST,
+	T_STATIC, T_CONST, T_MUT, T_PUB, T_VAL, 
 
 	// literals
 	T_TRUE, T_FALSE, T_NULL,
@@ -75,6 +75,8 @@ typedef enum token_type {
 
 	MAX_TKNS,
 } token_type;
+
+static const int NUM_KEY_WORDS = T_NULL - T_UBYTE;
 
 static const char* token_strings[MAX_TKNS] = {
 	"NONE",
@@ -140,7 +142,7 @@ static const char* token_strings[MAX_TKNS] = {
 	"using", "namespace", "import", "as",
 	"switch", "case", "sizeof", "typeof",
 	// variable decl
-	"mut", "pub", "val", "static", "const",
+	"static", "const", "mut", "pub", "val", 
 
 	// literals
 	"true", "false", "null",
