@@ -19,6 +19,7 @@ typedef enum {
 
 	N_FN_CALL,
 	N_FN_DEF,
+	N_VAR_ASSIGN,
 
 	N_STMT,
 	N_RETURN,
@@ -82,8 +83,9 @@ typedef struct node {
 		} func_def;
 		struct func_sig func_call;
 		struct val {
+			substr_s name;
 			token_type type;
-			literal_s value;	
+			struct node *rhs;
 			char modifiers;
 		} val;
 	} node;

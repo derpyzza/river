@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdio.h>
 
 #include "scanner.h"
@@ -58,7 +59,12 @@ static node_s *program(void) {
 				node->node.block.num_children
 			] = function();		
 			node->node.block.num_children++;
-		} 
+		} else if (expect(T_EQUAL_SIGN) || expect(T_SEMI)) {
+			node->node.block.children[
+				node->node.block.num_children
+			] = global_variable();		
+			node->node.block.num_children++;
+		}
 	}
 	return node;
 }
@@ -118,6 +124,22 @@ static node_s *function(void) {
 }
 
 static node_s *global_variable(void) {
+	node_s* node = new_node(N_VAR_ASSIGN);
+	substr_s name = lit_at(current()).literal._str;
+	printf("substr: %.*s\n", name.len, name.c_ptr);
+
+	if (match(T_EQUAL_SIGN)) {
+		node->node.val.type = T_INT;
+		node->node.val.rhs = expr();
+		node->node.val.name = name;
+		if(!match(T_SEMI)) return parser_panic(node, T_SEMI, T_INT);
+		return node;
+	}
+	else {
+		return parser_panic(node, T_EQUAL_SIGN, T_SEMI);
+	}
+
+
 	// int x;
 	// int z = 0;
 	// int h, y = 0;
@@ -125,33 +147,33 @@ static node_s *global_variable(void) {
 	// int t, u = 3, i, o;
 	// int a, s, d = 23;
 	// int (h, j, k, l) = (1, 2, 3, 4);
-	if(
-			match_range(T_UBYTE, T_BOOL) ||
-			match(T_IDENTIFIER)
-			) {
-		// type matched
-		if(match(T_IDENTIFIER)) {
-			// '=' which should check for a value;
-			if (match(T_EQUAL_SIGN)) {
-				if (match_range(T_INTEGER_LITERAL, T_STRING_LITERAL)){
-					if (match(T_SEMI)) {
-						// WE ARE DONE TOT
-					}
-				}
-			}
-
-			if(match(T_SEMI)) {
-				// error: provide a definition for the global variable
-				//end
-			}
-
-		}
-		else { 
-			//error 
-		}
-	} else {
-		// error
-	}
+	// if(
+	// 		match_range(T_UBYTE, T_BOOL) ||
+	// 		match(T_IDENTIFIER)
+	// 		) {
+	// 	// type matched
+	// 	if(match(T_IDENTIFIER)) {
+	// 		// '=' which should check for a value;
+	// 		if (match(T_EQUAL_SIGN)) {
+	// 			if (match_range(T_INTEGER_LITERAL, T_STRING_LITERAL)){
+	// 				if (match(T_SEMI)) {
+	// 					// WE ARE DONE TOT
+	// 				}
+	// 			}
+	// 		}
+	//
+	// 		if(match(T_SEMI)) {
+	// 			// error: provide a definition for the global variable
+	// 			//end
+	// 		}
+	//
+	// 	}
+	// 	else { 
+	// 		//error 
+	// 	}
+	// } else {
+	// 	// error
+	// }
 	// return node_error();
 }
 
@@ -303,6 +325,15 @@ void print_ast(node_s node)
 			}
 			break;
 		}
+		case N_VAR_ASSIGN: {
+			printf("\nvar: %.*s, ret: %s, value: \n\t", 
+					node.node.val.name.len,
+					node.node.val.name.c_ptr,
+					token_to_str(node.node.val.type)
+					);
+			print_ast(*node.node.val.rhs);
+		break;
+	 }
 		case N_FN_DEF: {
 			struct func_sig sig = node.node.func_def.func_sig;
 			printf("\nfn: %.*s, ret: %s, body: \n\t", 

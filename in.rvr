@@ -4,4 +4,8 @@
 // With the equivalent code
 
 
+int add = 30;
 int add => 10;
+int add => {
+	30 * 40
+}
