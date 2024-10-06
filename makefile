@@ -15,7 +15,8 @@ OBJ_FILES := $(patsubst $(SRC)/%.c, $(BIN)/%.o, $(SRC_FILES))
 all: $(EXEC)
 
 $(BIN)/%.o: $(SRC)/%.c 
-	$(CC) $^ -c -o $@ $(CFLAGS) $(LDFLAGS)
+	@mkdir -p $(dir $@)
+	$(CC) $^ -c $(CFLAGS) $(LDFLAGS) -o $@
 
 $(EXEC): $(OBJ_FILES)
 	$(CC) $^ -o $@ $(CFLAGS) $(LDFLAGS)
@@ -30,4 +31,3 @@ run: $(EXEC)
 
 clean:
 	rm -rf $(BIN)/*
-

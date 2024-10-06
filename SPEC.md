@@ -646,8 +646,18 @@ x = 3 // outputs 3
     return x;
 } // This whole block is an expression
 
+val y = if x then x;
+
+val v = if x then if y then if z then if w then a else 0;
+// is equal to
+val v = if x && y && z && w then a else 0;
+
 
 // Statements
+
+val x = 10; // statement
+funcCall();
+
 
 ```
 

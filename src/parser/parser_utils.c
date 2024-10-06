@@ -1,6 +1,6 @@
 
 #include "parser.h"
-#include "scanner.h"
+#include "../scanner.h"
 #include "parser_utils.h"
 
 struct parser {
@@ -40,12 +40,12 @@ token_s prev_n(int offset)
 	return parser.tokens->token_list[parser.current - offset];
 }
 
-int expect(token_type expected) { 
+int check_next (token_type expected) { 
 	// printf("next is: %s\n", token_to_str(peek().type));
-	return expect_n(1, expected);
+	return check_next_n(1, expected);
 }
 
-int expect_n(int offset, token_type expected) { 
+int check_next_n(int offset, token_type expected) { 
 	// printf("T: %i\n", peek_n(offset).type == expected);
 	return (peek_n(offset).type == expected); 
 }
@@ -60,7 +60,7 @@ int match_range(int start, int end)
 }
 
 int match(token_type expected) {
-	if (expect(expected)) {
+	if (check_next(expected)) {
 		consume();
 		return 1;
 	}
@@ -69,7 +69,7 @@ int match(token_type expected) {
 
 int match_expect(token_type expected)
 {
-	if (expect(expected)) {
+	if (check_next(expected)) {
 		consume();
 		return 1;
 	}
@@ -83,13 +83,13 @@ int match_expect(token_type expected)
 	return 0;
 }
 
-void error_unexpected( node_s* node, token_type expected ) {
-	node->has_error = 1;
-	node->error = (struct error) {
-		.token = peek(),
-		.expected = expected
-	};
-}
+// void error_unexpected( node_s* node, token_type expected ) {
+// 	node->has_error = 1;
+// 	node->error = (struct error) {
+// 		.token = peek(),
+// 		.expected = expected
+// 	};
+// }
 
 token_s token_at(long id)
 {

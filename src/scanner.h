@@ -35,6 +35,8 @@ typedef enum token_type {
 	T_DOT_DOT,
 	T_LOG_AND,
 	T_LOG_OR,
+	T_SHL,
+	T_SHR,
 
 	T_IDENTIFIER,
 	T_INTEGER_LITERAL,
@@ -111,6 +113,8 @@ static const char* token_strings[MAX_TKNS] = {
 	"dot dot",
 	"logical and",
 	"logical or",
+	"shift left",
+	"shift right",
 
 	"identifier",
 	"integer literal",

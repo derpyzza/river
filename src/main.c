@@ -4,9 +4,10 @@
 #include <strings.h>
 
 #include "common.h"
+#include "utils.h"
 #include "scanner.h"
-#include "parser.h"
-#include "codegen.h"
+#include "parser/parser.h"
+// #include "codegen.h"
 
 file_s *read_file(char* path) {
 	file_s *out = malloc(sizeof(file_s));
@@ -93,11 +94,11 @@ main(int argc, char** argv) {
 			// This is ugly, should change this.
 			string_s source = (string_s) {.size = strlen(buf), .string = buf};
 			token_array_s* tkn = tokenize(source);
-			// print_token_array(source, *tkn);
+			print_token_array(source, *tkn);
 
-			node_s *node = parse_tokens(tkn, source);
-			print_ast(*node);
-			printf("\n");
+			// node_s *node = parse_tokens(tkn, source);
+			// print_ast(*node);
+			// printf("\n");
 			free(tkn);
 		}
 		exit(0);
@@ -126,11 +127,11 @@ main(int argc, char** argv) {
 		// }
 
 		token_array_s* tkn = tokenize(source->data);
-		// print_token_array(source->data, *tkn);
+		print_token_array(source->data, *tkn);
 
-		node_s *node = parse_tokens(tkn, source->data);
-		print_ast(*node);
-		printf("\n");
+		// node_s *node = parse_tokens(tkn, source->data);
+		// print_ast(*node);
+		// printf("\n");
 		// fprintf(out_file, "%s", codegen(node));
 		// fprintf(out_file, "\n");
 		// fclose(out_file);

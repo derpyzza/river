@@ -349,6 +349,7 @@ token_array_s* tokenize ( string_s src )
 						push_token(tkn, T_LESS_THAN_EQ, c - line_start);
 						c++;
 					}
+					else if (peek(c) == '<' ) c++, push_token(tkn, T_SHL, c-line_start);
 					else push_token(tkn, T_LESS_THAN, c - line_start);
 				break;
 				case '>':
@@ -357,6 +358,7 @@ token_array_s* tokenize ( string_s src )
 						push_token(tkn, T_GREATER_THAN_EQ, c - line_start);
 						c++;
 					}
+					else if (peek(c) == '>' ) c++, push_token(tkn, T_SHR, c-line_start);
 					else push_token(tkn, T_GREATER_THAN, c - line_start);
 				break;
 				// STRING HANDLING
