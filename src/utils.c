@@ -5,7 +5,7 @@
 
 Vec *new_vec(void) {
 	Vec *v = malloc(sizeof(Vec));
-	v->max = 512;
+	v->max = 32;
 	v->current = 0;
 	v->data = malloc(sizeof(void*) * v->max);
 	memset(v->data, 0, v->max);

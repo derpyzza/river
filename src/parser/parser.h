@@ -26,32 +26,11 @@ typedef enum {
 	N_RETURN,
 } node_type;
 
-union expr{
-	struct binary {
-		struct node *lhs, *rhs;
-		int operator_type;
-	} binary;
-	struct unary {
-		struct node *operand;
-		int operator_type;
-	} unary;
-};
-
-struct var {
-	token_type type;
-	substr_s id;
-};
-
-struct func_sig {
-	substr_s func_name;
-	token_type return_type;
-	int num_params;
-	struct var* params;
-};
-
-union Stmt {
-	union expr expr;
-};
+typedef struct ParseError {
+	token_type expected;
+	// char *msg;
+	token_s got;
+} ParseError;
 
 // typedef literal_s NodeLit;
 
@@ -76,26 +55,64 @@ typedef struct NodeEnumDef {} NodeEnumDef;
 typedef struct NodeTypeDef {} NodeTypeDef;
 typedef struct NodeStructDef {} NodeStructDef;
 
-typedef struct Val {
+typedef struct Var {
 	substr_s name;
-	token_type type;
 	int is_assign;
 	literal_s val;
-} Val;
+} Var;
+
+typedef struct AssignedVar {
+	token_type name;
+	// you can declare 16 variables in a comma separated list.
+	// after that you'll have to switch to a newline;
+	// i.e 
+	// int q, w, e, r, t, y, u, i, o, p, a, s, d, f, g, h; // <- stop at 'h'
+	// int j, k, l; // ... and so on.
+	//
+	// this is because parsing is a pain and only an insane person
+	// would declare more than 16 variables in one line.
+	struct Var val[16];
+} AssignedVar;
 
 // TYPE IDEN (PARAMS)* => ( expr ";" | BlockExpr )
 typedef struct NodeFuncDef {
 	substr_s name;
 	token_type return_type;
-	struct Vec *params; // Vec<NodeFnParam>
+	// river only allows 64 parameters given into a function.
+	// womp womp.
+	struct AssignedVar params[64]; 
 	union {
 		struct NodeExpr *expr;
 		struct NodeBlock *block;
 	} body;
 } NodeFuncDef;
 
+// this can be used for import paths
+// but also for namespacing!
+// i.e import x.y.z.w;
+// or X::Y::Z::W.do_something();
+typedef struct Path {
+	substr_s full;
+	substr_s root;
+	int has_subpaths;
+	int cur_subpath;
+	substr_s subpath[32];
+} Path;
+
 // "import" IDENTIFIER(.IDENTIFIER)*? (as IDENTIFIER)? ";"
-typedef struct NodeImportDef {} NodeImportDef;
+typedef struct NodeImportDef {
+
+	int had_error;
+	union {
+		ParseError err;
+		struct {
+			struct Path path;
+			int has_alias;
+			substr_s alias;
+		};
+	};
+
+} NodeImportDef;
 
 
 // Global variable definitions:
@@ -122,8 +139,7 @@ typedef struct NodeItem {
 		I_STRUCT_DEF,
 		I_ENUM_DEF,
 		I_TYPE_DEF,
-		I_UNION_DEF,
-		I_STMT
+		I_UNION_DEF
 	}type;
 
 	union {
@@ -138,9 +154,17 @@ typedef struct NodeItem {
 } NodeItem;
 
 typedef struct NodeProg {
-	int num_children;
-	struct NodeItem** children;
+	Vec* children;
 } NodeProg;
+
+
+// Generic tree node that holds references to all node types in a union,
+// as a parent type.
+// this way i can have functions that operate on all node types rather than having
+// typedef struct Node {
+//
+// } Node;
+
 
 // modifier flags:
 // 0001 0000 = public
@@ -148,8 +172,7 @@ typedef struct NodeProg {
 // 0000 0010 = mutable
 // 0000 0100 = const
 
-// AST Node 
-
-// void print_ast(NodeProg node);
+void print_ast(NodeProg node);
 struct NodeProg *parse_tokens( struct token_array_s *tokens, struct string_s src ); 
+struct ParseError parse_error(token_type expected, token_s got);
 // char* node_to_string(char* string, node_s node);

@@ -3,9 +3,10 @@
 // Parse the following text and make it return a .c file
 // With the equivalent code
 
-
-int add = 30;
-int add => 10;
-int add => {
-	30 * 40
-}
+import std;
+import std.io;
+import std.io as IO;
+import std.ints.statics.voids.main.strings.args as IO;
+// import std.io. as OK;
+// import
+// import std.io as HELLO

@@ -48,14 +48,14 @@ static struct NodeExpr *expr(void) {
 
 static struct NodeExpr *factor(void) {
 
-	if (match(T_BANG) || match(T_MINUS)) {
+	if (match(T_BANG) || match(T_MINUS) || match(T_ASTERISK) || match(T_AMP)) {
 		int op = current_tok().type;
 		NodeExpr *right = factor();
 		NodeExpr *expr = malloc(sizeof(NodeExpr));
 		expr->type = N_EXP_UN;
 		expr->expr.un = malloc(sizeof(NodeUnExpr));
 		expr->expr.un->operand = right;
-		expr->expr.un->operator = op;
+		expr->expr.un->op_type = op;
 		return expr;
 	}
 	return primary();
@@ -102,3 +102,35 @@ static struct NodeExpr *new_expr(int type) {
 	return node;
 }
 
+char* bin_op_to_string(enum BinOpType type) {
+	switch(type) {
+		case BIN_NONE: return "none!!"; break;
+		case BIN_ADD: return "+"; break;
+		case BIN_SUB: return "-"; break;
+		case BIN_MULT: return "*"; break;
+		case BIN_DIV: return "/"; break;
+		case BIN_MOD: return "%"; break;
+		case BIN_BAND: return "&"; break;
+		case BIN_BOR: return "|"; break;
+		case BIN_BXOR: return "^"; break;
+	}
+}
+
+void print_expr(NodeExpr *expr) {
+	switch(expr->type) {
+		case E_BIN_EXPR:
+			printf("binexpr: ");
+			print_expr(expr->expr.bin->lhs);
+			printf("op: %s", bin_op_to_string(expr->expr.bin->op_type));
+			print_expr(expr->expr.bin->rhs);
+			printf(";\n");
+		break;
+		case E_UN_EXPR:
+		break;
+		case E_LIT:
+			printf("lit: %i", expr->expr.lit);
+		break;
+		default:
+		break;
+	}
+}
