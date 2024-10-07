@@ -76,15 +76,22 @@ typedef struct AssignedVar {
 
 // TYPE IDEN (PARAMS)* => ( expr ";" | BlockExpr )
 typedef struct NodeFuncDef {
-	substr_s name;
-	token_type return_type;
-	// river only allows 64 parameters given into a function.
-	// womp womp.
-	struct AssignedVar params[64]; 
+	int had_error;
+
 	union {
-		struct NodeExpr *expr;
-		struct NodeBlock *block;
-	} body;
+		ParseError err;
+		struct {
+			substr_s name;
+			token_type return_type;
+			// river only allows 64 parameters given into a function.
+			// womp womp.
+			struct AssignedVar params[64]; 
+			union {
+				struct NodeExpr *expr;
+				struct NodeBlockExpr *body;
+			};
+		};
+	};
 } NodeFuncDef;
 
 // this can be used for import paths
@@ -154,7 +161,7 @@ typedef struct NodeItem {
 } NodeItem;
 
 typedef struct NodeProg {
-	Vec* children;
+	struct Vec* children;
 } NodeProg;
 
 
@@ -174,5 +181,5 @@ typedef struct NodeProg {
 
 void print_ast(NodeProg node);
 struct NodeProg *parse_tokens( struct token_array_s *tokens, struct string_s src ); 
-struct ParseError parse_error(token_type expected, token_s got);
+struct ParseError parse_error(token_type expected);
 // char* node_to_string(char* string, node_s node);

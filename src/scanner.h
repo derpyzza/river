@@ -68,7 +68,9 @@ typedef enum token_type {
 	T_STRUCT, T_TYPE, T_ENUM, T_UNION,
 	T_USING, T_NAMESPACE, T_IMPORT, T_AS,
 	T_SWITCH, T_CASE, T_SIZEOF, T_TYPEOF,
-	T_STATIC, T_CONST, T_MUT, T_PUB, T_VAL, 
+	T_MACRO, T_YIELD, T_EXPECT, T_ASSERT,
+	T_STATIC, T_CONST, T_MUT, T_PUB, T_VAL,
+	T_FN,
 
 	// literals
 	T_TRUE, T_FALSE, T_NULL,
@@ -145,8 +147,10 @@ static const char* token_strings[MAX_TKNS] = {
 	"struct", "type", "enum", "union",
 	"using", "namespace", "import", "as",
 	"switch", "case", "sizeof", "typeof",
+	"macro", "yield", "expect", "assert",
 	// variable decl
-	"static", "const", "mut", "pub", "val", 
+	"static", "const", "mut", "pub", "val",
+	"fn",
 
 	// literals
 	"true", "false", "null",
@@ -186,7 +190,8 @@ typedef struct literal_s {
 
 typedef struct token_s {
 	token_type type;
-	int chr_index; // the starting character index
+	substr_s source; // the source string for this token;
+	int chr_index; 	// the starting character index
 	int has_literal;
 	int literal_id;
 	int line;

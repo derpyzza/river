@@ -4,9 +4,9 @@
 // With the equivalent code
 
 import std;
-import std.io;
-import std.io as IO;
-import std.ints.statics.voids.main.strings.args as IO;
-// import std.io. as OK;
-// import
-// import std.io as HELLO
+import stl . io;
+import main . math as IO;
+import farm . ints . statics . voids . main . strings . args as IO;
+import lib . ok as OK;
+import something.;
+import err;

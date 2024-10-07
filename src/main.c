@@ -127,7 +127,7 @@ main(int argc, char** argv) {
 		// }
 
 		token_array_s* tkn = tokenize(source->data);
-		print_token_array(source->data, *tkn);
+		// print_token_array(source->data, *tkn);
 
 		NodeProg *node = parse_tokens(tkn, source->data);
 		print_ast(*node);

@@ -67,3 +67,6 @@ typedef struct NodeExpr {
 		int lit;
 	} expr;
 }NodeExpr;
+
+struct NodeBlockExpr* block_expr(void);
+struct NodeExpr* expr(void);

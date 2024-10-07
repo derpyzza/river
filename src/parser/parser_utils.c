@@ -24,7 +24,7 @@ void consume(void) { parser.current++; }
 token_s peek(void) { return peek_n(1); }
 
 token_s peek_n(int offset) {
-	if (parser.current + offset >= parser.tokens->current_token ) {
+	if (parser.current + offset > parser.tokens->current_token ) {
 		return token_eof();
 	}
 	return parser.tokens->token_list[parser.current + offset];

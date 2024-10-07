@@ -2,7 +2,6 @@
 #include "parser_utils.h"
 #include "expr.h"
 
-static struct NodeExpr *expr(void);
 static struct NodeUnExpr *un_expr(void);
 static struct NodeBinExpr *bin_expr(void);
 
@@ -13,7 +12,7 @@ static struct NodeExpr *primary(void);
 
 static struct NodeExpr *new_expr(int type);
 
-static struct NodeExpr *expr(void) {
+struct NodeExpr *expr(void) {
 
 	NodeExpr *expr = term();
 
@@ -28,6 +27,10 @@ static struct NodeExpr *expr(void) {
 		expr->expr.bin->op_type = op;
 	}
 	return expr;
+}
+
+struct NodeBlockExpr *block_expr(void) {
+	return NULL;
 }
 
  static struct NodeExpr *term(void) {

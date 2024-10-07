@@ -7,7 +7,7 @@ for now this is more of a sketchpad for features, but it'll get leaner and clean
 
 // Double slashes indicate a single line comment 
 
-/* 
+/*
     A Slash followed by an asterisk marks a multiline comment, 
     which is ended by an asterisk followed by a slash.
     Just like in C!
@@ -61,6 +61,12 @@ for now this is more of a sketchpad for features, but it'll get leaner and clean
 
 ```
 
+let, const = variable starters
+
+fn = function starter
+
+fn const int x => 10;
+
 
 
 # Variable Definition & Declaration
@@ -77,11 +83,19 @@ x = "str"; // illegal
 // And also private to their scope
 
 // to declare a mutable variable add the mut keyword before the type name:
-mut int x = 0;
+let mut int x = 0;
 x = 10;
 
 // Currently the variable y simply has a none type;
-val y;
+let y, z, w, z;
+let x = 10;
+let mut x = 10;
+let mut x = 10d;
+let mut y = "string";
+
+const int x = 10;
+
+fn int x => 10;
 
 // From this point on, y is now a floating point number;
 y = 13314.3f;
@@ -148,15 +162,29 @@ const int x, mut y, z;
 
 // Code blocks, including functions, support implicit returns
 // the last expression within a block is returned
-int sub ( int x, int y ) => {
+fn int sub ( int x, int y ) {
     x + y // returns x + y
 } 
 
 // the above function can also be written as:
-int sub (int x, int y) => x - y;
+fn int sub (int x, int y) => x - y;
 
 // functions without parameters can be omit the parenthesis
-int do_stuff => {
+fn int do_stuff {
+
+}
+
+fn int add 10; // error! expected block or =>, got Int_Literal!
+               // help: try adding a => before the number '10'
+               //     | add '=>' 10;
+               //     |~~~~~~^^~~~~~
+
+fn int add => 12;
+fn add(): int => 10;
+fn add: int => 10;
+fn func => 10;
+
+(fn int => bool) fn int func () {
 
 }
 
@@ -246,7 +274,39 @@ int add
 func()();
 
 // though it's nicer to just give the return functions a type alias
-type callback -> (bool => int, float);
+type callback -> (bool => (int, float));
+
+
+// function contracts
+
+fn int div(int x, int y) {
+    ensure x > 0;
+    ensure y > 0; // => panics if either of these are wrong
+
+    ensure;
+    request;
+
+    let z = x / y;
+    ensure z != 0; // for some reason. just as an example
+    return z;
+}
+
+fn int div ( int x where x > 0, int y where y > 0 ) {
+
+}
+
+fn int! div(int x, int y)
+{
+    // the expect keyword checks the given expression, and if it 
+    // returns false then it throws an error.
+    // you can provide an alternate to throwing an error 
+    // by using the 'otherwise' keyword
+    expect x != 0 && y != 0 
+    otherwise return Error("Cannot divide by zero");
+
+    return x / y;
+}
+
 
 ```
 
@@ -450,6 +510,7 @@ let y = MnMs.Red; // => Also compiles
 // You can define your own types by aliasing other types
 type u32 -> int;
 
+
 u32 x = 10; // base type: u32
 
 // Types can be composed of multiple base types
@@ -479,6 +540,10 @@ curry butter_chicken = "Chicken"; // => works just fine
 ## File imports 
 
 ```c
+
+// in the C backend, `import`ed variables and functions just get pasted in as forward
+// declarations.
+// then later, the linker compiles the definition in with the parent module's .o file
 
 // import modules with the import keyword
 import std.io;
@@ -709,6 +774,8 @@ like @todo @error @bug @note, which the compiler could build notes out of and th
 
 maybe add language packs as a build flag, or a file annotation?
 like
+
+types express 
 
 ```c 
 @lang: 'ur'
