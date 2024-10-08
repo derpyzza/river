@@ -8,7 +8,7 @@ struct parser {
 	int current;
 };
 
-static struct parser parser;
+struct parser parser;
 
 void init_parser(token_array_s *tokens) {
 	parser.tokens = tokens;

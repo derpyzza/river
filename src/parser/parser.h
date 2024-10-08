@@ -2,29 +2,6 @@
 
 #include "../scanner.h"
 #include <stdio.h>
-typedef enum {
-	N_ERROR = -1,
-	N_NONE = 0,
-	N_EXP_UN,
-	N_EXP_BIN,
-
-	// literals:
-	N_LIT_INT,
-	N_LIT_DOUBLE,
-	N_LIT_TRUE,
-	N_LIT_FALSE,
-	N_LIT_NULL,
-	N_LIT_STRING,
-
-	N_BLOCK,
-
-	N_FN_CALL,
-	N_FN_DEF,
-	N_VAR_ASSIGN,
-
-	N_STMT,
-	N_RETURN,
-} node_type;
 
 typedef struct ParseError {
 	token_type expected;
@@ -140,6 +117,7 @@ typedef struct NodeGlobalDef {
 typedef struct NodeItem {
 	enum ItemType{
 		I_UNKNOWN,
+		I_ERROR,
 		I_FN_DEF,
 		I_IMPORT_DEF,
 		I_GLOBAL_DEF,
@@ -161,6 +139,7 @@ typedef struct NodeItem {
 } NodeItem;
 
 typedef struct NodeProg {
+	int had_error;
 	struct Vec* children;
 } NodeProg;
 
@@ -170,6 +149,53 @@ typedef struct NodeProg {
 // this way i can have functions that operate on all node types rather than having
 // typedef struct Node {
 //
+// 	enum node_type {
+// 		N_ERROR = -1,
+// 		N_NONE = 0,
+// 		N_EXP_UN,
+// 		N_EXP_BIN,
+//
+// 		// literals:
+// 		N_LIT_INTEGER,
+// 		N_LIT_FLOAT,
+// 		N_LIT_TRUE,
+// 		N_LIT_FALSE,
+// 		N_LIT_NULL,
+// 		N_LIT_STRING,
+//
+// 	
+// 		N_EXPR,
+// 		N_EXPR_BIN,
+// 		N_EXPR_UN,
+// 		N_EXPR_POST,
+// 		N_EXPR_IF,
+// 		N_EXPR_FOR,
+// 		N_EXPR_FOREACH,
+// 		N_EXPR_WHILE,
+// 		N_EXPR_BLOCK,
+// 		N_EXPR_SWITCH,
+//
+// 		N_FN_CALL,
+// 		N_FN_DEF,
+// 		N_VAR_ASSIGN,
+//
+// 		N_STMT,
+// 		N_RETURN,
+// 	} type;
+//
+// 	union {
+// 		struct NodeExpr *expr;
+// 		struct NodeBinExpr *bin_expr;
+// 		struct NodeUnExpr *un_expr;
+// 		struct NodeIfExpr *if_expr;
+//
+// 		struct NodeItem *item;
+// 		struct NodeImportDef *imp_def;
+// 		struct NodeFuncDef *fn_def;
+// 		struct NodeStructDef *struct_def;
+// 		struct NodeEnumDef *enum_def;
+// 		struct NodeUnionDef *union_def;
+// 	};
 // } Node;
 
 

@@ -30,6 +30,8 @@ typedef enum token_type {
 	T_EQ_EQ,
 	T_LESS_THAN_EQ,
 	T_GREATER_THAN_EQ,
+	T_INC, // ++
+	T_DEC, // --
 	T_ARROW,
 	T_FAT_ARROW,
 	T_DOT_DOT,
@@ -63,7 +65,7 @@ typedef enum token_type {
 
 	// misc keywords
 	T_RETURN, 
-	T_IF, T_ELSE, T_DO, T_WHILE, T_FOR, T_IN,
+	T_IF, T_ELSE, T_DO, T_WHILE, T_FOR, T_FOREACH, T_IN,
 	T_GOTO, T_LABEL, T_BREAK, T_CONTINUE, T_DEFER,
 	T_STRUCT, T_TYPE, T_ENUM, T_UNION,
 	T_USING, T_NAMESPACE, T_IMPORT, T_AS,
@@ -110,6 +112,8 @@ static const char* token_strings[MAX_TKNS] = {
 	"eq eq",
 	"less than eq",
 	"greater than eq",
+	"inc",
+	"dec",
 	"arrow",
 	"fat arrow",
 	"dot dot",
@@ -142,7 +146,7 @@ static const char* token_strings[MAX_TKNS] = {
 
 	// keywords
 	"return", 
-	"if", "else", "do", "while", "for", "in",
+	"if", "else", "do", "while", "for", "foreach", "in",
 	"goto", "label", "break", "continue", "defer", 
 	"struct", "type", "enum", "union",
 	"using", "namespace", "import", "as",

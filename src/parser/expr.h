@@ -41,7 +41,7 @@ typedef struct NodeIfExpr {
 } NodeIfExpr;
 
 typedef struct NodeExpr {
-	enum {
+	enum expr_type {
 		E_NULL,
 		E_BIN_EXPR,
 		E_UN_EXPR,
@@ -65,7 +65,7 @@ typedef struct NodeExpr {
 		struct NodeBinExpr *bin;
 		struct NodeUnExpr *un;
 		int lit;
-	} expr;
+	};
 }NodeExpr;
 
 struct NodeBlockExpr* block_expr(void);

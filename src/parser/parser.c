@@ -24,14 +24,6 @@ static struct NodeExprStmt *expr_stmt(void);
 struct NodeProg *parse_tokens( token_array_s *tokens, string_s src ) 
 { 
 	init_parser(tokens);
-	// print_token_array(src, *tokens);
-	// for (int x = 0; x <= tokens->current_token + 4; x++) {
-	// 	printf("[%i] actual: %s, peek: %s\n", 
-	// 		x,
-	// 		token_to_str(tokens->token_list[x].type),
-	// 		token_to_str(peek_n(x).type));
-	// }
-	// printf("max tokens: %li\n", tokens->current_token);
 
 	struct NodeProg *node = program();
 
@@ -50,13 +42,13 @@ static struct NodeProg *program(void) {
 	node->children = new_vec();
 
 	while(!match(T_EOF)) {
-		// printf("current: %i\n", current());
-		// printf("stuck here!\n");
 		NodeItem* item = n_item();
+		if(item->type == I_ERROR) {
+			node->had_error = 1;
+		}
 		if(item->type != I_UNKNOWN) {
 			vec_push(node->children, item);
 		}
-		// print_ast(*node);
 	}
 	return node;
 }
@@ -67,6 +59,7 @@ static struct NodeItem *n_item(void) {
 
 	if (match(T_IMPORT)) {
 		item->imp_def = imp_def();
+		// if(item->imp_def->had_error) item->type = I_ERROR;
 		item->type = I_IMPORT_DEF;
 		return item;
 	}
@@ -105,8 +98,8 @@ static struct NodeImportDef *imp_def(void) {
 		return imp;
 	}
 
-	imp->path.root = lit_at(current()).literal._str;
-	imp->path.full = lit_at(current()).literal._str;
+	imp->path.root = current_tok().source;
+	imp->path.full = current_tok().source;
 	// printf("full path: %.*s\n", imp->path.full.len, imp->path.full.c_ptr);
 
 	// check for subpaths
@@ -121,8 +114,8 @@ static struct NodeImportDef *imp_def(void) {
 				while(!check_next(T_EOF) && !check_next(T_IMPORT)) consume();
 				return imp;
 			}
-			imp->path.subpath[imp->path.cur_subpath] = lit_at(current()).literal._str; 
-			imp->path.full.len += lit_at(current()).literal._str.len + 1;
+			imp->path.subpath[imp->path.cur_subpath] = current_tok().source; 
+			imp->path.full.len += current_tok().source.len + ( current_tok().source.c_ptr - (imp->path.full.c_ptr + imp->path.full.len) );
 			imp->path.cur_subpath++;
 		}
 	}
@@ -221,7 +214,7 @@ void print_ast(NodeProg node)
 						"[%i:%i] Error: Unexpected token %s, expected %s\nhere: %.*s\n",
 						cur->imp_def->err.got.line,
 						cur->imp_def->err.got.chr_index,
-						token_to_str(cur->imp_def->err.expected),
+						token_to_str(cur->imp_def->err.got.type),
 						token_to_str(cur->imp_def->err.expected),
 						cur->imp_def->err.got.source.len,
 						cur->imp_def->err.got.source.c_ptr

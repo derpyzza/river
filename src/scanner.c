@@ -296,6 +296,9 @@ token_array_s* tokenize ( string_s src )
 					if (peek(c) == '=') {
 						push_token(tkn, T_ADD_EQ,  (substr_s){.len = 2, .c_ptr = c},c - line_start);
 						c++;
+					} else if (peek(c) == '+') {
+						push_token(tkn, T_INC,  (substr_s){.len = 2, .c_ptr = c},c - line_start);
+						c++;
 					}
 					else push_token(tkn, T_PLUS,  (substr_s){.len = 1, .c_ptr = c},c - line_start);
 				break;
@@ -303,7 +306,12 @@ token_array_s* tokenize ( string_s src )
 					if (peek(c) == '=') {
 						push_token(tkn, T_SUB_EQ,  (substr_s){.len = 2, .c_ptr = c},c - line_start);
 						c++;
-					} else if (peek(c) == '>') {
+					} 
+					else if (peek(c) == '-') {
+						push_token(tkn, T_DEC,  (substr_s){.len = 2, .c_ptr = c},c - line_start);
+						c++;
+					}
+					else if (peek(c) == '>') {
 						push_token(tkn, T_ARROW,  (substr_s){.len = 2, .c_ptr = c},c - line_start);
 						c++;
 					}

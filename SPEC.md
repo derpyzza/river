@@ -775,7 +775,8 @@ like @todo @error @bug @note, which the compiler could build notes out of and th
 maybe add language packs as a build flag, or a file annotation?
 like
 
-types express 
+what if you could define your own keywords?
+
 
 ```c 
 @lang: 'ur'
