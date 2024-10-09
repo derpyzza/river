@@ -1,8 +1,9 @@
 #pragma once
 
 #include "../scanner.h"
+#include "../common.h"
 
-void init_parser(struct token_array_s* tokens);
+void init_parser(file_s source, token_array_s* tokens);
 
 
 int current(void);

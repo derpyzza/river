@@ -4,3 +4,5 @@ in.*
 *.rvr
 bin/
 .vscode/
+
+inheritance.md

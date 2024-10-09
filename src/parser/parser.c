@@ -21,9 +21,9 @@ static struct NodeStmt *stmt(void);
 static struct NodeVarStmt *var_stmt(void);
 static struct NodeExprStmt *expr_stmt(void);
 
-struct NodeProg *parse_tokens( token_array_s *tokens, string_s src ) 
+struct NodeProg *parse_tokens( token_array_s *tokens, file_s src ) 
 { 
-	init_parser(tokens);
+	init_parser(src, tokens);
 
 	struct NodeProg *node = program();
 
@@ -42,10 +42,8 @@ static struct NodeProg *program(void) {
 	node->children = new_vec();
 
 	while(!match(T_EOF)) {
+		printf("next: %s\n", token_to_str(peek().type));
 		NodeItem* item = n_item();
-		if(item->type == I_ERROR) {
-			node->had_error = 1;
-		}
 		if(item->type != I_UNKNOWN) {
 			vec_push(node->children, item);
 		}
@@ -53,14 +51,20 @@ static struct NodeProg *program(void) {
 	return node;
 }
 
-static struct NodeItem *n_item(void) {
+static struct NodeItem *n_item() {
 	NodeItem* item = malloc(sizeof(struct NodeItem));
 	item->type = I_UNKNOWN;
 
-	if (match(T_IMPORT)) {
-		item->imp_def = imp_def();
-		// if(item->imp_def->had_error) item->type = I_ERROR;
-		item->type = I_IMPORT_DEF;
+	// if (match(T_IMPORT)) {
+	// 	item->imp_def = imp_def();
+	// 	// if(item->imp_def->had_error) item->type = I_ERROR;
+	// 	item->type = I_IMPORT_DEF;
+	// 	return item;
+	// }
+
+	if (match(T_FN)) {
+		item->type = I_FN_DEF;
+		item->fn_def = fn_def();
 		return item;
 	}
 
@@ -69,12 +73,7 @@ static struct NodeItem *n_item(void) {
 	// 	item->struct_def = struct_def();
 	// 	return item;
 	// }
-	//
-	// if (match(T_FN)) {
-	// 	item->type = I_FN_DEF;
-	// 	item->fn_def = fn_def();
-	// 	return item;
-	// }
+	//	
 	//
 	// if (match(T_CONST)) {
 	// 	item->type = I_GLOBAL_DEF;
@@ -83,6 +82,67 @@ static struct NodeItem *n_item(void) {
 	// }	
 
 	return item;
+}
+
+static struct NodeFuncDef *fn_def(void) {
+
+	NodeFuncDef *fn = malloc(sizeof(NodeFuncDef));
+	fn->had_error = 0;
+	
+	// match type
+	if(match_range(T_UBYTE, T_BOOL) ||match(T_IDENTIFIER)) {
+		fn->return_type = current_tok().type;
+	} else {
+		fn->had_error = 1;
+		// change this, T_TYPE means something totally different, but am just leaving
+		// this here as is just to help me with debugging;
+		fn->err = parse_error(T_TYPE);
+		while(!check_next(T_EOF) && !check_next(T_FN)) consume();
+		return fn;
+	}
+
+	// match identifier
+	if (match(T_IDENTIFIER)) {
+		fn->name = lit_at(current()).literal._str;
+	} else {
+		// error
+		fn->had_error = 1;
+		fn->err = parse_error(T_IDENTIFIER);
+		while(!check_next(T_EOF) && !check_next(T_FN)) consume();
+		return fn;
+	}
+
+	// parse params
+	// if(match(T_PAREN_OPEN)) {
+	// 	while(!match(T_PAREN_CLOSE)) {
+	//
+	// 	}
+	// 	// error
+	// }
+
+	if(match(T_FAT_ARROW)) {
+		fn->expr = expr();
+		printf("fn expr: %i\n", fn->expr->lit);
+	}
+	// parse block
+	// else if(match(T_BRACE_OPEN)) {
+	// 	fn->body = block_expr();
+	// } 
+	else {
+		// TODO: support proper "OR" type errors;
+		fn->had_error = 1;
+		fn->err = parse_error(T_FAT_ARROW);
+		while(!check_next(T_EOF) && !check_next(T_FN)) consume();
+		return fn;
+	}
+
+	if(!match(T_SEMI)) {
+		fn->had_error = 1;
+		fn->err = parse_error(T_SEMI);
+		while(!check_next(T_EOF) && !check_next(T_FN)) consume();
+		return fn;
+	}
+	return fn;
 }
 
 static struct NodeImportDef *imp_def(void) {
@@ -140,55 +200,6 @@ static struct NodeImportDef *imp_def(void) {
 	return imp;
 }
 
-static struct NodeFuncDef *fn_def(void) {
-
-	NodeFuncDef *fn = malloc(sizeof(NodeFuncDef));
-	fn->had_error = 0;
-	
-	// match type
-	if(match_range(T_UBYTE, T_BOOL) ||match(T_IDENTIFIER)) {
-		fn->return_type = current_tok().type;
-	} else {
-		fn->had_error = 1;
-		// change this, T_TYPE means something totally different, but am just leaving
-		// this here as is just to help me with debugging;
-		fn->err = parse_error(T_TYPE);
-		return fn;
-	}
-
-	// match identifier
-	if (match(T_IDENTIFIER)) {
-		fn->name = lit_at(current()).literal._str;
-	} else {
-		// error
-		fn->had_error = 1;
-		fn->err = parse_error(T_IDENTIFIER);
-		return fn;
-	}
-
-	// parse params
-	if(match(T_PAREN_OPEN)) {
-		while(!match(T_PAREN_CLOSE)) {
-
-		}
-		// error
-	}
-
-	if(match(T_ARROW)) {
-		fn->expr = expr();
-	}
-	// parse block
-	else if(match(T_BRACE_OPEN)) {
-		fn->body = block_expr();
-	} else {
-		// TODO: support proper "OR" type errors;
-		fn->had_error = 1;
-		fn->err = parse_error(T_ARROW);
-		return fn;
-	}
-	return fn;
-}
-
 static struct NodeStructDef *struct_def(void) {
 	return NULL;
 }
@@ -206,8 +217,30 @@ void print_ast(NodeProg node)
 	for ( int i = 0; i < node.children->current; i++ ) {
 		NodeItem *cur = node.children->data[i];
 		switch(cur->type) {
+
 			case I_UNKNOWN: printf("Unknown!\n"); break;
-			case I_FN_DEF: printf("fn def\n"); break;
+
+			case I_FN_DEF: {
+				if (cur->fn_def->had_error) {
+					printf(
+						"[%i:%i] Error: Unexpected token %s, expected %s\nhere: %.*s\n",
+						cur->fn_def->err.got.line,
+						cur->fn_def->err.got.chr_index,
+						token_to_str(cur->fn_def->err.got.type),
+						token_to_str(cur->fn_def->err.expected),
+						cur->fn_def->err.got.source.len,
+						cur->fn_def->err.got.source.c_ptr
+						);
+					break;
+				}
+				printf("<fn def> name: %.*s, return: %s\n",
+						cur->fn_def->name.len,
+						cur->fn_def->name.c_ptr,
+						token_to_str(cur->fn_def->return_type)
+						);
+			}
+			break;
+
 			case I_IMPORT_DEF: {
 				if(cur->imp_def->had_error){ 
 					printf(

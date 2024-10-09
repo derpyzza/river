@@ -4,13 +4,15 @@
 #include "parser_utils.h"
 
 struct parser {
-	token_array_s *tokens;
 	int current;
+	file_s source; // current file being parsed
+	token_array_s *tokens;
 };
 
 struct parser parser;
 
-void init_parser(token_array_s *tokens) {
+void init_parser(file_s source, token_array_s *tokens) {
+	parser.source = source;
 	parser.tokens = tokens;
 	parser.current = -1;
 }

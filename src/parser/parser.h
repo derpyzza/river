@@ -139,7 +139,6 @@ typedef struct NodeItem {
 } NodeItem;
 
 typedef struct NodeProg {
-	int had_error;
 	struct Vec* children;
 } NodeProg;
 
@@ -206,6 +205,6 @@ typedef struct NodeProg {
 // 0000 0100 = const
 
 void print_ast(NodeProg node);
-struct NodeProg *parse_tokens( struct token_array_s *tokens, struct string_s src ); 
+struct NodeProg *parse_tokens( token_array_s *tokens, file_s src ); 
 struct ParseError parse_error(token_type expected);
 // char* node_to_string(char* string, node_s node);

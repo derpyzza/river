@@ -58,16 +58,7 @@ for now this is more of a sketchpad for features, but it'll get leaner and clean
  0x32def // hex
  0b11010100 // binary
  0c232ac // octal
-
 ```
-
-let, const = variable starters
-
-fn = function starter
-
-fn const int x => 10;
-
-
 
 # Variable Definition & Declaration
 
@@ -84,21 +75,13 @@ x = "str"; // illegal
 
 // to declare a mutable variable add the mut keyword before the type name:
 let mut int x = 0;
-x = 10;
+x = 10; // legal
 
-// Currently the variable y simply has a none type;
-let y, z, w, z;
-let x = 10;
-let mut x = 10;
-let mut x = 10d;
-let mut y = "string";
-
-const int x = 10;
-
-fn int x => 10;
-
-// From this point on, y is now a floating point number;
-y = 13314.3f;
+// you can declare variables without initializing them.
+// However, when declaring a variable, you must provide it's type
+// i.e using let is illegal
+let y, z, w; // illegal
+int y, z, w; // legal
 
 // you can also explicitly define a variable with a type.
 int t = 124;
@@ -106,7 +89,7 @@ int t = 124;
 // You can assign multiple variables at once:
 int x = 20, y = 50, z = 40;
 // Even if the types are separate:
-val x = "X", y = 230, z = false; // perfectly valid
+let x = "X", y = 230, z = false; // perfectly valid
 
 // Multiple variables can be initialized with the same value, but their types must be the same
 int x, y, z, w = 1;
@@ -116,44 +99,6 @@ int x, y, z, w = 1;
 // by appending a '?' to the variable name
 // Unlike pointers, nullability is a datatype
 str? name = get_name();
-
-// nullable variables must be checked before use 
-printf(name); // ERROR: Value is nullable
-if name {
-    printf(name); // compiles
-}
-
-
-```
-
-## Variable modifiers
-
-```c
-
-// Modifiers are keywords that modify the nature of a variable
-// Modifiers must be placed before a variable's type, 
-// and applies to every subsequent variable
-
-// river supports the following variable modifiers:
-
-// the const keyword copy pastes the value of the const expression everywhere 
-// it's used. it's used as a replacement for C's preprocessor #define macros
-const
-// the mutable variable marks the variable as mutable
-// the mutable keyword is placed right before the variable name
-mut;
-
-const int x, mut y, z; 
-
-```
-
-
-# Operators
-
-```c 
-
-
-
 ```
 
 # Functions 
@@ -171,7 +116,7 @@ fn int sub (int x, int y) => x - y;
 
 // functions without parameters can be omit the parenthesis
 fn int do_stuff {
-
+    // do something
 }
 
 fn int add 10; // error! expected block or =>, got Int_Literal!
@@ -179,17 +124,8 @@ fn int add 10; // error! expected block or =>, got Int_Literal!
                //     | add '=>' 10;
                //     |~~~~~~^^~~~~~
 
-fn int add => 12;
-fn add(): int => 10;
-fn add: int => 10;
-fn func => 10;
-
-(fn int => bool) fn int func () {
-
-}
-
 // function types can be declared as such:
-// this is a function that takes in an int and returns a bool
+// this is a function has a parameter of type int and returns a value of type bool
 type func -> (int => bool);
 
 // Functions support default parameter values

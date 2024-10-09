@@ -65,7 +65,6 @@ static struct NodeExpr *factor(void) {
 }
 
 static struct NodeExpr *primary(void) {
-	return &(NodeExpr) {0};
 	if (match(T_INTEGER_LITERAL)){
 		NodeExpr *node = new_expr(E_LIT);
 		node->lit = lit_at(current()).literal._int;
