@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdlib.h>
 typedef struct Vec Vec;
 
 struct Vec {
@@ -7,7 +8,9 @@ struct Vec {
 	void** data;
 };
 
-Vec *new_vec(void);
+#define vec_of(type, size) new_vec(size, (sizeof(type)))
+
+Vec *new_vec(size_t init, size_t elem_size);
 Vec *init_vec(void** data, long len);
 void vec_push(Vec *v, void* item);
 void* vec_pop(Vec *v);

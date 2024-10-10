@@ -3,12 +3,12 @@
 // Parse the following text and make it return a .c file
 // With the equivalent code
 
-// import std;
-// import stl . io;
+import std;
+import stl.io;
 // import main . math as IO;
 // import farm . ints . statics . voids . main . strings . args as IO;
 // import lib . ok as OK;
 // import something. ;
 // import err;
 
-fn madeuptype add => 10 + 12;
+fn name add => 10 + 12 * 23 + -143;

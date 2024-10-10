@@ -129,7 +129,7 @@ main(int argc, char** argv) {
 		token_array_s* tkn = tokenize(source->data);
 		// print_token_array(source->data, *tkn);
 
-		NodeProg *node = parse_tokens(tkn, source->data);
+		struct node *node = parse_tokens(tkn, *source);
 		print_ast(*node);
 		// printf("\n");
 		// fprintf(out_file, "%s", codegen(node));

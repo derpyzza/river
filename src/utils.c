@@ -1,19 +1,18 @@
 #include "utils.h"
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 
-Vec *new_vec(void) {
+Vec *new_vec(size_t init, size_t elem_size) {
 	Vec *v = malloc(sizeof(Vec));
-	v->max = 32;
+	v->max = init;
 	v->current = 0;
-	v->data = malloc(sizeof(void*) * v->max);
+	v->data = malloc(sizeof(elem_size) * v->max);
 	memset(v->data, 0, v->max);
 	return v;
 }
 
 Vec *init_vec(void** data, long len) {
-	Vec *v = new_vec();
+	Vec *v = new_vec(len, sizeof(void*));
 	memcpy(data, v->data, len);
 	return v;
 }

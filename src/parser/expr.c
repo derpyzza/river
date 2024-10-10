@@ -2,117 +2,101 @@
 #include "parser_utils.h"
 #include "expr.h"
 
-static struct NodeUnExpr *un_expr(void);
-static struct NodeBinExpr *bin_expr(void);
+#include <stdio.h>
 
-static struct NodeExpr *term(void);
-static struct NodeExpr *factor(void);
-static struct NodeExpr *unary(void);
-static struct NodeExpr *primary(void);
+static struct node *un_expr(void);
+static struct node *bin_expr(void);
 
-static struct NodeExpr *new_expr(int type);
-static struct NodeExpr *new_un_expr(enum UnOpType type, NodeExpr *rhs);
-static struct NodeExpr *new_bin_expr(enum BinOpType type, NodeExpr *rhs, NodeExpr *lhs);
+static struct node *term(void);
+static struct node *factor(void);
+static struct node *unary(void);
+static struct node *primary(void);
+
+static struct node *new_un_expr(enum UnOpType type, struct node *rhs);
+static struct node *new_bin_expr(enum BinOpType type, struct node *rhs, struct node *lhs);
 
 
 static enum UnOpType token_to_unop(token_type type);
 static enum BinOpType token_to_binop(token_type type);
 
-struct NodeExpr *parse_expr(void) {
+struct node *parse_expr(void) {
 
-	NodeExpr *expr = term();
+	struct node *expr = term();
 
 	while (match(T_PLUS) || match(T_MINUS)) {
 		int op = token_to_binop(current_tok().type);
-		NodeExpr *rhs = term();
+		struct node *rhs = term();
 		expr = new_bin_expr(op, expr, rhs);
 	}
 	return expr;
 }
 
-struct NodeBlockExpr *block_expr(void) {
-	return NULL;
-}
-
- static struct NodeExpr *term(void) {
-	NodeExpr  *expr = factor();
+static struct node *term(void) {
+	struct node *expr = factor();
 
 	while (match(T_ASTERISK) || match(T_FORWARD_SLASH)) {
 		int op = token_to_binop(current_tok().type);
-		NodeExpr *rhs = factor();
+		struct node *rhs = factor();
 		expr = new_bin_expr(op, expr, rhs);
 	}
 	return expr;
 }
 
-static struct NodeExpr *factor(void) {
+static struct node *factor(void) {
 	if (match(T_BANG) || match(T_MINUS)) {
 		int op = token_to_unop(current_tok().type);
-		NodeExpr *right = factor();
-		NodeExpr *expr = new_un_expr(op, right);
+		struct node *right = factor();
+		struct node *expr = new_un_expr(op, right);
 		return expr;
 	}
 	return primary();
 }
 
-static struct NodeExpr *primary(void) {
+static struct node *primary(void) {
 	if (match(T_INTEGER_LITERAL)){
-		NodeExpr *node = new_expr(E_LIT);
-		node->lit = lit_at(current()).literal._int;
+		struct node *node = new_node(N_LIT);
+		node->value = lit_at(current()).literal._int;
 		return node;
 	}
 	//
 	// if (match(T_DOUBLE_FLOATING_LITERAL)){
-	// 	NodeExpr *node = new_expr(N_LIT_DOUBLE);
+	// 	node *node = new_expr(N_LIT_DOUBLE);
 	// 	node->expr.n_double = lit_at(current()).literal._double;
 	// 	return node;
 	// }
 	//
 	// if (match(T_STRING_LITERAL)){
-	// 	NodeExpr *node = new_expr(N_LIT_STRING);
+	// 	node *node = new_expr(N_LIT_STRING);
 	// 	node->expr.n_string = lit_at(current()).literal._str;
 	// 	return node;
 	// }
 	//
 	// if (match(T_TRUE)){
-	// 	NodeExpr *node = new_expr(E_LIT_TRUE);
+	// 	node *node = new_expr(E_LIT_TRUE);
 	// 	return node;
 	// }
 	//
 	// if (match(T_FALSE)){
-	// 	NodeExpr *node = new_expr(E_LIT_FALSE);
+	// 	node *node = new_expr(E_LIT_FALSE);
 	// 	return node;
 	// }
 	return NULL;
 }
 
 
-static struct NodeExpr *new_expr(int type) {
-	NodeExpr* node = malloc(sizeof(NodeExpr));
-	if (node == NULL) {
-		printf("ERROR: couldn't malloc a new expr node\n");
-		return NULL;
-	}
-	node->type = type;
-	return node;
-}
-
-
-static struct NodeExpr *new_bin_expr(enum BinOpType type, NodeExpr *lhs, NodeExpr *rhs) {
-	NodeExpr *expr = new_expr(E_BIN_EXPR);
-	expr->bin = malloc(sizeof(NodeBinExpr));
-	expr->bin->lhs = lhs;
-	expr->bin->rhs = rhs;
-	expr->bin->op_type = type;
+static struct node *new_bin_expr(enum BinOpType type, struct node *lhs, struct node *rhs) {
+	struct node *expr = new_node(N_BIN_EXPR);
+	expr->lhs = lhs;
+	expr->rhs = rhs;
+	expr->type = type;
 	return expr;
 }
 
 
-static struct NodeExpr *new_un_expr(enum UnOpType type, NodeExpr *rhs) {
-	NodeExpr *expr = new_expr(E_UN_EXPR);
-	expr->un = malloc(sizeof(NodeUnExpr));
-	expr->un->operand = rhs;
-	expr->un->op_type = type;
+static struct node *new_un_expr(enum UnOpType type, struct node *rhs) {
+	struct node *expr = new_node(N_UN_EXPR);
+	expr->rhs = rhs;
+	expr->type = type;
 	return expr;
 }
 
@@ -164,26 +148,26 @@ static char un_op_to_str(enum UnOpType type) {
 	}
 }
 
-void print_expr(NodeExpr *expr) {
-	switch(expr->type) {
-		case E_BIN_EXPR: {
+void print_expr(struct node *expr) {
+	switch(expr->tag) {
+		case N_BIN_EXPR: {
 				printf("(binexpr: ");
-				print_expr(expr->bin->lhs);
-				printf(" op: %s ", bin_op_to_string(expr->bin->op_type));
-				print_expr(expr->bin->rhs);
+				print_expr(expr->lhs);
+				printf(" op: %s ", bin_op_to_string(expr->type));
+				print_expr(expr->rhs);
 				printf(");");
 			break;
 		}
-		case E_UN_EXPR:
+		case N_UN_EXPR:
 		{
-			printf("unexpr: %c(", un_op_to_str(expr->un->op_type));
-			print_expr(expr->un->operand);
+			printf("unexpr: %c(", un_op_to_str(expr->type));
+			print_expr(expr->rhs);
 			printf(")");
 		break;
 		}
-		case E_LIT:
+		case N_LIT:
 		{
-			printf(" lit: %i ", expr->lit);
+			printf(" lit: %lli ", expr->value);
 			break;
 		}
 		default:
