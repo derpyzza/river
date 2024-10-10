@@ -26,11 +26,13 @@ token_s current_tok(void) { return parser.tokens->token_list[parser.current]; }
 int current(void) { return parser.current; }
 
 void report_error(ParseError *error) {
-	printf("%s:%i:%i: ERROR Unexpected token; expected %s, got %s\n",
+	printf("%s:%i:%i: ERROR Unexpected token; expected %s, got '%.*s' (%s)\n",
 			parser.source.path,
 			error->got.line,
 			error->got.chr_index,
 			token_to_str(error->expected),
+			error->got.source.len,
+			error->got.source.c_ptr,
 			token_to_str(error->got.type)
 			);
 }
