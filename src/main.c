@@ -130,7 +130,9 @@ main(int argc, char** argv) {
 		// print_token_array(source->data, *tkn);
 
 		struct node *node = parse_tokens(tkn, *source);
-		print_ast(*node);
+		if(node != NULL)
+			print_ast(*node);
+		else printf("file had errors, compilation terminated\n");
 		// printf("\n");
 		// fprintf(out_file, "%s", codegen(node));
 		// fprintf(out_file, "\n");

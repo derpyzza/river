@@ -2,11 +2,15 @@
 #include "parser.h"
 #include "../scanner.h"
 #include "parser_utils.h"
+#include "../utils.h"
+#include <stdio.h>
 
 struct parser {
 	int current;
 	file_s source; // current file being parsed
 	token_array_s *tokens;
+	int had_error;
+	struct Vec* errors;
 };
 
 struct parser parser;
@@ -15,10 +19,30 @@ void init_parser(file_s source, token_array_s *tokens) {
 	parser.source = source;
 	parser.tokens = tokens;
 	parser.current = -1;
+	parser.had_error = 0;
 }
 
 token_s current_tok(void) { return parser.tokens->token_list[parser.current]; }
 int current(void) { return parser.current; }
+
+void report_error(ParseError *error) {
+	printf("%s:%i:%i: ERROR Unexpected token; expected %s, got %s\n",
+			parser.source.path,
+			error->got.line,
+			error->got.chr_index,
+			token_to_str(error->expected),
+			token_to_str(error->got.type)
+			);
+}
+
+int check_errors(void) {
+	if (parser.had_error) {
+		for (int i = 0; i < parser.errors->current; i++) {
+			report_error((struct ParseError*)parser.errors->data[i]);
+		}
+		return 1;
+	} else return 0;
+}
 
 
 void consume(void) { parser.current++; }
@@ -85,13 +109,15 @@ int match_expect(token_type expected)
 	return 0;
 }
 
-// void error_unexpected( node_s* node, token_type expected ) {
-// 	node->has_error = 1;
-// 	node->error = (struct error) {
-// 		.token = peek(),
-// 		.expected = expected
-// 	};
-// }
+void error_unexpected( token_s got, token_type expected ) {
+	if (!parser.had_error) {
+		parser.had_error = 1;
+		parser.errors = vec_of(struct ParseError*, 8);
+	}
+	struct ParseError *err = malloc(sizeof(struct ParseError));
+	err->got = got, err->expected = expected;
+	vec_push(parser.errors, (struct ParseError*)err);
+}
 
 token_s token_at(long id)
 {

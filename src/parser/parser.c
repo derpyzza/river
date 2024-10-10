@@ -31,19 +31,19 @@ struct node *parse_tokens( token_array_s *tokens, file_s src )
 		struct node* item = n_item();
 		if(item != NULL) {
 			vec_push(node->children, item);
-		} else {
-			printf("Error: Unknown node type encountered\n");
-		}
+		} 
 	}
-	return node;
+
+	if(check_errors() == 0) {
+		return node;
+	}
+	else return NULL;
 }
 
-// static node_s *parser_panic(node_s* node, token_type expected, token_type until) {
-// 	error_unexpected(node, expected);
-// 	while(!check_next(T_EOF) && !check_next(until)) consume();
-// 	node->type = N_NONE;
-// 	return node;
-// }
+static void parser_panic(token_s got, token_type expected, token_type until) {
+	error_unexpected(got, expected);
+	while(!check_next(T_EOF) && !check_next(until)) consume();
+}
 
 static struct node *n_item() {
 	if (match(T_IMPORT)) {
@@ -78,23 +78,14 @@ static struct node *fn_def(void) {
 	if(match_range(T_UBYTE, T_BOOL) ||match(T_IDENTIFIER)) {
 		fn->type = current_tok().type;
 	} else {
-		// fn->had_error = 1;
-		// // change this, T_TYPE means something totally different, but am just leaving
-		// // this here as is just to help me with debugging;
-		// fn->err = parse_error(T_TYPE);
-		// while(!check_next(T_EOF) && !check_next(T_FN)) consume();
-		// return fn;
+		parser_panic(peek(), T_INT, T_SEMI);
 	}
 
 	// match identifier
 	if (match(T_IDENTIFIER)) {
 		fn->name = lit_at(current()).literal._str;
 	} else {
-		// error
-		// fn->had_error = 1;
-		// fn->err = parse_error(T_IDENTIFIER);
-		// while(!check_next(T_EOF) && !check_next(T_FN)) consume();
-		// return fn;
+		parser_panic(peek(), T_IDENTIFIER, T_SEMI);
 	}
 
 	// parse params
@@ -114,17 +105,11 @@ static struct node *fn_def(void) {
 	// } 
 	else {
 		// TODO: support proper "OR" type errors;
-		// fn->had_error = 1;
-		// fn->err = parse_error(T_FAT_ARROW);
-		// while(!check_next(T_EOF) && !check_next(T_FN)) consume();
-		// return fn;
+		parser_panic(peek(), T_FAT_ARROW, T_SEMI);
 	}
 
 	if(!match(T_SEMI)) {
-		// fn->had_error = 1;
-		// fn->err = parse_error(T_SEMI);
-		// while(!check_next(T_EOF) && !check_next(T_FN)) consume();
-		// return fn;
+		parser_panic(peek(), T_SEMI, T_FN);
 	}
 	return fn;
 }
@@ -134,16 +119,11 @@ static struct node *imp_def(void) {
 
 	if (!match(T_IDENTIFIER)) 
 	{
-		// error
-		// imp->had_error = 1;
-		// imp->err = parse_error(T_IDENTIFIER);
-		// while(!check_next(T_EOF) && !check_next(T_IMPORT)) consume();
-		// return imp;
+		parser_panic(peek(), T_IDENTIFIER, T_SEMI);
 	}
 
 	imp->path.root = current_tok().source;
 	imp->path.full = current_tok().source;
-	// printf("full path: %.*s\n", imp->path.full.len, imp->path.full.c_ptr);
 
 	// check for subpaths
 	if(check_next(T_DOT)) {
@@ -151,11 +131,7 @@ static struct node *imp_def(void) {
 
 		while(match(T_DOT)) {
 			if(!match(T_IDENTIFIER)) {
-				// imp->had_error = 1;
-				// imp->err = parse_error(T_IDENTIFIER);
-				// // for now just fast forward until either the next import keyword or the next ';'
-				// while(!check_next(T_EOF) && !check_next(T_IMPORT)) consume();
-				// return imp;
+				parser_panic(peek(), T_IDENTIFIER, T_SEMI);
 			}
 			imp->path.subpath[imp->path.cur_subpath] = current_tok().source; 
 			imp->path.full.len += current_tok().source.len + ( current_tok().source.c_ptr - (imp->path.full.c_ptr + imp->path.full.len) );
@@ -165,20 +141,14 @@ static struct node *imp_def(void) {
 
 	if(match(T_AS)) {
 		if(!match(T_IDENTIFIER)) {
-			// imp->had_error = 1;
-			// imp->err = parse_error(T_IDENTIFIER);
-			// while(!check_next(T_EOF) && !check_next(T_IMPORT)) consume();
-			// return imp;
+			parser_panic(peek(), T_IDENTIFIER, T_SEMI);
 		}
 		imp->has_name = 1;
 		imp->name = lit_at(current()).literal._str;
 	}
 
 	if (!match(T_SEMI)) {
-		// imp->had_error = 1;
-		// imp->err = parse_error(T_SEMI);
-		// while(!check_next(T_EOF) && !check_next(T_IMPORT)) consume(); 
-		// return imp;
+		parser_panic(peek(), T_SEMI, T_IMPORT);
 	}
 	return imp;
 }
@@ -205,18 +175,6 @@ void print_ast(struct node node)
 			default: printf("Unknown or not implemented yet!\n"); break;
 			case N_NONE: printf("None!\n"); break;
 			case N_FUNC_DEF: {
-				// if (cur->fn_def->had_error) {
-				// 	printf(
-				// 		"[%i:%i] Error: Unexpected token %s, expected %s\nhere: %.*s\n",
-				// 		cur->fn_def->err.got.line,
-				// 		cur->fn_def->err.got.chr_index,
-				// 		token_to_str(cur->fn_def->err.got.type),
-				// 		token_to_str(cur->fn_def->err.expected),
-				// 		cur->fn_def->err.got.source.len,
-				// 		cur->fn_def->err.got.source.c_ptr
-				// 		);
-				// 	break;
-				// }
 				printf("<fn def> name: %.*s, return: %s, body:\n\t",
 						cur->name.len,
 						cur->name.c_ptr,
@@ -226,18 +184,6 @@ void print_ast(struct node node)
 			}
 			break;
 			case N_IMPORT: {
-				// if(cur->imp_def->had_error){ 
-				// 	printf(
-				// 		"[%i:%i] Error: Unexpected token %s, expected %s\nhere: %.*s\n",
-				// 		cur->imp_def->err.got.line,
-				// 		cur->imp_def->err.got.chr_index,
-				// 		token_to_str(cur->imp_def->err.got.type),
-				// 		token_to_str(cur->imp_def->err.expected),
-				// 		cur->imp_def->err.got.source.len,
-				// 		cur->imp_def->err.got.source.c_ptr
-				// 		);
-				// break;
-				// }
 				substr_s root = cur->path.root;
 				printf("<imp def> path: %.*s, root: %.*s", 
 						cur->path.full.len,

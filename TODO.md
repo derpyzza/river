@@ -7,15 +7,39 @@
 > memory handling in this compiler is actually messed up. fix that sometime.
 
 
-currently the error reporting is being done by the parse_ast function,
-whilst the parse functions just simply check for and return the errors.
+BUGS LIST:
+- the panic function should be able to take in a range of stop points, as right now it can completely miss certain errors on separate lines
+| due to the line not having the expected terminator. 
+| i.e:
+```
+1 | import std. // <- Error: missing identifier.
+```
+This will skip all tokens until it encounters the next semicolon. 
+but notice how this line itself also doesn't have a semi colon.
 
-I think that the parser struct should actually keep a track of all errors, and have access to them at all times,
-rather than having to reach into nodes and check them for errors.
-maybe if an error is encountered in a parse node function, it can abort parsing that node and return a node of type N_ERROR or something, and
-register the error ( with what went wrong, expected / got tokens, source + offsets, whatever included in it ), and set off a "had_error" flag.
-then, before returning the parse tree, the parser could check if the had_error flag has been set, and if so, go through it's list of errors and
-report each one to the user before terminating the program, instead of moving on.
+```
+2 | fn void func => do_something(); 
+```
+this is completely valid code, but it ends with a semicolon. the panic function from the
+previous error will completely skip over this entire function, and stop panicking once import
+reaches the semi colon.
+
+Now in this case it works out fine, but consider if line 2 was like this:
+```
+2 | fn void func do_something(); // Error: missing '=>'
+```
+Now here, the line still ends with a semi colon which means that the panic set off from the
+previous line's error will terminate itself here, but in doing so, it will completely ignore the
+missing arrow error. The missing arrow error will then only show itself to the user when they've gone
+back to fix the error on line 1, only to be met with another error on line 2. This can also snowball
+into a mountain of tiny errors that only reveal themselves once the previous one is fixed, which makes the
+whole process of error handling a HUGE chore.
+
+The solution then, would be to add a bunch of extra checks for the panic mode to terminate itself.
+For example, when parsing a statement, upon encountering an error the parser could either stop panicking upon
+encountering a semi-colon, but in case the semi colon is also missing, it could then look to see if it can detect
+the beginning of a new statement, marked by a set of specific tokens which are known to start a new statement;
+i.e 'if', 'fn', 'struct', 'import', etc.
 
 ERROR HANDING
 ===
