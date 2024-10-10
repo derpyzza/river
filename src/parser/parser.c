@@ -26,6 +26,9 @@ struct NodeProg *parse_tokens( token_array_s *tokens, file_s src )
 	init_parser(src, tokens);
 
 	struct NodeProg *node = program();
+	
+	// NodeProg* node = malloc(sizeof(struct NodeProg));
+	// node->expr = parse_expr();
 
 	return node;
 }
@@ -42,7 +45,7 @@ static struct NodeProg *program(void) {
 	node->children = new_vec();
 
 	while(!match(T_EOF)) {
-		printf("next: %s\n", token_to_str(peek().type));
+		// printf("next: %s\n", token_to_str(peek().type));
 		NodeItem* item = n_item();
 		if(item->type != I_UNKNOWN) {
 			vec_push(node->children, item);
@@ -121,8 +124,7 @@ static struct NodeFuncDef *fn_def(void) {
 	// }
 
 	if(match(T_FAT_ARROW)) {
-		fn->expr = expr();
-		printf("fn expr: %i\n", fn->expr->lit);
+		fn->expr = parse_expr();
 	}
 	// parse block
 	// else if(match(T_BRACE_OPEN)) {
@@ -214,12 +216,11 @@ struct ParseError parse_error(token_type expected) {
 
 void print_ast(NodeProg node)
 {
+	// print_expr(node.expr);
 	for ( int i = 0; i < node.children->current; i++ ) {
 		NodeItem *cur = node.children->data[i];
 		switch(cur->type) {
-
 			case I_UNKNOWN: printf("Unknown!\n"); break;
-
 			case I_FN_DEF: {
 				if (cur->fn_def->had_error) {
 					printf(
@@ -233,14 +234,14 @@ void print_ast(NodeProg node)
 						);
 					break;
 				}
-				printf("<fn def> name: %.*s, return: %s\n",
+				printf("<fn def> name: %.*s, return: %s, body:\n\t",
 						cur->fn_def->name.len,
 						cur->fn_def->name.c_ptr,
 						token_to_str(cur->fn_def->return_type)
 						);
+				print_expr(cur->fn_def->expr);
 			}
 			break;
-
 			case I_IMPORT_DEF: {
 				if(cur->imp_def->had_error){ 
 					printf(

@@ -46,27 +46,28 @@ typedef struct NodeExpr {
 		E_BIN_EXPR,
 		E_UN_EXPR,
 
-		E_IF,
-		E_WHILE,
-		E_FOR,
-		E_MATCH,
-		E_ASSIGN,
-		E_BLOCK,
+		// E_IF,
+		// E_WHILE,
+		// E_FOR,
+		// E_MATCH,
+		// E_ASSIGN,
+		// E_BLOCK,
 		// i.e +=, -= &= etc.
-		E_ARRAY,
-		E_STRUCT,
-		E_TUPLE,
-
-		E_ASSIGN_OP,
+		// E_ARRAY,
+		// E_STRUCT,
+		// E_TUPLE,
+		//
+		// E_ASSIGN_OP,
 		E_LIT,
 	} type;
 
 	union {
-		struct NodeBinExpr *bin;
-		struct NodeUnExpr *un;
+		NodeBinExpr *bin;
+		NodeUnExpr *un;
 		int lit;
 	};
 }NodeExpr;
 
 struct NodeBlockExpr* block_expr(void);
-struct NodeExpr* expr(void);
+struct NodeExpr* parse_expr(void);
+void print_expr(NodeExpr *expr);

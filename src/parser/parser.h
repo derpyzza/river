@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../scanner.h"
+#include "expr.h"
 #include <stdio.h>
 
 typedef struct ParseError {
@@ -61,12 +62,11 @@ typedef struct NodeFuncDef {
 			substr_s name;
 			token_type return_type;
 			// river only allows 64 parameters given into a function.
+			// what kinda maniac would need more than that?
+			// what kinda maniac would need any number of params more than like, 8?!
 			// womp womp.
 			struct AssignedVar params[64]; 
-			union {
-				struct NodeExpr *expr;
-				struct NodeBlockExpr *body;
-			};
+			struct NodeExpr *expr;
 		};
 	};
 } NodeFuncDef;
@@ -140,6 +140,7 @@ typedef struct NodeItem {
 
 typedef struct NodeProg {
 	struct Vec* children;
+	// struct NodeExpr *expr;
 } NodeProg;
 
 

@@ -11,4 +11,4 @@
 // import something. ;
 // import err;
 
-fn madeuptype add => 10;
+fn madeuptype add => 10 + 12;
