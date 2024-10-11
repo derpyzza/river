@@ -14,3 +14,6 @@ Vec *new_vec(size_t init, size_t elem_size);
 Vec *init_vec(void** data, long len);
 void vec_push(Vec *v, void* item);
 void* vec_pop(Vec *v);
+
+#define in_range_inc(v, min, max) ((min <= v) && (v <= max))
+#define in_range_ex(v, min, max)  ((min < v) && (v < max))

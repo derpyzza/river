@@ -46,6 +46,8 @@ typedef enum token_type {
 	T_DOUBLE_FLOATING_LITERAL,
 	T_CHAR_LITERAL,
 	T_STRING_LITERAL,
+	// literals
+	T_TRUE, T_FALSE, T_NULL,
 
 	// == keywords ==
 
@@ -71,56 +73,53 @@ typedef enum token_type {
 	T_USING, T_NAMESPACE, T_IMPORT, T_AS,
 	T_SWITCH, T_CASE, T_SIZEOF, T_TYPEOF,
 	T_MACRO, T_YIELD, T_EXPECT, T_ASSERT,
-	T_STATIC, T_CONST, T_MUT, T_PUB, T_VAL,
-	T_FN,
-
-	// literals
-	T_TRUE, T_FALSE, T_NULL,
+	T_FN, T_STATIC, T_CONST, T_MUT, T_PUB,
+	T_VAL,
 
 	T_EOF,
 
 	MAX_TKNS,
 } token_type;
 
-static const int NUM_KEY_WORDS = T_NULL - T_UBYTE;
+static const int NUM_KEY_WORDS = T_EOF - T_TRUE;
 
 static const char* token_strings[MAX_TKNS] = {
 	"==NONE==",
 	// Single Character tokens
-	"equal sign",
-	"paren open", "paren close",
-	"brace open", "brace close",
-	"bracket open", "bracket close",
-	"comma", "dot",
-	"plus", "minus",
-	"asterisk", "forward slash",
-	"modulus", "semi", "bang",
-	"less than", "greater than",
-	"question", "colon",
-	"amp", "pipe",
-	"tilde", "hat",
+	"=",
+	"(", ")",
+	"{", "}",
+	"[", "]",
+	",", ".",
+	"+", "-",
+	"*", "/",
+	"%", ";", "!",
+	"<", ">",
+	"?", ":",
+	"&", "|",
+	"~", "^",
 
 	// combo operators
-	"div eq",
-	"mult eq",
-	"add eq",
-	"sub eq",
-	"mod eq",
-	"not eq",
-	"and eq",
-	"or eq",
-	"eq eq",
-	"less than eq",
-	"greater than eq",
-	"inc",
-	"dec",
-	"arrow",
-	"fat arrow",
-	"dot dot",
-	"logical and",
-	"logical or",
-	"shift left",
-	"shift right",
+	"/=",
+	"*=",
+	"+=",
+	"-=",
+	"%=",
+	"!=",
+	"&=",
+	"|=",
+	"==",
+	"<=",
+	">=",
+	"--",
+	"++",
+	"->",
+	"=>",
+	"..",
+	"&&",
+	"||",
+	"<<",
+	">>",
 
 	"identifier",
 	"integer literal",
@@ -128,6 +127,8 @@ static const char* token_strings[MAX_TKNS] = {
 	"double literal",
 	"char literal",
 	"string literal",
+	// literals
+	"true", "false", "null",
 
 	// ==keywords==
 	// types
@@ -153,14 +154,20 @@ static const char* token_strings[MAX_TKNS] = {
 	"switch", "case", "sizeof", "typeof",
 	"macro", "yield", "expect", "assert",
 	// variable decl
-	"static", "const", "mut", "pub", "val",
-	"fn",
-
-	// literals
-	"true", "false", "null",
+	"fn", "static", "const", "mut", "pub", "val",
 
 	"EOF",
 };
+
+typedef enum tokcat {
+	TC_NONE,
+	TC_KEYWORD,
+	TC_LITERAL,
+	TC_ID,
+	TC_SYMBOL,
+	TC_OPERATOR,
+	TC_MAX
+}tokcat;
 
 typedef enum literal_type {
 	LIT_NONE = 0,
@@ -194,6 +201,7 @@ typedef struct literal_s {
 
 typedef struct token_s {
 	token_type type;
+	tokcat cat;
 	substr_s source; // the source string for this token;
 	int chr_index; 	// the starting character index
 	int has_literal;
@@ -236,6 +244,17 @@ static inline token_s token_none(void) {
 		.literal_id = 0
 	};
 } 
+
+static inline const char* tokcat_to_str(tokcat cat) {
+	switch(cat) {
+		case TC_KEYWORD: return "Keyword"; break;
+		case TC_ID: return "Identifier"; break;
+		case TC_SYMBOL: return "Symbol"; break;
+		case TC_OPERATOR: return "Operator"; break;
+		case TC_LITERAL: return "Literal"; break;
+		default: return "tc_none"; break;
+	}
+}
 
 static inline char token_to_char(token_type token) {
 	if (token <= T_HAT && token >= T_EQUAL_SIGN) {

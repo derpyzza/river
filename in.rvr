@@ -4,13 +4,8 @@
 // With the equivalent code
 
 import std;
-import stl.
-// import main . math as IO;
-// import farm . ints . statics . voids . main . strings . args as IO;
-// import lib . ok as OK;
-// import something. ;
-// import err;
+import stl
 
-fn name add => 10 + 12 * 23 + -143;
+fn name add 320 + 12 * 23 + -143;
 fn int faulty 10 + 12 * 23 + -143;
 fn name add => 10 + 12 * 23 + -143;

@@ -6,8 +6,7 @@ Vec *new_vec(size_t init, size_t elem_size) {
 	Vec *v = malloc(sizeof(Vec));
 	v->max = init;
 	v->current = 0;
-	v->data = malloc(sizeof(elem_size) * v->max);
-	memset(v->data, 0, v->max);
+	v->data = calloc(v->max, sizeof(elem_size));
 	return v;
 }
 

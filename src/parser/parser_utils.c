@@ -10,7 +10,7 @@ struct parser {
 	file_s source; // current file being parsed
 	token_array_s *tokens;
 	int had_error;
-	struct Vec* errors;
+	Vec errors;
 };
 
 struct parser parser;
@@ -26,21 +26,34 @@ token_s current_tok(void) { return parser.tokens->token_list[parser.current]; }
 int current(void) { return parser.current; }
 
 void report_error(ParseError *error) {
-	printf("%s:%i:%i: ERROR Unexpected token; expected %s, got '%.*s' (%s)\n",
-			parser.source.path,
-			error->got.line,
-			error->got.chr_index,
-			token_to_str(error->expected),
-			error->got.source.len,
-			error->got.source.c_ptr,
-			token_to_str(error->got.type)
-			);
+
+	if ( error->is_tok ) {
+		printf("%s:%i:%i: ERROR Unexpected token; expected '%s', got '%.*s' (%s)\n",
+				parser.source.path,
+				error->got.line,
+				error->got.chr_index,
+				token_to_str(error->tok),
+				error->got.source.len,
+				error->got.source.c_ptr,
+				token_to_str(error->got.type)
+				);
+	} else {
+		printf("%s:%i:%i: ERROR Unexpected token; expected <%s>, got '%.*s' (%s)\n",
+				parser.source.path,
+				error->got.line,
+				error->got.chr_index,
+				tokcat_to_str(error->cat),
+				error->got.source.len,
+				error->got.source.c_ptr,
+				token_to_str(error->got.type)
+				);
+	}
 }
 
 int check_errors(void) {
 	if (parser.had_error) {
-		for (int i = 0; i < parser.errors->current; i++) {
-			report_error((struct ParseError*)parser.errors->data[i]);
+		for (int i = 0; i < parser.errors.current; i++) {
+			report_error((struct ParseError*)parser.errors.data[i]);
 		}
 		return 1;
 	} else return 0;
@@ -73,6 +86,10 @@ int check_next (token_type expected) {
 	return check_next_n(1, expected);
 }
 
+int check_next_cat ( tokcat cat ) {
+	return (peek().cat == cat); 
+}
+
 int check_next_n(int offset, token_type expected) { 
 	// printf("T: %i\n", peek_n(offset).type == expected);
 	return (peek_n(offset).type == expected); 
@@ -95,30 +112,38 @@ int match(token_type expected) {
 	return 0;
 }
 
-int match_expect(token_type expected)
-{
-	if (check_next(expected)) {
-		consume();
-		return 1;
-	}
-	printf(
-			"ERROR: Unexpected token %s at (%i:%i), expected %s\n"
-			, token_to_str(peek().type)
-			, current_tok().line
-			, current_tok().chr_index
-			, token_to_str(expected)
-			);
-	return 0;
-}
+// int match_or_err(token_type expected)
+// {
+// 	if (check_next(expected)) {
+// 		consume();
+// 		return 1;
+// 	}
+// 	error_unexpected_tok(peek(), expected);
+// 	return 0;
+// }
+ union err_tok { token_type tok; tokcat cat;};
 
-void error_unexpected( token_s got, token_type expected ) {
+static void err_unexpected( token_s got, int is_tok, union err_tok expected) {
 	if (!parser.had_error) {
 		parser.had_error = 1;
-		parser.errors = vec_of(struct ParseError*, 8);
+		parser.errors = *vec_of(struct ParseError*, 8);
 	}
 	struct ParseError *err = malloc(sizeof(struct ParseError));
-	err->got = got, err->expected = expected;
-	vec_push(parser.errors, (struct ParseError*)err);
+	err->got = got;
+	if(is_tok) {
+		err->tok = expected.tok;
+	} else {
+		err->cat = expected.cat;
+	}
+	vec_push(&parser.errors, (struct ParseError*)err);
+}
+
+void error_unexpected_cat( token_s got, tokcat expected ) {
+	err_unexpected( got, 0, (union err_tok)expected); 
+}
+
+void error_unexpected_tok( token_s got, token_type expected ) {
+	err_unexpected( got, 1, (union err_tok)expected); 
 }
 
 token_s token_at(long id)

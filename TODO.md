@@ -7,6 +7,32 @@
 > memory handling in this compiler is actually messed up. fix that sometime.
 
 
+
+need to setup a nicer error reporting setup in the parser. the current one is pretty nice as far as primitive error reporting goes but it could be better.
+here's a list of things that'll make it nicer:
+- Coloured text
+- have the error print the line of source code where the error occurred along with the error itself:
+    in.rvr:10:10: ERROR Unexpected token; expected identifier, got "if" (if) instead
+    | 10 |  let if = i_frame();
+
+- point out where the error is, in the line of source code itself using a pretty printed error pointer.
+    in.rvr:10:10: ERROR Unexpected token; expected identifier, got "if" (if) instead
+    10 |  let if = i_frame();
+       |      ^^
+- categorize tokens into different categories, and include the categories into the error message.
+    i.e:
+    This:
+        in.rvr:10:10: ERROR Unexpected token; expected identifier, got "if" (if) instead
+    Becomes:
+        in.rvr:10:10: ERROR Unexpected token; expected identifier, got Keyword "if" instead;
+        10 |  let if = i_frame();
+           |      ^^
+- Give helpful hints / alternatives if possible:
+        in.rvr:10:10: ERROR Unexpected token; expected identifier, got Keyword "if" instead;
+        10 |  let if = i_frame();
+           |      ^^
+        hint: consider renaming "if" to a different name if it's a variable, e.g "_if";
+
 BUGS LIST:
 - the panic function should be able to take in a range of stop points, as right now it can completely miss certain errors on separate lines
 | due to the line not having the expected terminator. 

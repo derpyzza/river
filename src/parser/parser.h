@@ -4,7 +4,11 @@
 #include "expr.h"
 
 typedef struct ParseError {
-	token_type expected;
+	int is_tok;
+	union {
+		token_type tok;
+		tokcat cat;
+	};
 	// char *msg;
 	token_s got;
 } ParseError;
@@ -39,40 +43,6 @@ typedef struct path {
 	int cur_subpath;
 	substr_s subpath[32];
 } path;
-
-// 	enum node_type {
-// 		N_ERROR = -1,
-// 		N_NONE = 0,
-// 		N_EXP_UN,
-// 		N_EXP_BIN,
-//
-// 		// literals:
-// 		N_LIT_INTEGER,
-// 		N_LIT_FLOAT,
-// 		N_LIT_TRUE,
-// 		N_LIT_FALSE,
-// 		N_LIT_NULL,
-// 		N_LIT_STRING,
-//
-// 	
-// 		N_EXPR,
-// 		N_EXPR_BIN,
-// 		N_EXPR_UN,
-// 		N_EXPR_POST,
-// 		N_EXPR_IF,
-// 		N_EXPR_FOR,
-// 		N_EXPR_FOREACH,
-// 		N_EXPR_WHILE,
-// 		N_EXPR_BLOCK,
-// 		N_EXPR_SWITCH,
-//
-// 		N_FN_CALL,
-// 		N_FN_DEF,
-// 		N_VAR_ASSIGN,
-//
-// 		N_STMT,
-// 		N_RETURN,
-// 	} type;
 
 enum node_tag {
 	N_NONE,

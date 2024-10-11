@@ -40,8 +40,14 @@ struct node *parse_tokens( token_array_s *tokens, file_s src )
 	else return NULL;
 }
 
-static void parser_panic(token_s got, token_type expected, token_type until) {
-	error_unexpected(got, expected);
+static void panic_cat(token_type expected, tokcat until) {
+	error_unexpected_tok(peek(), expected);
+	while(!check_next(T_EOF) && !check_next_cat(until)) consume();
+}
+
+static void panic(token_type expected, token_type until) 
+{
+	error_unexpected_tok(peek(), expected);
 	while(!check_next(T_EOF) && !check_next(until)) consume();
 }
 
@@ -54,6 +60,7 @@ static struct node *n_item() {
 		return fn_def();
 	}
 
+	consume();
 	// if (match(T_STRUCT)) {
 	// 	item->type = I_STRUCT_DEF;
 	// 	item->struct_def = struct_def();
@@ -75,17 +82,17 @@ static struct node *fn_def(void) {
 	struct node* fn = new_node(N_FUNC_DEF);
 
 	// match type
-	if(match_range(T_UBYTE, T_BOOL) ||match(T_IDENTIFIER)) {
+	if(match_range(T_UBYTE, T_BOOL) || match(T_IDENTIFIER)) {
 		fn->type = current_tok().type;
 	} else {
-		parser_panic(peek(), T_INT, T_SEMI);
+		panic(T_INT, T_SEMI);
 	}
 
 	// match identifier
 	if (match(T_IDENTIFIER)) {
 		fn->name = lit_at(current()).literal._str;
 	} else {
-		parser_panic(peek(), T_IDENTIFIER, T_SEMI);
+		panic(T_IDENTIFIER, T_SEMI);
 	}
 
 	// parse params
@@ -105,11 +112,11 @@ static struct node *fn_def(void) {
 	// } 
 	else {
 		// TODO: support proper "OR" type errors;
-		parser_panic(peek(), T_FAT_ARROW, T_SEMI);
+		panic(T_FAT_ARROW, T_SEMI);
 	}
 
 	if(!match(T_SEMI)) {
-		parser_panic(peek(), T_SEMI, T_FN);
+		panic_cat(T_SEMI, TC_KEYWORD);
 	}
 	return fn;
 }
@@ -119,7 +126,7 @@ static struct node *imp_def(void) {
 
 	if (!match(T_IDENTIFIER)) 
 	{
-		parser_panic(peek(), T_IDENTIFIER, T_SEMI);
+		panic(T_IDENTIFIER, T_SEMI);
 	}
 
 	imp->path.root = current_tok().source;
@@ -131,7 +138,7 @@ static struct node *imp_def(void) {
 
 		while(match(T_DOT)) {
 			if(!match(T_IDENTIFIER)) {
-				parser_panic(peek(), T_IDENTIFIER, T_SEMI);
+				panic(T_IDENTIFIER, T_SEMI);
 			}
 			imp->path.subpath[imp->path.cur_subpath] = current_tok().source; 
 			imp->path.full.len += current_tok().source.len + ( current_tok().source.c_ptr - (imp->path.full.c_ptr + imp->path.full.len) );
@@ -141,14 +148,14 @@ static struct node *imp_def(void) {
 
 	if(match(T_AS)) {
 		if(!match(T_IDENTIFIER)) {
-			parser_panic(peek(), T_IDENTIFIER, T_SEMI);
+			panic(T_IDENTIFIER, T_SEMI);
 		}
 		imp->has_name = 1;
 		imp->name = lit_at(current()).literal._str;
 	}
 
 	if (!match(T_SEMI)) {
-		parser_panic(peek(), T_SEMI, T_IMPORT);
+		panic_cat(T_SEMI, TC_KEYWORD);
 	}
 	return imp;
 }
@@ -163,9 +170,9 @@ struct node *new_node(enum node_tag type) {
 	return node;
 }
 
-struct ParseError parse_error(token_type expected) {
-	return (ParseError) { .expected = expected, .got = peek() };
-}
+// struct ParseError parse_error(token_type expected) {
+// 	return (ParseError) { .expected = expected, .got = peek() };
+// }
 
 void print_ast(struct node node)
 {

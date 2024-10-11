@@ -22,13 +22,15 @@ struct literal_s lit_at(long tok_id);
 struct token_s token_at(long id);
 
 // prints an "Unexpected token error"
-void error_unexpected(token_s got, token_type expected);
+void error_unexpected_cat( token_s got, tokcat expected );
+void error_unexpected_tok( token_s got, token_type expected );
 void consume(void);
 // expect: returns whether or not the next token is as expected
-int check_next(token_type type);
+int check_next(token_type tok);
+int check_next_cat(tokcat cat);
 int check_next_n(int offset, token_type expected);
 // match: if next token is as expected, consumes the token and returns true
 int match(token_type type);
 int match_range(int start, int end);
 // prints an "Unexpected token error" if the next token isn't as expected
-int match_expect(token_type expected);
+// int match_or_err(token_type expected);

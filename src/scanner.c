@@ -1,4 +1,5 @@
 #include "scanner.h"
+#include "utils.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -14,11 +15,6 @@ static struct scanner_s scanner;
 #define MAKE_LIT_INT(x) (literal_s){ LIT_INT , (literal_u) { ._int = x }}
 #define MAKE_LIT_FLOAT(x) (literal_s){ LIT_FLOAT , (literal_u) { ._float = x }}
 #define MAKE_LIT_DOUBLE(x) (literal_s){ LIT_DOUBLE , (literal_u) { ._double = x }}
-
-static token_array_s* init_token_array(void);
-static void push_token(token_array_s* tkn, token_type token, substr_s source, int chr_index);
-static void push_token_lit ( token_array_s* tkn, token_type token, substr_s source, literal_s lit, int chr_index);
-static char* strip_whitespace(const char* string);
 
 static inline int char_is_digit(char c)
 {
@@ -50,6 +46,24 @@ static inline int line() {
 	return scanner.line;
 }
 
+static tokcat tok_to_cat(token_type token) {
+	if ( in_range_inc(token, T_EQUAL_SIGN, T_HAT) ) 
+	{
+		return TC_SYMBOL;
+	}
+	if ( in_range_inc(token, T_DIV_EQ, T_SHR) ) {
+		return TC_OPERATOR;
+	}
+	if ( in_range_inc(token, T_INTEGER_LITERAL, T_NULL) )  {
+		return TC_LITERAL;
+	}
+	if ( in_range_inc(token, T_UBYTE, T_FN) ) {
+		return TC_KEYWORD;
+	}	
+	if ( token == T_IDENTIFIER ) return TC_ID; 
+	return TC_NONE;
+}
+
 static token_array_s* init_token_array(void)
 {
 	token_array_s* tkn = malloc(sizeof(token_array_s));
@@ -65,11 +79,6 @@ static token_array_s* init_token_array(void)
 	tkn->literal_list = memset(tkn->literal_list, 0, sizeof(literal_s) * tkn->max_literals);
 
 	return tkn;
-}
-
-static void push_token(token_array_s* tkn, token_type token, substr_s source, int chr_index ) 
-{
-	push_token_lit(tkn, token, source, (literal_s){.type = LIT_NONE}, chr_index );
 }
 
 static void push_token_lit (
@@ -91,6 +100,7 @@ static void push_token_lit (
 	}
 	
 	tkn->token_list[tkn->current_token].type = token;
+	tkn->token_list[tkn->current_token].cat = tok_to_cat(token);
 	tkn->token_list[tkn->current_token].chr_index = chr_index;
 	tkn->token_list[tkn->current_token].source = source;
 	tkn->token_list[tkn->current_token].line = line();
@@ -104,6 +114,11 @@ static void push_token_lit (
 
 	if (!(token == T_EOF))
 		tkn->current_token++;
+}
+
+static void push_token(token_array_s* tkn, token_type token, substr_s source, int chr_index ) 
+{
+	push_token_lit(tkn, token, source, (literal_s){.type = LIT_NONE}, chr_index);
 }
 
 // convert input string into list of tokens
@@ -188,7 +203,7 @@ token_array_s* tokenize ( string_s src )
 			// identifier tokens. This flag is my little hack.
 			int flag = 0;
 			for(int i = 0; i < NUM_KEY_WORDS; i++) {
-				int id = i + T_UBYTE;
+				int id = i + T_TRUE;
 				if (
 						substr.len == strlen(token_strings[id]) &&
 						!memcmp(substr.c_ptr, token_strings[id], substr.len)) {
