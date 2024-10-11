@@ -1,4 +1,4 @@
-
+# river
 > [!CAUTION]
 > This project is currently under construction, so most of what you see here is:
 > 1. very, very broken right now, and
@@ -7,13 +7,30 @@
 > With that in mind however, feel free to take a look around, and drop some feedback if you'd like. 
 > However, do note that since this project is currently in it's infancy, i'm not accepting any proper contributions for now.
 
+A Small C-inspired language that's transpiled down to C, with lots of syntax sugar.
 
-A Small superset of C that's transpiled down to C, with lots of syntax sugar.
+named river 
+cause it flows down to C ( badum tiss )
 
-named river
-cause it flows down to C
+# Quick start
+This repository only contains the river compiler for now.
+The river compiler doesn't depend on any external dependancies directly, though you will need
+a C compiler ( river uses `clang` by default ) and some version of `make` in order to build the compiler. Once you've acquired these,
+just simply run:
+```sh
+$ make
+```
+and it will compile the river compiler `rcc` to the `bin/` directory.
 
-Both a scripting language and a compiled one?
+If you wish to use a C compiler other than the default `clang`, you can do so by using the following command instead:
+```sh
+$ make CC=$(YOUR_C_COMPILER)
+```
+
+From there you can use the river compiler to compile river programs by simply running:
+```sh
+$ rcc in.rvr
+```
 
 # Language Goals and Motivations
 # Ecosystem Features
