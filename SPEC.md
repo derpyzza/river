@@ -57,7 +57,7 @@ for now this is more of a sketchpad for features, but it'll get leaner and clean
  12_232 // same as 12232, underscores help with readability
  0x32def // hex
  0b11010100 // binary
- 0c232ac // octal
+ 0o232ac // octal
 ```
 
 # Variable Definition & Declaration
@@ -83,22 +83,25 @@ x = 10; // legal
 let y, z, w; // illegal
 int y, z, w; // legal
 
-// you can also explicitly define a variable with a type.
-int t = 124;
-
 // You can assign multiple variables at once:
 int x = 20, y = 50, z = 40;
 // Even if the types are separate:
-let x = "X", y = 230, z = false; // perfectly valid
-
-// Multiple variables can be initialized with the same value, but their types must be the same
-int x, y, z, w = 1;
+let x = "X", y = 230, z = false; // perfectly valid, though do note the use of the 'let' keyword 
 
 // variables are non-nullable by default
 // to have a nullable variable, it must be explicitly marked as such
 // by appending a '?' to the variable name
 // Unlike pointers, nullability is a datatype
 str? name = get_name();
+
+int x = 10;
+^int y = &x;
+^int (c, v, b) = &x; // three pointers.
+
+int q = ^c, 
+    w = ^v,
+    e = ^b;
+
 ```
 
 # Functions 
@@ -119,34 +122,31 @@ fn int do_stuff {
     // do something
 }
 
-fn int add 10; // error! expected block or =>, got Int_Literal!
-               // help: try adding a => before the number '10'
+fn int add 10; // error! expected block or '=>', got Int_Literal!
+               // help: try adding a '=>' before the number '10'
                //     | add '=>' 10;
                //     |~~~~~~^^~~~~~
 
 // function types can be declared as such:
-// this is a function has a parameter of type int and returns a value of type bool
-type func -> (int => bool);
+// this is a function that has a parameter of type int and returns a value of type bool
+type func = int => bool;
 
 // Functions support default parameter values
 // If an argument is not passed for a particular parameter,
 // the default value is used instead.
-Colour Colour_from_rgba( int r, int g, int b, int a = 255 ) => {
-    return Colour(r, g, b, a);
+fn Colour Colour_from_rgba( int r, int g, int b, int a = 255 ) {
+    return Colour {r, g, b, a};
 }
 
 // Arguments with default parameters can be omitted
 Colour_from_rgba(125, 125, 125); // param 'a' => 255;
 Colour_from_rgba(125, 125, 125, 125); // param 'a' => 125;
 
-// Function calls also look similar to C
-Colour_from_rgba(125, 125, 125, 255);
-
 // Function arguments can be named when calling functions
 // Take the following function for example:
-Rectangle draw_rect_pro (int x, int y, int width, int height, float rotation, Colour col) => { /*...*/ }
+fn Rectangle draw_rect_pro (int x, int y, int width, int height, float rotation, Colour col) { /*...*/ }
 // You can call the function by naming the individual arguments
-Rectangle rect = draw_rect_pro(
+fn Rectangle rect = draw_rect_pro(
     x = 20,
     y = 30,
     width = 240,
@@ -161,56 +161,47 @@ draw_rect_pro(
     col = (10,10,10,255)); // perfectly valid
 
 // functions can have multiple return values by utilizing tuples
-(File, str) read_file(str path) => {
+fn (File, str) read_file(str path) {
     // ... file reading logic ...
 
     return (file, extension);
 }
 
 
-val (file, ext) = read_file("SPEC.md");
+let (file, ext) = read_file("SPEC.md");
 if ext == ".md" {
     parse_markdown(file);
 }
-
-int add (int x, int y) => {
-    return x + y;
-}
-
-add(4, 6);
 
 // In the case of functions that return nullable values, you can unwrap
 // the value using the '?' operator:
 str name = get_name()?; // => if get_name() returns null then the program panics;
 
 // for one liners without params the parenthesis can be omitted 
-char consume => scanner.char += 1;
-char peek => scanner.token[scanner.char + 1];
+fn char consume => scanner.char += 1;
+fn char peek => scanner.token[scanner.char + 1];
 
 // functions are first class in river, so you can pass them around as values
 // TODO: workshop the function callback syntax a bit more
-u32 example_func( float val, void func => (float, int) ) =>
+fn u32 example_func( float val, fn void func => (float, int) )
 {
     func(val, 20); // => calls the passed-in function
 }
 
 // functions can return other functions
-(bool => (int)) func () {
+fn (bool => (int)) func () {
     // functions can be defined inline as closures
-    return bool(u32 x) => {
+    return fn bool _ (u32 x) {
         if x {
             true
         } else {
             false
-int add
         }
     };
 }
 
-func()();
-
 // though it's nicer to just give the return functions a type alias
-type callback -> (bool => (int, float));
+type callback = (bool => (int, float));
 
 
 // function contracts
@@ -226,24 +217,6 @@ fn int div(int x, int y) {
     ensure z != 0; // for some reason. just as an example
     return z;
 }
-
-fn int div ( int x where x > 0, int y where y > 0 ) {
-
-}
-
-fn int! div(int x, int y)
-{
-    // the expect keyword checks the given expression, and if it 
-    // returns false then it throws an error.
-    // you can provide an alternate to throwing an error 
-    // by using the 'otherwise' keyword
-    expect x != 0 && y != 0 
-    otherwise return Error("Cannot divide by zero");
-
-    return x / y;
-}
-
-
 ```
 
 # Control flow
@@ -274,11 +247,19 @@ if x then {
 
 };
 
+if let PATTERN = EXPR {
 
-string x_to_string(X x) => match x {
-    X_XX => "XX",
-    X_XXX => "XXX",
-    X_XXXX => "XXXX"
+}
+
+Colour x = (255, 0, 255, 0);
+
+if let x = (255, 0, 0, 0) then printf("x is pure red") else printf("x is not pure red"); 
+
+
+fn string x_to_string(X x) => switch x {
+    case X_XX => "XX",
+    case X_XXX => "XXX",
+    case X_XXXX => "XXXX"
 };
 
 
@@ -292,9 +273,6 @@ if ( expression ) {
     // do yet more stuff
 }
 
-int add
-if expression { statement };
-
 while ( expression ) {
     // do stuff
 }
@@ -303,44 +281,39 @@ do {
 
 } while expression;
 
-if -> expr -> ( block | then -> expr (if no else then ";")) -> ( else ) -> ( block | expr ";") 
-
 if x then y else if z then w else a;
-if x then y else while z => do_something();
+if x then y else while z do do_something();
 
-for x in y => do_something();
+for each x in y => do_something();
 while x => do_something();
 
-for x; y; z => do_something(); 
+for x; y; z do do_something(); 
 
-// river style ( taken from rust )
-for x in range(0..=10) {
+for x;y;z => do_something();
 
-}
-
-for item in list {
+for each x in range(0..=10) {
 
 }
 
-for (id, item) in list {
+for each item in list {
 
 }
 
-// C style ( taken from C )
+for each (id, item) in list {
+
+}
+
+// C style
 for let x = 0; x < 10; x++ {
 
 }
 
+// switch expressions cannot be inlined, unlike if, for and while expressions;
 switch expr {
     case => expr,
     case => {...},
     case | case | case => {...},
     _    => {...}, // default case
-}
-
-int main => {
-    int x = 0;
-    while x < 10 => println("yay!"), x++;
 }
 
 ```
@@ -357,6 +330,7 @@ struct Vector3 {
 };
 
 // Unlike in C, you don't need to typedef structs to avoid the struct keyword in declarations
+// Also unlike in C, structs cannot be anonymous
 Vector3 v = (Vector3){10.f, 10.f, 12.f};
 
 // However, it's good practice to mark structs with an "_s" when declaring them
@@ -405,15 +379,31 @@ let w = z.add(y).add(x); // => 80. equivalent to add(z, add(y, x));
 ```c 
 
 // tuples are like structs, except they don't have named parameters
+(int, string) tup = (23, "John");
+tup.0; // 23
+tup.1; // "helli"
 
-(u32, string) x = (23, "hello");
+// you can destructure a tuple into multiple variables.
+let (age, name) = tup;
+// do note that doing so requires the use of the `let` keyword.
+// You cannot define the type explicitly:
+(int, string) (age, name) = x; // illegal 
+// as the type signature expects a tuple of type (int, string)
+// but it instead gets individual two variables, `id` and `name` instead.
 
-let (id, name) = (2332, "derpy");
-let tup = (23, "dwe", 36);
+(int, string) get_person(int id) {
+    return (people[id].0, people[id].1);
+}
 
-type Colour -> (ubyte, ubyte, ubyte, ubyte);
+let person = get_person(id);
 
+type Colour = (ubyte, ubyte, ubyte, ubyte);
 Colour red = (255, 0, 0, 255);
+
+```
+
+# Arrays 
+```c
 
 ```
 
@@ -444,10 +434,9 @@ let y = MnMs.Red; // => Also compiles
 ```c
 
 // You can define your own types by aliasing other types
-type u32 -> int;
+alias u32 = int;
 
-
-u32 x = 10; // base type: u32
+u32 x = 10; // base type: int
 
 // Types can be composed of multiple base types
 // this type can represent both u32 or f32 values

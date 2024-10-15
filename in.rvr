@@ -3,9 +3,5 @@
 // Parse the following text and make it return a .c file
 // With the equivalent code
 
-import std;
-import stl
 
-fn name add 320 + 12 * 23 + -143;
-fn int faulty 10 + 12 * 23 + -143;
-fn name add => 10 + 12 * 23 + -143;
+int x = 340, y = 20, z = 123;

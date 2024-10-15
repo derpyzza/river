@@ -55,29 +55,31 @@ static struct node *factor(void) {
 static struct node *primary(void) {
 	if (match(T_INTEGER_LITERAL)){
 		struct node *node = new_node(N_LIT);
-		node->value = lit_at(current()).literal._int;
+		node->value = lit_at(current())->literal._int;
 		return node;
 	}
-	//
+
 	// if (match(T_DOUBLE_FLOATING_LITERAL)){
-	// 	node *node = new_expr(N_LIT_DOUBLE);
-	// 	node->expr.n_double = lit_at(current()).literal._double;
+	// 	struct node *node = new_node(N_LIT);
+	// 	node->value = lit_at(current())->literal._double;
 	// 	return node;
 	// }
 	//
 	// if (match(T_STRING_LITERAL)){
-	// 	node *node = new_expr(N_LIT_STRING);
-	// 	node->expr.n_string = lit_at(current()).literal._str;
+	// 	struct node *node = new_node(N_LIT);
+	// 	node->value = lit_at(current()).literal._int;
 	// 	return node;
 	// }
 	//
 	// if (match(T_TRUE)){
-	// 	node *node = new_expr(E_LIT_TRUE);
+	// 	struct node *node = new_node(N_LIT);
+	// 	node->value = lit_at(current()).literal._int;
 	// 	return node;
 	// }
 	//
 	// if (match(T_FALSE)){
-	// 	node *node = new_expr(E_LIT_FALSE);
+	// 	struct node *node = new_node(N_LIT);
+	// 	node->value = lit_at(current()).literal._int;
 	// 	return node;
 	// }
 	return NULL;

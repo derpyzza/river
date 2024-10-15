@@ -135,7 +135,7 @@ static void err_unexpected( token_s got, int is_tok, union err_tok expected) {
 	} else {
 		err->cat = expected.cat;
 	}
-	vec_push(&parser.errors, (struct ParseError*)err);
+	vec_push(&parser.errors, err, sizeof(struct ParseError*));
 }
 
 void error_unexpected_cat( token_s got, tokcat expected ) {
@@ -154,12 +154,12 @@ token_s token_at(long id)
 	return parser.tokens->token_list[id];
 }
 
-literal_s lit_at(long tok_id)
+literal_s *lit_at(long tok_id)
 {
 	if (tok_id >= parser.tokens->current_token) {
 		printf("ERROR: tok_id exceeds total number of tokens\n");
-		return (literal_s){.type=LIT_NONE};
+		return NULL;
 	}
 	int lit_id = token_at(tok_id).literal_id;	
-	return parser.tokens->literal_list[lit_id];
+	return &parser.tokens->literal_list[lit_id];
 }

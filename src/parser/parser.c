@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../scanner.h"
@@ -30,7 +31,12 @@ struct node *parse_tokens( token_array_s *tokens, file_s src )
 	while(!match(T_EOF)) {
 		struct node* item = n_item();
 		if(item != NULL) {
-			vec_push(node->children, item);
+			if(item->tag == N_NODE_LIST) {
+				for(int i = 0; i < item->children->current; i++) {
+					vec_push(node->children, item->children->data[i]);
+				}
+			}
+			else vec_push(node->children, item);
 		} 
 	}
 
@@ -38,6 +44,37 @@ struct node *parse_tokens( token_array_s *tokens, file_s src )
 		return node;
 	}
 	else return NULL;
+}
+
+static struct node *var_assign() {
+	struct node* node = new_node(N_VAR);
+
+	if (match(T_IDENTIFIER)) {
+		node->name = lit_at(current())->literal._str;	
+	}
+	match(T_EQUAL_SIGN);
+	if( match(T_INTEGER_LITERAL)) {
+		node->value = lit_at(current())->literal._int;
+	}
+	return node;
+}
+
+static struct node *global_var() {
+
+	struct node* node = new_node(N_NODE_LIST);
+	int has_commas = 0;
+	struct node* assign = var_assign();
+
+	if(peek().type == T_COMMA) vec_push(node->children, assign);
+	while(match(T_COMMA)) {
+		has_commas = 1;
+		vec_push(node->children, var_assign());	
+	}
+	match(T_SEMI);
+
+	if (has_commas)
+		return node;
+	else return assign;
 }
 
 static void panic_cat(token_type expected, tokcat until) {
@@ -52,15 +89,25 @@ static void panic(token_type expected, token_type until)
 }
 
 static struct node *n_item() {
+
 	if (match(T_IMPORT)) {
 		return imp_def();
 	}
 
-	if (match(T_FN)) {
-		return fn_def();
+	if (match(T_INT)) {
+		return global_var();
 	}
 
+	// if (match(T_FN)) {
+	// 	return fn_def();
+	// }
+
+	// skip unknown characters for now *shrug*
+	// maybe panic here?
+	// dunno
 	consume();
+	return NULL;
+
 	// if (match(T_STRUCT)) {
 	// 	item->type = I_STRUCT_DEF;
 	// 	item->struct_def = struct_def();
@@ -73,8 +120,6 @@ static struct node *n_item() {
 	// 	item->global_def = global_def();
 	// 	return item;
 	// }	
-
-	return NULL;
 }
 
 static struct node *fn_def(void) {
@@ -90,7 +135,7 @@ static struct node *fn_def(void) {
 
 	// match identifier
 	if (match(T_IDENTIFIER)) {
-		fn->name = lit_at(current()).literal._str;
+		fn->name = lit_at(current())->literal._str;
 	} else {
 		panic(T_IDENTIFIER, T_SEMI);
 	}
@@ -151,7 +196,7 @@ static struct node *imp_def(void) {
 			panic(T_IDENTIFIER, T_SEMI);
 		}
 		imp->has_name = 1;
-		imp->name = lit_at(current()).literal._str;
+		imp->name = lit_at(current())->literal._str;
 	}
 
 	if (!match(T_SEMI)) {
@@ -161,12 +206,18 @@ static struct node *imp_def(void) {
 }
 
 struct node *new_node(enum node_tag type) {
-	struct node* node = malloc(sizeof(struct node));
+	size_t size = sizeof(struct node);
+	struct node* node = malloc(size);
 	if (node == NULL) {
 		printf("Error, could not malloc new node\n");
 		exit(-1);
 	}
 	node->tag = type;
+	switch(node->tag) {
+		case N_NODE_LIST:
+		case N_BLOCK:
+			node->children = vec_of(struct node*, 8);
+	}
 	return node;
 }
 
@@ -181,6 +232,14 @@ void print_ast(struct node node)
 		switch(cur->tag) {
 			default: printf("Unknown or not implemented yet!\n"); break;
 			case N_NONE: printf("None!\n"); break;
+			case N_VAR: {
+					printf("<var> name: %.*s, type: int, value: %i\n",
+						cur->name.len,
+						cur->name.c_ptr,
+						(int)cur->value
+					);
+				}
+			break;
 			case N_FUNC_DEF: {
 				printf("<fn def> name: %.*s, return: %s, body:\n\t",
 						cur->name.len,

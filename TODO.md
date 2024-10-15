@@ -3,6 +3,22 @@
 -[x] Get started with the parser
 -[x] Parse a simple arithmetic expression
 
+
+required tooling:
+    compiler
+    repl 
+    docgen
+    test framework
+    build system
+    syntax highlighting
+    intellisense
+    stdlib
+
+maybe tooling:
+    interpreter
+    package manager
+
+
 >!![BOSS EVENT]!!
 > memory handling in this compiler is actually messed up. fix that sometime.
 

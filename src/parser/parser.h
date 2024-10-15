@@ -46,6 +46,7 @@ typedef struct path {
 
 enum node_tag {
 	N_NONE,
+	N_NODE_LIST, // hack
 	N_PROG,
 	N_EXPR,
 	N_BIN_EXPR,
@@ -62,6 +63,7 @@ enum node_tag {
 	N_WHILE,
 	N_FOR,
 	N_FOREACH,
+	N_VAR
 };
 
 struct node {

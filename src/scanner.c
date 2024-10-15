@@ -190,7 +190,9 @@ token_array_s* tokenize ( string_s src )
 		} else if (char_is_alpha(*c)) {
 			int str_start = c-start;
 			char* str_ptr = c;
-			while(char_is_alpha(peek(c))) 
+			// the first letter of an identifier MUST be an alphabetical character, but every subsequent character can be alphanumeric.
+			// so _1234 is a valid identifier but 12t is not for example.
+			while(char_is_alphanum(peek(c))) 
 			{
 				c++;
 			}
