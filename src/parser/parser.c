@@ -21,6 +21,19 @@ static struct node *stmt(void);
 static struct node *var_stmt(void);
 static struct node *expr_stmt(void);
 
+
+static void panic_cat(token_type expected, tokcat until) {
+	error_unexpected_tok(peek(), expected);
+	while(!check_next(T_EOF) && !check_next_cat(until)) consume();
+}
+
+static void panic(token_type expected, token_type until) 
+{
+	error_unexpected_tok(peek(), expected);
+	while(!check_next(T_EOF) && !check_next(until)) consume();
+}
+
+
 struct node *parse_tokens( token_array_s *tokens, file_s src ) 
 { 
 	init_parser(src, tokens);
@@ -46,20 +59,24 @@ struct node *parse_tokens( token_array_s *tokens, file_s src )
 	else return NULL;
 }
 
-static struct node *var_assign() {
+static struct node *var_assign(void) {
 	struct node* node = new_node(N_VAR);
 
-	if (match(T_IDENTIFIER)) {
-		node->name = lit_at(current())->literal._str;	
-	}
-	match(T_EQUAL_SIGN);
-	if( match(T_INTEGER_LITERAL)) {
-		node->value = lit_at(current())->literal._int;
-	}
+	// pull out type
+	consume();
+	node->type = current_tok().type;
+
+	// pull out identifier
+	consume();
+	node->name = lit_at(current())->literal._str;	
+
+	if (!match(T_EQUAL_SIGN)) panic_cat(T_EQUAL_SIGN, TC_KEYWORD);
+	if( !match(T_INTEGER_LITERAL)) panic_cat(T_INTEGER_LITERAL, TC_KEYWORD);
+	node->value = lit_at(current())->literal._int;
 	return node;
 }
 
-static struct node *global_var() {
+static struct node *global_var(void) {
 
 	struct node* node = new_node(N_NODE_LIST);
 	int has_commas = 0;
@@ -68,38 +85,47 @@ static struct node *global_var() {
 	if(peek().type == T_COMMA) vec_push(node->children, assign);
 	while(match(T_COMMA)) {
 		has_commas = 1;
-		vec_push(node->children, var_assign());	
+		vec_push(node->children, var_assign());
 	}
-	match(T_SEMI);
+	if(!match(T_SEMI)) panic_cat(T_SEMI, TC_KEYWORD);
 
 	if (has_commas)
 		return node;
 	else return assign;
 }
 
-static void panic_cat(token_type expected, tokcat until) {
-	error_unexpected_tok(peek(), expected);
-	while(!check_next(T_EOF) && !check_next_cat(until)) consume();
+// const values are compile time evaluated constant expressions
+static struct node* const_def(void) {
+	struct node* node =new_node(N_CONST);
+	match_type_token();
+	node->type = current_tok().type;
+	match(T_IDENTIFIER);
+	node->name = lit_at(current())->literal._str;
+	match(T_EQUAL_SIGN);
+	match(T_INTEGER_LITERAL);
+	node->value = lit_at(current())->literal._int;
+	match(T_SEMI);
+	return node;
 }
 
-static void panic(token_type expected, token_type until) 
-{
-	error_unexpected_tok(peek(), expected);
-	while(!check_next(T_EOF) && !check_next(until)) consume();
-}
-
-static struct node *n_item() {
+static struct node *n_item(void) {
 
 	if (match(T_IMPORT)) {
 		return imp_def();
 	}
 
-	if (match(T_INT)) {
-		return global_var();
+	if (match(T_CONST) || peek().type == T_CONST) {
+		return const_def();
 	}
 
-	// if (match(T_FN)) {
-	// 	return fn_def();
+
+	if ( check_next(T_INT) && check_next_n(2, T_IDENTIFIER) ) {
+		return check_next_n(3, T_PAREN_OPEN) || check_next_n(3, T_FAT_ARROW) 
+		? fn_def() : global_var(); 
+	}
+
+	// if (match(T_STRUCT)) {
+	// 	return struct_def();
 	// }
 
 	// skip unknown characters for now *shrug*
@@ -107,38 +133,28 @@ static struct node *n_item() {
 	// dunno
 	consume();
 	return NULL;
-
-	// if (match(T_STRUCT)) {
-	// 	item->type = I_STRUCT_DEF;
-	// 	item->struct_def = struct_def();
-	// 	return item;
-	// }
-	//	
-	//
-	// if (match(T_CONST)) {
-	// 	item->type = I_GLOBAL_DEF;
-	// 	item->global_def = global_def();
-	// 	return item;
-	// }	
 }
 
+// static struct node *struct_def(void) {
+// 	struct node* node = new_node(N_STRUCT_DEF);
+// 	match(T_IDENTIFIER);
+// 	node->name = lit_at(current())->literal._str;
+// }
+
 static struct node *fn_def(void) {
-
 	struct node* fn = new_node(N_FUNC_DEF);
-
+	// we are guaranteed to atleast have the following tokens if we've entered this function:
+	// a type token, an identifier, and either a '(' or a '=>'
+	// so we don't need to match the first two, we can just directly consume them and store
+	// their data;
+ 
 	// match type
-	if(match_range(T_UBYTE, T_BOOL) || match(T_IDENTIFIER)) {
-		fn->type = current_tok().type;
-	} else {
-		panic(T_INT, T_SEMI);
-	}
+	consume();
+	fn->type = current_tok().type;
 
 	// match identifier
-	if (match(T_IDENTIFIER)) {
-		fn->name = lit_at(current())->literal._str;
-	} else {
-		panic(T_IDENTIFIER, T_SEMI);
-	}
+	consume();
+	fn->name = lit_at(current())->literal._str;
 
 	// parse params
 	// if(match(T_PAREN_OPEN)) {
@@ -214,6 +230,7 @@ struct node *new_node(enum node_tag type) {
 	}
 	node->tag = type;
 	switch(node->tag) {
+		default: break;
 		case N_NODE_LIST:
 		case N_BLOCK:
 			node->children = vec_of(struct node*, 8);
@@ -233,10 +250,10 @@ void print_ast(struct node node)
 			default: printf("Unknown or not implemented yet!\n"); break;
 			case N_NONE: printf("None!\n"); break;
 			case N_VAR: {
-					printf("<var> name: %.*s, type: int, value: %i\n",
+					printf("<var> name: %.*s, type: int, value: %li\n",
 						cur->name.len,
 						cur->name.c_ptr,
-						(int)cur->value
+						cur->value
 					);
 				}
 			break;
@@ -247,6 +264,14 @@ void print_ast(struct node node)
 						token_to_str(cur->type)
 						);
 				print_expr(cur->body);
+			}
+			break;
+			case N_CONST: {
+					printf("<const> name: %.*s, type: %s, body: %li\n",
+						cur->name.len, cur->name.c_ptr,
+						token_to_str(cur->type),
+						cur->value      
+					);
 			}
 			break;
 			case N_IMPORT: {
@@ -265,5 +290,6 @@ void print_ast(struct node node)
 				break;
 			}
 		}
+		printf("\n");
 	}
 }

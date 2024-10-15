@@ -3,16 +3,16 @@ Language Grammar
 
 the grammar of river. currently a mess but will get better with time.
 
-program -> Item* EOF;
+program -> item* EOF;
 
-Item ->
-      import_decl
-    | struct_decl
-    | type_def
-    | enum_decl
-    | union_decl
-    | fn_def
-    | global_var;
+item -> import_decl
+      | const_decl;
+      | global_var
+      | struct_decl
+      | fn_def
+      | type_def
+      | enum_decl
+      | union_decl;
 
 TYPE -> BUILTIN_TYPES | ID;
 
@@ -25,15 +25,16 @@ param_item -> TYPE ID ( "=" LIT )?
 
 
 global_var -> TYPE var_assign ( "," var_assign )*;
-
 var_assign -> ID '=' LIT;
 
-let type [VAL];
-VAL -> ( ID | (ID = LIT)) ","*
+// constexpr
+const_decl -> "const" ID "=" expr;
 
-struct_decl -> "struct" ID "{" ( TYPE ID ( "=" LIT )? ";" ); "}"
+struct_decl -> "struct" ID "{" (struct_field ";")+ "}";
 
-global_var_decl -> (("static" ("mut")?) | ("const"))? TYPE ID = LITERAL ";";
+struct_field -> TYPE struct_item ("," struct_item)*
+
+struct_item -> ID ("=" LIT)?
 
 block -> "{" expr* "}";
 

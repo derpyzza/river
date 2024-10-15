@@ -53,7 +53,7 @@ typedef enum token_type {
 
 	// built in types
 	// int types
-	T_UBYTE, T_USHORT, T_UINT,T_ULONG,
+	T_UBYTE, T_USHORT, T_UINT, T_ULONG,
 	T_BYTE, T_SHORT, T_INT, T_LONG,
 	// floats
 	T_FLOAT, T_DOUBLE,
@@ -67,14 +67,13 @@ typedef enum token_type {
 
 	// misc keywords
 	T_RETURN, 
-	T_IF, T_ELSE, T_DO, T_WHILE, T_FOR, T_FOREACH, T_IN,
+	T_IF, T_ELSE, T_THEN, T_DO, T_WHILE, T_FOR, T_FOREACH, T_IN,
 	T_GOTO, T_LABEL, T_BREAK, T_CONTINUE, T_DEFER,
 	T_STRUCT, T_TYPE, T_ENUM, T_UNION,
-	T_USING, T_NAMESPACE, T_IMPORT, T_AS,
+	T_IMPORT, T_AS,
 	T_SWITCH, T_CASE, T_SIZEOF, T_TYPEOF,
 	T_MACRO, T_YIELD, T_EXPECT, T_ASSERT,
-	T_FN, T_STATIC, T_CONST, T_MUT, T_PUB,
-	T_VAL,
+	T_STATIC, T_CONST, T_MUT, T_PUB, T_LET,
 
 	T_EOF,
 
@@ -147,14 +146,14 @@ static const char* token_strings[MAX_TKNS] = {
 
 	// keywords
 	"return", 
-	"if", "else", "do", "while", "for", "foreach", "in",
+	"if", "else", "then", "do", "while", "for", "foreach", "in",
 	"goto", "label", "break", "continue", "defer", 
 	"struct", "type", "enum", "union",
-	"using", "namespace", "import", "as",
+	"import", "as",
 	"switch", "case", "sizeof", "typeof",
 	"macro", "yield", "expect", "assert",
 	// variable decl
-	"fn", "static", "const", "mut", "pub", "val",
+	"static", "const", "mut", "pub", "let",
 
 	"EOF",
 };
@@ -221,6 +220,7 @@ typedef struct token_array_s {
 
 void print_token_array(string_s src, token_array_s tkn);
 token_array_s* tokenize (string_s src);
+tokcat tok_to_cat(token_type token);
 
 static inline char* token_to_str(token_type type) {
 	return (char*) token_strings[type];

@@ -95,6 +95,23 @@ int check_next_n(int offset, token_type expected) {
 	return (peek_n(offset).type == expected); 
 }
 
+int match_type_token() {
+	token_type next = peek().type;
+	if((next >= T_UBYTE && next <= T_BOOL) || (next == T_IDENTIFIER)) {
+		consume();
+		return 1;
+	}
+	return 0;
+}
+
+int match_cat(tokcat cat) {
+	if ( tok_to_cat(peek().type) == cat ) { 
+		consume();
+		return 1; 
+	} 
+	return 0;
+}
+
 int match_range(int start, int end) 
 {
 	if (peek().type >= start && peek().type <= end) {
@@ -105,7 +122,7 @@ int match_range(int start, int end)
 }
 
 int match(token_type expected) {
-	if (check_next(expected)) {
+	if (peek().type == expected) {
 		consume();
 		return 1;
 	}
@@ -135,7 +152,7 @@ static void err_unexpected( token_s got, int is_tok, union err_tok expected) {
 	} else {
 		err->cat = expected.cat;
 	}
-	vec_push(&parser.errors, err, sizeof(struct ParseError*));
+	vec_push(&parser.errors, err);
 }
 
 void error_unexpected_cat( token_s got, tokcat expected ) {

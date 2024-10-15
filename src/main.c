@@ -4,7 +4,7 @@
 #include <strings.h>
 
 #include "common.h"
-#include "utils.h"
+// #include "utils.h"
 #include "scanner.h"
 #include "parser/parser.h"
 // #include "codegen.h"

@@ -46,7 +46,7 @@ static inline int line() {
 	return scanner.line;
 }
 
-static tokcat tok_to_cat(token_type token) {
+tokcat tok_to_cat(token_type token) {
 	if ( in_range_inc(token, T_EQUAL_SIGN, T_HAT) ) 
 	{
 		return TC_SYMBOL;
@@ -57,7 +57,7 @@ static tokcat tok_to_cat(token_type token) {
 	if ( in_range_inc(token, T_INTEGER_LITERAL, T_NULL) )  {
 		return TC_LITERAL;
 	}
-	if ( in_range_inc(token, T_UBYTE, T_FN) ) {
+	if ( in_range_inc(token, T_UBYTE, T_LET) ) {
 		return TC_KEYWORD;
 	}	
 	if ( token == T_IDENTIFIER ) return TC_ID; 

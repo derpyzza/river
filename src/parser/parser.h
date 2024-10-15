@@ -63,7 +63,8 @@ enum node_tag {
 	N_WHILE,
 	N_FOR,
 	N_FOREACH,
-	N_VAR
+	N_VAR,
+	N_CONST
 };
 
 struct node {
@@ -78,7 +79,7 @@ struct node {
 	int has_name;
 	substr_s name;
 	
-	long long int value;
+	long int value;
 
 	// for loops and if conditions
 	struct node
