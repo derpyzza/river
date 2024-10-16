@@ -1,7 +1,84 @@
--[x] Allow for floating var scanning
+required tooling:
+    compiler [ in progress ]
+    repl 
+    docgen
+    test framework
+    build system
+    syntax highlighting
+    intellisense
+    stdlib
 
+maybe tooling:
+    interpreter
+    package manager
+
+
+# General
+-[ ] better error handling, with prettier errors ( maybe keep a separate `Diagnostics` module for error displaying, like you've seen other languages do? )
+-[ ] better memory handling, consider using some sort of memory pool or arena allocator where you allocate a bit fat chunk of memory at once and then distribute pointers to positions in the memory.
+
+# Lexer
+-[x] Allow for floating var scanning
+-[ ] Allow for `d` or `f` prefixes to floating point literals
+-[ ] Allow for nested block comments
+-[ ] Check for doc comments
+-[ ] Implement parsing for alternate number literal styles:
+    -[ ] hex literals ( 0xBEEF )
+    -[ ] octal literals ( 0c32 )
+    -[ ] binary literals ( 0b110101 )
+    -[ ] number separators ( 12_000 and 12'000 )
+
+# Parser
 -[x] Get started with the parser
 -[x] Parse a simple arithmetic expression
+
+-[ ] Implement better panic handling, something that is more robust and expressive. 
+     The current system has a multitude of problems, namely:
+     The stop points for panic.until are really rigid, currently you can either chose to stop at a token, or at a cat.
+     Ideally, you'd want it such that it takes a variable number of tokens, and iterate through all of them and check to see if any of them match.
+         > Ok that's not exactly a "multitude" but it is annoying enough to feel like it.
+    
+-[ ] add support for undefined values
+-[ ] add parsing for types other than int
+-[ ] in the case of types other than int, use the appropriate literal types for them
+-[ ] add post fix operators ( `++` and `--` )
+-[ ] implement tuple types
+-[ ] implement pointer types
+-[ ] implement array types
+-[ ] implement array literals
+-[ ] implement tuple literals
+-[ ] implement block expression parsing
+-[ ] implement the nullable `?` operator
+
+-[ ] implement the remaining levels of expression parsing:
+    -[ ] grouping
+    -[ ] comparison
+    -[ ] assignment
+    -[ ] binary operations
+
+-[ ] implement if expression parsing ( along with the associated else, then clauses )
+    -[ ] basic if
+    -[ ] else
+    -[ ] then
+
+-[ ] implement while expression parsing
+    -[ ] inline
+    -[ ] block
+
+-[ ] implement for loop parsing
+    -[ ] c style
+    -[ ] for each
+    -[ ] inline
+    -[ ] block
+
+-[ ] implement switch/match expression parsing
+    -[ ] case parsing
+    -[ ] multiple case parsing
+    -[ ] default case parsing
+
+
+
+# Notes and Junk
 
 what if the doc comments embedded markdown in them?
 \+ what if the markdown supported inline la/tex? that'd be pretty cool... 
@@ -19,22 +96,6 @@ struct Parser {
 }
  
 ```
-
-
-required tooling:
-    compiler
-    repl 
-    docgen
-    test framework
-    build system
-    syntax highlighting
-    intellisense
-    stdlib
-
-maybe tooling:
-    interpreter
-    package manager
-
 
 >!![BOSS EVENT]!!
 > memory handling in this compiler is actually messed up. fix that sometime.
@@ -108,34 +169,6 @@ ERROR HANDING
 
 # ROADMAP
 
--[] Version 0: working river-to-c-compiler that fully implements the basic river spec
+-[IN PROGRESS] Version 0: working river-to-c-compiler that fully implements the basic river spec
 -[] Version 1: Simple stdlib: io, string, math, vector, hashmap, sort, json log etc.
 -[] Version 2: Package management, documentation generation, etc.
-
-## Scanner
--[] Implement proper parsing for floating point literals to end with an 'f' indicating a float type and a 'd' indicating a double type
--[] Implement separate multiline strings
-
-## Parser
-
-
-implement module importing
-
-implement variable assignment
-implement multiple variable assignment
-
-implement structs
-implement tuples
-
-FUNCTIONS:
-- Implement function different return types
-- Implement function parameters
-- implement explicit function returns
-- implement function calling
-- implement uniform function call syntax
-
-
-## Type checking
-
-## Codegen
-
