@@ -3,6 +3,12 @@
 // Parse the following text and make it return a .c file
 // With the equivalent code
 
+struct thingy {
+	int x;
+	int x, y, z;
+	byte q = 10, t, d;
+}
+
 
 int main => 10;
 

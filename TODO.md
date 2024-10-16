@@ -3,6 +3,23 @@
 -[x] Get started with the parser
 -[x] Parse a simple arithmetic expression
 
+what if the doc comments embedded markdown in them?
+\+ what if the markdown supported inline la/tex? that'd be pretty cool... 
+
+
+doc comments are contained in `//# ... #//` blocks:
+```
+//#
+# Parser
+The main parser struct, which tracks the current parsing state 
+
+#//
+struct Parser {
+    /* ... */
+}
+ 
+```
+
 
 required tooling:
     compiler

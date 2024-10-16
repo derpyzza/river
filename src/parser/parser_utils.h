@@ -19,6 +19,7 @@ struct token_s prev(void);
 struct token_s prev_n(int offset);
 
 struct literal_s *lit_at(long tok_id);
+struct literal_s *cur_lit();
 struct token_s token_at(long id);
 
 // prints an "Unexpected token error"

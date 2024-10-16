@@ -4,81 +4,81 @@
 
 #include <stdio.h>
 
-static struct node *un_expr(void);
-static struct node *bin_expr(void);
+static struct Node *un_expr(void);
+static struct Node *bin_expr(void);
 
-static struct node *term(void);
-static struct node *factor(void);
-static struct node *unary(void);
-static struct node *primary(void);
+static struct Node *term(void);
+static struct Node *factor(void);
+static struct Node *unary(void);
+static struct Node *primary(void);
 
-static struct node *new_un_expr(enum UnOpType type, struct node *rhs);
-static struct node *new_bin_expr(enum BinOpType type, struct node *rhs, struct node *lhs);
+static struct Node *new_un_expr(enum UnOpType type, struct Node *rhs);
+static struct Node *new_bin_expr(enum BinOpType type, struct Node *rhs, struct Node *lhs);
 
 
 static enum UnOpType token_to_unop(token_type type);
 static enum BinOpType token_to_binop(token_type type);
 
-struct node *parse_expr(void) {
+struct Node *parse_expr(void) {
 
-	struct node *expr = term();
+	struct Node *expr = term();
 
 	while (match(T_PLUS) || match(T_MINUS)) {
 		int op = token_to_binop(current_tok().type);
-		struct node *rhs = term();
+		struct Node *rhs = term();
 		expr = new_bin_expr(op, expr, rhs);
 	}
 	return expr;
 }
 
-static struct node *term(void) {
-	struct node *expr = factor();
+static struct Node *term(void) {
+	struct Node *expr = factor();
 
 	while (match(T_ASTERISK) || match(T_FORWARD_SLASH)) {
 		int op = token_to_binop(current_tok().type);
-		struct node *rhs = factor();
+		struct Node *rhs = factor();
 		expr = new_bin_expr(op, expr, rhs);
 	}
 	return expr;
 }
 
-static struct node *factor(void) {
+static struct Node *factor(void) {
 	if (match(T_BANG) || match(T_MINUS)) {
 		int op = token_to_unop(current_tok().type);
-		struct node *right = factor();
-		struct node *expr = new_un_expr(op, right);
+		struct Node *right = factor();
+		struct Node *expr = new_un_expr(op, right);
 		return expr;
 	}
 	return primary();
 }
 
-static struct node *primary(void) {
+static struct Node *primary(void) {
 	if (match(T_INTEGER_LITERAL)){
-		struct node *node = new_node(N_LIT);
+		struct Node *node = new_node(N_LIT);
 		node->value = lit_at(current())->literal._int;
 		return node;
 	}
 
 	// if (match(T_DOUBLE_FLOATING_LITERAL)){
-	// 	struct node *node = new_node(N_LIT);
+	// 	struct Node *node = new_node(N_LIT);
 	// 	node->value = lit_at(current())->literal._double;
 	// 	return node;
 	// }
 	//
 	// if (match(T_STRING_LITERAL)){
-	// 	struct node *node = new_node(N_LIT);
+	// 	struct Node *node = new_node(N_LIT);
 	// 	node->value = lit_at(current()).literal._int;
 	// 	return node;
 	// }
 	//
 	// if (match(T_TRUE)){
-	// 	struct node *node = new_node(N_LIT);
+	// 	struct Node *node = new_node(N_LIT);
 	// 	node->value = lit_at(current()).literal._int;
 	// 	return node;
 	// }
 	//
 	// if (match(T_FALSE)){
-	// 	struct node *node = new_node(N_LIT);
+	// 	struct Node *node = new_node(N_LIT);
 	// 	node->value = lit_at(current()).literal._int;
 	// 	return node;
 	// }
@@ -86,8 +86,8 @@ static struct node *primary(void) {
 }
 
 
-static struct node *new_bin_expr(enum BinOpType type, struct node *lhs, struct node *rhs) {
-	struct node *expr = new_node(N_BIN_EXPR);
+static struct Node *new_bin_expr(enum BinOpType type, struct Node *lhs, struct Node *rhs) {
+	struct Node *expr = new_node(N_BIN_EXPR);
 	expr->lhs = lhs;
 	expr->rhs = rhs;
 	expr->type = type;
@@ -95,8 +95,8 @@ static struct node *new_bin_expr(enum BinOpType type, struct node *lhs, struct n
 }
 
 
-static struct node *new_un_expr(enum UnOpType type, struct node *rhs) {
-	struct node *expr = new_node(N_UN_EXPR);
+static struct Node *new_un_expr(enum UnOpType type, struct Node *rhs) {
+	struct Node *expr = new_node(N_UN_EXPR);
 	expr->rhs = rhs;
 	expr->type = type;
 	return expr;
@@ -150,7 +150,7 @@ static char un_op_to_str(enum UnOpType type) {
 	}
 }
 
-void print_expr(struct node *expr) {
+void print_expr(struct Node *expr) {
 	switch(expr->tag) {
 		case N_BIN_EXPR: {
 				printf("(binexpr: ");
@@ -169,7 +169,7 @@ void print_expr(struct node *expr) {
 		}
 		case N_LIT:
 		{
-			printf(" lit: %lli ", expr->value);
+			printf(" lit: %li ", expr->value);
 			break;
 		}
 		default:

@@ -5,7 +5,7 @@
 #include "../utils.h"
 #include <stdio.h>
 
-struct parser {
+struct Parser {
 	int current;
 	file_s source; // current file being parsed
 	token_array_s *tokens;
@@ -13,7 +13,8 @@ struct parser {
 	Vec errors;
 };
 
-struct parser parser;
+// spooky global parser struct
+static struct Parser parser;
 
 void init_parser(file_s source, token_array_s *tokens) {
 	parser.source = source;
@@ -99,7 +100,7 @@ int match_type_token() {
 	token_type next = peek().type;
 	if((next >= T_UBYTE && next <= T_BOOL) || (next == T_IDENTIFIER)) {
 		consume();
-		return 1;
+		return next;
 	}
 	return 0;
 }
@@ -169,6 +170,10 @@ token_s token_at(long id)
 		return token_eof();
 	}
 	return parser.tokens->token_list[id];
+}
+
+literal_s *cur_lit() {
+	return lit_at(parser.current);
 }
 
 literal_s *lit_at(long tok_id)

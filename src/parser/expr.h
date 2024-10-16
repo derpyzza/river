@@ -20,5 +20,5 @@ enum UnOpType {
 	UN_ADDR
 };
 
-struct node* parse_expr(void);
-void print_expr(struct node *expr);
+struct Node* parse_expr(void);
+void print_expr(struct Node *expr);

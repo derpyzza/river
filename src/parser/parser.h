@@ -36,15 +36,15 @@ typedef struct AssignedVar {
 // but also for namespacing!
 // i.e import x.y.z.w;
 // or X::Y::Z::W.do_something();
-typedef struct path {
+typedef struct Path {
 	substr_s full;
 	substr_s root;
 	int has_subpaths;
 	int cur_subpath;
 	substr_s subpath[32];
-} path;
+} Path;
 
-enum node_tag {
+enum NodeTag {
 	N_NONE,
 	N_NODE_LIST, // hack
 	N_PROG,
@@ -59,6 +59,7 @@ enum node_tag {
 	N_FUNC_DEF,
 	N_IMPORT,
 	N_STRUCT_DEF,
+	N_STRUCT_FIELD,
 	N_IF,
 	N_WHILE,
 	N_FOR,
@@ -67,13 +68,13 @@ enum node_tag {
 	N_CONST
 };
 
-struct node {
-	enum node_tag tag;
+struct Node {
+	enum NodeTag tag;
 	struct Vec* children;
 
 	// for expressions
-	struct node *lhs, *rhs;
-	struct path path;
+	struct Node *lhs, *rhs;
+	struct Path path;
 
 	int type;
 	int has_name;
@@ -82,7 +83,7 @@ struct node {
 	long int value;
 
 	// for loops and if conditions
-	struct node
+	struct Node
 		*cond,
 		*els,
 		*body,
@@ -90,8 +91,8 @@ struct node {
 		*inc;
 };
 
-struct node *parse_tokens( token_array_s *tokens, file_s src ); 
-struct node *new_node(enum node_tag tag);
-void print_ast(struct node node);
+struct Node *parse_tokens( token_array_s *tokens, file_s src ); 
+struct Node *new_node(enum NodeTag tag);
+void print_ast(struct Node node);
 struct ParseError parse_error(token_type expected);
 // char* node_to_string(char* string, node_s node);
