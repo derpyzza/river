@@ -6,7 +6,9 @@ the grammar of river. currently a mess but will get better with time.
 
 rules are in snake_case, and are defined with the following pattern:
 
+```
 rule -> production | ( production | production );
+```
 
 the `|` character means `or`, and rules can be grouped via parenthesis for clarity.
 rules are terminated with the `;` character.
@@ -17,12 +19,14 @@ ID -> identifier
 INTEGER -> an integer literal
 etc.
 
-keywords are wrapped in quotes: "if", "for", "import";
+keywords are wrapped in quotes: `"if"`, `"for"`, `"import"`;
 
 production rules can be followed up with any of the following operators:
-      *: Needs zero or more of
-      +: Needs one or more of
-      ?: optionally can have
+```
+*: Needs zero or more of
++: Needs one or more of
+?: optionally can have
+```
 
 ```
 program -> item* EOF;

@@ -80,6 +80,146 @@ maybe tooling:
 
 # Notes and Junk
 
+consider implementing python style comparison chains:
+```
+let x = 10, y = 15;
+if ( 5 < x < y < 20 ) // => true
+5 < x > y // => false
+```
+it'll make things like ranges a lot easier:
+
+```
+// without:
+bool is_in_range(int v, max, min) => ( min < v ) && ( v < max );
+
+// with:
+bool is_in_range(int v, max, min) => ( min < v < max );    
+```
+
+perhaps function parameters should be tuples, with functions only taking one parameter?
+it can be useful for when you have many functions that do different things but have the same type signature:
+```c
+// this
+Vec translateX(Vec *v, int by) { /*...*/ }
+Vec translateY(Vec *v, int by) { /*...*/ }
+Vec translateZ(Vec *v, int by) { /*...*/ }
+
+// to this
+type translateParams -> (^Vec v, int by);
+
+Vec translateX(translateParams) { /*...*/ }
+Vec translateY(translateParams) { /*...*/ }
+Vec translateZ(translateParams) { /*...*/ }    
+```
+
+counter point: the same can be done via structs too:
+```c
+struct translateParams {
+    ^Vec v;
+    int by;
+};
+
+Vec translateX(translateParams params) { /*..*/ }
+Vec translateY(translateParams params) { /*..*/ }
+Vec translateZ(translateParams params) { /*..*/ }
+```
+
+the only difference then, would be on the caller's side:
+```c
+// struct
+translateX({v, by});
+
+// tuple
+translateX(v, by);
+```
+
+though do note that for the struct version to work you'll have to implement some sort of
+anonymous object literal syntax so that you can define a struct literal without having 
+to insert a compound literal.
+
+and to pull *that* off i'll need to figure out whether or not to go the `nominal` or `structural` 
+type system routes. The reason being that currently river is designed with a nominal type
+system in mind. What that means in short is that the following two structs are not equivalent:
+```c
+struct Colour {
+    int r, g, b;
+}; 
+
+struct Vec3 {
+    int x, y, z;
+};
+
+struct Colour c = { 20, 30, 40 };
+struct Vec3 v = { 20, 30, 40 };
+```
+even though they take up the same exact amount of memory and have the same exact field values,
+they are counted as being two separate entities entirely, because entities ( or objects or types or whatever )
+are compared on a by-name basis. So even though two types may be *structurally* equivalent, if the types have different
+names they are treated as separate types and can not be interchanged at all. This is of course, very useful.
+For instance, you wouldn't want to accidentally pass a `Colour` to a function that expects a `Vec3` and vice versa.
+However, it does make calling and defining other types of functions a lot harder. For instance:
+
+```c
+
+struct ThreeValues {
+    int x, y, z;
+}
+
+int SumThreeValues(struct ThreeValues v) => v.x + v.y + v.z;
+
+Vec3 v = { 20, 30, 40 };
+SumThreeValues((ThreeValues){v.x, v.y, v.z});
+```
+
+In order to have general functions like `SumThreeValues` which takes in a set number of values,
+you have to manually destructure your struct into the target type of struct, which is quite annoying.
+In situations like this it'd be nice to let the language automatically destructure the struct, or even have
+a keyword that destructures the struct to the required params if the struct meets the required criteria.
+This sort of pattern matching btw, should also apply for tuples and slices.
+
+also what of a batch of functions that takes in almost the same parameters, save for a few differences?
+see for example:
+
+```c
+
+void TokenInt(int i, TokenType t, Position pos, Source s);
+void TokenChar(char c, TokenType t, Position pos, Source s);
+void TokenString(string s, TokenType t, Position pos, Source s);    
+
+```
+these could be modelled in several different ways.
+For example, They could be member functions of a class that tracks the other state and the functions just extract it from there
+but what if river had something like array comprehension in python?
+
+```c
+
+type TokenParams -> (TokenType t, Position pos, Source s);
+
+void TokenInt(int i, ..TokenParams);
+void TokenChar(char c, ..TokenParams);
+void TokenString(string s, ..TokenParams);    
+```
+
+This way, you could avoid duplication. But then again, this could also be modelled with a struct:
+
+```c
+
+struct TokenParams {
+    TokenType t;
+    Position pos; 
+    Source s;
+}
+    
+```
+
+
+`?=` operator as a shorthand for `if x then x else y`
+```
+int len = if s.len() != null then s.len() else 0; 
+
+int len = s.len() ?= 0;
+```
+
 what if the doc comments embedded markdown in them?
 \+ what if the markdown supported inline la/tex? that'd be pretty cool... 
 
