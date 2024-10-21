@@ -73,9 +73,11 @@ x = "str"; // illegal
 // Variables are immutable by default
 // And also private to their scope
 
-// to declare a mutable variable add the mut keyword before the type name:
-let mut int x = 0;
+// to declare a mutable variable add the mut keyword before the variable name:
+let mut x = 0;
 x = 10; // legal
+
+let mut x, mut y, mut z;
 
 // you can declare variables without initializing them.
 // However, when declaring a variable, you must provide it's type
@@ -96,11 +98,11 @@ str? name = get_name();
 
 int x = 10;
 ^int y = &x;
-^int (c, v, b) = &x; // three pointers.
 
-int q = ^c, 
-    w = ^v,
-    e = ^b;
+// pointer dereferencing
+int q = @c, 
+    w = @v,
+    e = @b;
 
 ```
 
@@ -110,32 +112,32 @@ int q = ^c,
 
 // Code blocks, including functions, support implicit returns
 // the last expression within a block is returned
-fn int sub ( int x, int y ) {
+int sub ( int x, int y ) => {
     x + y // returns x + y
 } 
 
 // the above function can also be written as:
-fn int sub (int x, int y) => x - y;
+int sub (int x, int y) => x - y;
 
 // functions without parameters can be omit the parenthesis
-fn int do_stuff {
+int do_stuff => {
     // do something
 }
 
-fn int add 10; // error! expected block or '=>', got Int_Literal!
+int add 10; // error! expected '=>' or '=', got Int_Literal!
                // help: try adding a '=>' before the number '10'
                //     | add '=>' 10;
                //     |~~~~~~^^~~~~~
 
 // function types can be declared as such:
 // this is a function that has a parameter of type int and returns a value of type bool
-type func = int => bool;
+type func = fn(int) => bool;
 
 // Functions support default parameter values
 // If an argument is not passed for a particular parameter,
 // the default value is used instead.
-fn Colour Colour_from_rgba( int r, int g, int b, int a = 255 ) {
-    return Colour {r, g, b, a};
+Colour Colour_from_rgba( int r, int g, int b, int a = 255 ) => {
+    Colour {r, g, b, a}
 }
 
 // Arguments with default parameters can be omitted
@@ -144,9 +146,9 @@ Colour_from_rgba(125, 125, 125, 125); // param 'a' => 125;
 
 // Function arguments can be named when calling functions
 // Take the following function for example:
-fn Rectangle draw_rect_pro (int x, int y, int width, int height, float rotation, Colour col) { /*...*/ }
+Rectangle draw_rect_pro (int x, int y, int width, int height, float rotation, Colour col) => { /*...*/ }
 // You can call the function by naming the individual arguments
-fn Rectangle rect = draw_rect_pro(
+Rectangle rect = draw_rect_pro(
     x = 20,
     y = 30,
     width = 240,
@@ -161,7 +163,7 @@ draw_rect_pro(
     col = (10,10,10,255)); // perfectly valid
 
 // functions can have multiple return values by utilizing tuples
-fn (File, str) read_file(str path) {
+(File, str) read_file(str path) => {
     // ... file reading logic ...
 
     return (file, extension);
@@ -178,18 +180,18 @@ if ext == ".md" {
 str name = get_name()?; // => if get_name() returns null then the program panics;
 
 // for one liners without params the parenthesis can be omitted 
-fn char consume => scanner.char += 1;
-fn char peek => scanner.token[scanner.char + 1];
+char consume => scanner.char += 1;
+char peek => scanner.token[scanner.char + 1];
 
 // functions are first class in river, so you can pass them around as values
 // TODO: workshop the function callback syntax a bit more
-fn u32 example_func( float val, fn void func => (float, int) )
+u32 example_func( float val, fn void func => (float, int) ) =>
 {
     func(val, 20); // => calls the passed-in function
 }
 
 // functions can return other functions
-fn (bool => (int)) func () {
+(bool => (int)) func () => {
     // functions can be defined inline as closures
     return fn bool _ (u32 x) {
         if x {
@@ -206,7 +208,7 @@ type callback = (bool => (int, float));
 
 // function contracts
 
-fn int div(int x, int y) {
+int div(int x, int y) => {
     ensure x > 0;
     ensure y > 0; // => panics if either of these are wrong
 
@@ -256,7 +258,7 @@ Colour x = (255, 0, 255, 0);
 if let x = (255, 0, 0, 0) then printf("x is pure red") else printf("x is not pure red"); 
 
 
-fn string x_to_string(X x) => switch x {
+string x_to_string(X x) => switch x {
     case X_XX => "XX",
     case X_XXX => "XXX",
     case X_XXXX => "XXXX"
@@ -330,16 +332,13 @@ struct Vector3 {
 };
 
 // Unlike in C, you don't need to typedef structs to avoid the struct keyword in declarations
-// Also unlike in C, structs cannot be anonymous
-Vector3 v = (Vector3){10.f, 10.f, 12.f};
+// Also unlike in C, struct fields cannot be anonymous
+Vector3 v = {.x = 10.f, .y = 10.f, .z = 12.f};
 
 // However, it's good practice to mark structs with an "_s" when declaring them
 struct Vector3_s {
     u32 x, y, z;
 };
-
-// Plus, declaring struct variables with the <struct identifier> type signature is also an option
-struct Vector3_s v = (Vector3_s){23, 25, 356}
 
 struct Vector4 {
     // Fields are non-nullable by default
@@ -410,7 +409,7 @@ Colour red = (255, 0, 0, 255);
 # Enums 
 ```c 
 
-// just like C's enums, except with their own namespace
+// similar to C's enums, except with their own namespace
 
 enum Colour {
     Red, Blue, Green, White, Yellow, Brown
@@ -423,6 +422,14 @@ enum MnMs {
 let x = Red; // => Error: Assigning variable <x> to nknown value <Red>;
 let x = Colour.Red; // => compiles
 let y = MnMs.Red; // => Also compiles
+
+// enums can act as discriminated unions:
+enum Literal {
+    Int(long),
+    Float(double),
+    String(std::String),
+    char(char)
+}
 
 
 ```
@@ -475,12 +482,12 @@ import std.io;
 
 int 
 main() {
-    io:println("Hello!");
+    io::println("Hello!");
 }
 
-import math as m;
+import std.math as m;
 
-m:abs();
+m::abs();
 
 
 import std.io;
@@ -524,7 +531,7 @@ add(x, y); // => Error: call to undefined function <add>
 ```cpp
 
 // Interfaces define polymorphic functions
-interface debug => {
+interface debug {
     string to_string(T t);
     void debug_print(T t);
 }
@@ -564,22 +571,21 @@ int count_entities(T entities) => where T has Entity {
 ```c
 
 // river's arrays are almost the same as C's, with some key differences
-// Unlike in C, river's arrays are a distinct type and cannot dissolve down to pointers
 int[4] numbers = { 10, 20, 30, 40 };
-// first, arrays have their length encoded into them
+// firstly, arrays have their length encoded into them
 // Do note: the array length is equal to the number of elements in it, not the max index
 // i.e an array of of size 4 with have four elements in it but the final element will have 
 // the index [3], as indices begin at [0]
 numbers.length // => 4
-// second, you can initialize arrays with default values
+// secondly, you can initialize arrays with default values
 int[0;10] numbers; // => array of size 10 with every element being initialized to 0
 int[5;8] numbers; // => array of size 8 with every element being initialized to 5
 
 // Unlike in C, river's arrays are a distinct type and cannot dissolve down to pointers
 int print_num_array ( int[10] numbers ) { /*...*/ }
 
-int *nums;
-print_num_array(nums); // ERROR: Incompatible types; expected type u32[10], got u32* instead;
+^int nums;
+print_num_array(nums); // ERROR: Incompatible types; expected type int[10], got ^int instead;
 
 // arrays can be concatenated with the '..' operator
 int[5] x = {0, 1, 2, 3, 4};
@@ -660,7 +666,7 @@ funcCall();
 
 u32 val = 10;
 ^u32 ptr = val;
-*ptr // => dereference pointer, 10
+@ptr // => dereference pointer, 10
 &ptr // => address of val
 
 ```
@@ -683,36 +689,10 @@ enum union sizeof const
 
 river keywords:
 
-usize isize let str bool array byte
-foreach defer match label
-public private sticky
-new delete namespace macro
-impl interface import as from with is mut
-
-
-## Notes
-you can ignore this bit
-
-how about smarter comments?
-tagged comments
-like @todo @error @bug @note, which the compiler could build notes out of and then store in a file somewhere?
-
-maybe add language packs as a build flag, or a file annotation?
-like
-
-what if you could define your own keywords?
-
-
-```c 
-@lang: 'ur'
-
-اگر (x = y) {
-    لکہو("سلام")؛
-}
-// struct
-شکل {
-حندسہ x, r
-}
-```
+usize isize let str bool byte ubyte null
+foreach defer label
+pub mut
+new delete macro
+impl interface import as from with is
 
 # Grammar specification

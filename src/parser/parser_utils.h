@@ -23,8 +23,8 @@ struct literal_s *cur_lit();
 struct token_s token_at(long id);
 
 // prints an "Unexpected token error"
-void error_unexpected_cat( token_s got, tokcat expected );
-void error_unexpected_tok( token_s got, token_type expected );
+void error_unexpected_cat( token_s got, tokcat expected, const char * file, const int line );
+void error_unexpected_tok( token_s got, token_type expected, const char * file, const int line );
 void consume(void);
 // expect: returns whether or not the next token is as expected
 int check_next(token_type tok);

@@ -15,10 +15,6 @@ cause it flows down to C ( badum tiss )
 River is a programming language for those who like the DIY-nature of C, but sometimes wished that they had access to the convenient higher level features from other languages ( but are too scared of C++ ).
 Simply put, river is a dialect of C with a boatload of syntax sugar and niceties piled on top, along with a side of an expressive type system and garnished with some really nice functional features to top it all off.
 
-River is:
-- Strongly typed
-- 
-
 # Quick start
 This repository only contains the river compiler for now.
 The river compiler doesn't depend on any external dependancies directly, though you will need

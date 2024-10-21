@@ -80,36 +80,64 @@ maybe tooling:
 
 # Notes and Junk
 
-consider implementing python style comparison chains:
+grouping syntax:
+
+{} = blocks, structs;
+() = parenthesized expressions, tuples
+[] = array subscripts, array literals, generics
+
+
+struct literals cannot be anonymous:
+ STRUCTNAME {}
+struct literal fields MUST be named.
+
+structs are nominal types that hold named values of different types.
+tuples are structural types that hold unnamed values of different types.
+arrays are structural types that hold unnamed values of the same type.
+
+for (_, ^x) in intList do x *= x; 
+
+@ for pointer derefencing
+
+```c
+
+int x = 10
+    y = 23
+    z = 25;
+
+    
 ```
-let x = 10, y = 15;
-if ( 5 < x < y < 20 ) // => true
-5 < x > y // => false
-```
-it'll make things like ranges a lot easier:
+
+
 
 ```
-// without:
-bool is_in_range(int v, max, min) => ( min < v ) && ( v < max );
+(if x = 10 then 3 else 7) * 4; // valid
 
-// with:
-bool is_in_range(int v, max, min) => ( min < v < max );    
+int[10] list= [ 23, 53, 46, 68, 35, 57, otherList... ];
+
+10 * ( 12 + 4 ) // syntax and semantics OK.
+12 * ( 12, "string" ); // syntactically OK, semantically errors.
+
 ```
+
+let x = 10 * if y then z else d;
+
+
 
 perhaps function parameters should be tuples, with functions only taking one parameter?
 it can be useful for when you have many functions that do different things but have the same type signature:
 ```c
 // this
-Vec translateX(Vec *v, int by) { /*...*/ }
-Vec translateY(Vec *v, int by) { /*...*/ }
-Vec translateZ(Vec *v, int by) { /*...*/ }
+Vec translateX (Vec *v, int by) => { /*...*/ }
+Vec translateY (Vec *v, int by) => { /*...*/ }
+Vec translateZ (Vec *v, int by) => { /*...*/ }
 
 // to this
 type translateParams -> (^Vec v, int by);
 
-Vec translateX(translateParams) { /*...*/ }
-Vec translateY(translateParams) { /*...*/ }
-Vec translateZ(translateParams) { /*...*/ }    
+Vec translateX translateParams => { /*...*/ }
+Vec translateY translateParams => { /*...*/ }
+Vec translateZ translateParams => { /*...*/ }    
 ```
 
 counter point: the same can be done via structs too:
@@ -119,9 +147,9 @@ struct translateParams {
     int by;
 };
 
-Vec translateX(translateParams params) { /*..*/ }
-Vec translateY(translateParams params) { /*..*/ }
-Vec translateZ(translateParams params) { /*..*/ }
+Vec translateX(translateParams params) => { /*..*/ }
+Vec translateY(translateParams params) => { /*..*/ }
+Vec translateZ(translateParams params) => { /*..*/ }
 ```
 
 the only difference then, would be on the caller's side:
@@ -130,7 +158,7 @@ the only difference then, would be on the caller's side:
 translateX({v, by});
 
 // tuple
-translateX(v, by);
+translateX (v, by);
 ```
 
 though do note that for the struct version to work you'll have to implement some sort of
@@ -266,6 +294,34 @@ here's a list of things that'll make it nicer:
         10 |  let if = i_frame();
            |      ^^
         hint: consider renaming "if" to a different name if it's a variable, e.g "_if";
+
+- Some sort of compiler debug mode that prints the compiler source file and line that the error emanates from. ( this is purely for me, and not for the user ( which is also, me ))
+        [DEBUG]: error emitted from <src/parser/parser.c:123>
+        in.rvr:10:10: ERROR Unexpected token; expected identifier, got Keyword "if" instead;
+        10 |  let if = i_frame();
+           |      ^^
+        hint: consider renaming "if" to a different name if it's a variable, e.g "_if";
+- Errors should have a unique error code to aid localization.
+- Errors should display the name of the parent function of the block of code in which an error occurred, if it occurs in a function body.
+        [DEBUG]: error emitted from <src/parser/parser.c:123>
+        in.rvr:10:10: ERROR Unexpected token; expected identifier, got Keyword "if" instead;
+        in function onDodge()
+        10 |  let if = i_frame();
+           |      ^^
+        hint: consider renaming "if" to a different name if it's a variable, e.g "_if";
+- Examples of correct syntax ( Optional though, might be a pain to implement )
+        [DEBUG]: error emitted from <src/parser/parser.c:123>
+        in.rvr:10:10: ERROR Unexpected token; expected identifier, got Keyword "if" instead;
+        in function onDodge()
+        10 |  let if = i_frame();
+           |      ^^
+        hint: consider renaming "if" to a different name if it's a variable, e.g "_if";
+        \>    let _if = i_frame();
+- Link to relevant docs ( Displayed optionally )
+- For wrong values in function calls, print the type signature of the function definition and the type signature of the erroneous function call:
+    Error: Unexpected value of type <int> where <string> was expected:
+        fn_call(14, 14); // => fn_call( int, int )
+        Expected: fn_call( int, string, int ) 
 
 BUGS LIST:
 - the panic function should be able to take in a range of stop points, as right now it can completely miss certain errors on separate lines

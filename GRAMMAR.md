@@ -44,7 +44,7 @@ TYPE -> BUILTIN_TYPES | ID;
 
 import_decl -> "import" ID(.ID)*? ("as" ID)? ";";
 
-func_decl -> "pub"? TYPE ID ( "(" params_list ")" )? ( "=>" expr | block_expr );
+func_decl -> "pub"? TYPE ID ( "(" params_list ")" )? "=>" expr;
 
 params_list -> param_item? ( "," param_item )*;
 param_item -> TYPE ID ( "=" LIT )?
@@ -58,15 +58,40 @@ struct_decl -> "struct" ID "{" (struct_field ";")+ "}";
 struct_field -> TYPE struct_item ("," struct_item)*
 struct_item -> ID ("=" LIT)?
 
-block -> "{" expr* "}";
-
 var_decl -> (TYPE | "let") "mut"? ID ( ";" | "=" LITERAL ";"); 
 
 statement -> expr ";";
 
-expr -> add ( ('+'|'-') add )*;
-add -> mult ( ('\*' | '\/') mult)*;
-mult -> unary | ( '-' | '!' unary);
-unary -> primary;
-primary -> INT | FLOAT | DOUBLE | "true" | "false" | TUPLE;
+stmt -> expr_stmt
+      | decl_stmt;
+
+expr_stmt -> expr ";" ;
+decl_stmt -> ( 'let' | TYPE ) ID "=" expr;
+
+block_expr -> "{" (( stmt* expr? ) | expr) "}" ; 
+
+expr -> "{" ( assignment ";"? | assignment )+ "}" | assignment;
+assignment -> ID "=" assignment | lor ;
+
+lor -> land ( "||" land )* ;
+land -> eq ( "&&" eq )* ;
+eq -> comp ( ( "!=" | "==" ) comp )* ;
+comp -> shift ( ( ">" | ">=" | "<" | "<=" ) shift )* ;
+shift -> add ( (">>" | "<<") add)*
+
+add -> mult ( ('+'|'-') mult )*;
+mult -> unary ( ('*' | '/' | '%') unary)*;
+unary -> primary | ( '-' | '!' primary);
+
+primary 
+      -> "(" expr ")"
+      | INT 
+      | FLOAT
+      | STRING
+      | CHAR
+      | ARRAY_LIT
+      | "true" 
+      | "false" 
+      | TUPLE_LIT 
+      | STRUCT_LIT;
 ```

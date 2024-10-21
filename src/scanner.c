@@ -14,7 +14,6 @@ static struct scanner_s scanner;
 #define MAKE_LIT_STR(x) (literal_s){ LIT_STRING , (literal_u) { ._str = x }}
 #define MAKE_LIT_INT(x) (literal_s){ LIT_INT , (literal_u) { ._int = x }}
 #define MAKE_LIT_FLOAT(x) (literal_s){ LIT_FLOAT , (literal_u) { ._float = x }}
-#define MAKE_LIT_DOUBLE(x) (literal_s){ LIT_DOUBLE , (literal_u) { ._double = x }}
 
 static inline int char_is_digit(char c)
 {
@@ -160,7 +159,6 @@ token_array_s* tokenize ( string_s src )
 					while(char_is_digit(*c)) 
 					{
 						double temp = 0;
-						// printf("char: %c\n", *c);
 						temp = (*c - '0');
 						for (int i = 0; i < level; i++) temp /= 10;
 						c++;
@@ -172,9 +170,9 @@ token_array_s* tokenize ( string_s src )
 
 					// printf("PNUM: %f\n", pnum);
 					push_token_lit(tkn,
-							T_DOUBLE_FLOATING_LITERAL, 
+							T_FLOATING_LITERAL, 
 							(substr_s){.len = len, .c_ptr = str_ptr},
-							MAKE_LIT_DOUBLE(pnum),
+							MAKE_LIT_FLOAT(pnum),
 							c - line_start
 							);
 				}
@@ -511,18 +509,6 @@ void print_token_array(string_s src, token_array_s tkn)
 							token_strings[type], 
 							// current.literal_id,
 							lit._int
-							);
-				break;
-				case LIT_DOUBLE:
-					printf("[%02i:%02i]\n source: %.*s\n\t token[%02i]: %s, value: %lf\n", 
-							i, 
-							chid,
-							current.source.len,
-							current.source.c_ptr,
-							type,
-							token_strings[type], 
-							// current.literal_id,
-							lit._double
 							);
 				break;
 				case LIT_FLOAT:

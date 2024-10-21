@@ -11,6 +11,8 @@ typedef struct ParseError {
 	};
 	// char *msg;
 	token_s got;
+	const char * debug_file;
+	int debug_line;
 } ParseError;
 
 typedef struct Var {
@@ -68,6 +70,8 @@ enum NodeTag {
 	N_CONST
 };
 
+// ineffeciently laid out struct but meh.
+// can change this later if it bottlenecks somehow
 struct Node {
 	enum NodeTag tag;
 	struct Vec* children;
@@ -76,13 +80,14 @@ struct Node {
 	struct Node *lhs, *rhs;
 	struct Path path;
 
-	int type;
+	token_type type;
 	int has_name;
+	int is_stmt;
 	substr_s name;
 	
 	long int value;
 
-	// for loops and if conditions
+	// for functions and control flow expressions.
 	struct Node
 		*cond,
 		*els,

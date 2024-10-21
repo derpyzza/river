@@ -15,7 +15,7 @@ typedef enum token_type {
 	T_MODULUS, T_SEMI, T_BANG,
 	T_LESS_THAN, T_GREATER_THAN,
 	T_QUESTION, T_COLON,
-	T_AMP, T_PIPE, 
+	T_AMP, T_PIPE, T_ATSIGN,
 	T_TILDE, T_HAT,
 
 	// combo operators
@@ -67,7 +67,7 @@ typedef enum token_type {
 
 	// misc keywords
 	T_RETURN, 
-	T_IF, T_ELSE, T_THEN, T_DO, T_WHILE, T_FOR, T_FOREACH, T_IN,
+	T_IF, T_ELSE, T_THEN, T_DO, T_WHILE, T_FOR, T_IN,
 	T_GOTO, T_LABEL, T_BREAK, T_CONTINUE, T_DEFER,
 	T_STRUCT, T_TYPE, T_ENUM, T_UNION,
 	T_IMPORT, T_AS,
@@ -95,7 +95,7 @@ static const char* token_strings[MAX_TKNS] = {
 	"%", ";", "!",
 	"<", ">",
 	"?", ":",
-	"&", "|",
+	"&", "|", "@",
 	"~", "^",
 
 	// combo operators
@@ -146,7 +146,7 @@ static const char* token_strings[MAX_TKNS] = {
 
 	// keywords
 	"return", 
-	"if", "else", "then", "do", "while", "for", "foreach", "in",
+	"if", "else", "then", "do", "while", "for", "in",
 	"goto", "label", "break", "continue", "defer", 
 	"struct", "type", "enum", "union",
 	"import", "as",
@@ -168,28 +168,26 @@ typedef enum tokcat {
 	TC_MAX
 }tokcat;
 
+typedef struct substr_s{
+	int len;
+	char* c_ptr;
+}substr_s;
+
 typedef enum literal_type {
 	LIT_NONE = 0,
 	LIT_INT,
 	LIT_FLOAT,
-	LIT_DOUBLE,
 	LIT_CHAR,
 	LIT_STRING,
 	LIT_TRUE,
 	LIT_FALSE,
 } literal_type;
 
-typedef struct substr_s{
-	int len;
-	char* c_ptr;
-}substr_s;
-
 typedef union literal_u {
-	int _int;
-	float _float;
-	double _double;
+	long long int _int;
+	double _float;
 	char _char;
-	short _bool;
+	unsigned char _bool;
 	substr_s _str;
 } literal_u;
 

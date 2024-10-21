@@ -5,6 +5,8 @@
 #include "../utils.h"
 #include <stdio.h>
 
+#include "../diagnostics.h"
+
 struct Parser {
 	int current;
 	file_s source; // current file being parsed
@@ -27,6 +29,8 @@ token_s current_tok(void) { return parser.tokens->token_list[parser.current]; }
 int current(void) { return parser.current; }
 
 void report_error(ParseError *error) {
+
+	printf("[%sCOMPILER_DEBUG%s]: error emitted from <%s:%i>\n", TERM_LRED, TERM_RESET, error->debug_file, error->debug_line);
 
 	if ( error->is_tok ) {
 		printf("%s:%i:%i: ERROR Unexpected token; expected '%s', got '%.*s' (%s)\n",
@@ -141,13 +145,15 @@ int match(token_type expected) {
 // }
  union err_tok { token_type tok; tokcat cat;};
 
-static void err_unexpected( token_s got, int is_tok, union err_tok expected) {
+static void err_unexpected( token_s got, int is_tok, union err_tok expected, const char * file, const int line ) {
 	if (!parser.had_error) {
 		parser.had_error = 1;
 		parser.errors = *vec_of(struct ParseError*, 8);
 	}
 	struct ParseError *err = malloc(sizeof(struct ParseError));
 	err->got = got;
+	err->debug_file = file;
+	err->debug_line = line;
 	if(is_tok) {
 		err->tok = expected.tok;
 	} else {
@@ -156,12 +162,12 @@ static void err_unexpected( token_s got, int is_tok, union err_tok expected) {
 	vec_push(&parser.errors, err);
 }
 
-void error_unexpected_cat( token_s got, tokcat expected ) {
-	err_unexpected( got, 0, (union err_tok)expected); 
+void error_unexpected_cat( token_s got, tokcat expected, const char * file, const int line ) {
+	err_unexpected( got, 0, (union err_tok)expected, file, line ); 
 }
 
-void error_unexpected_tok( token_s got, token_type expected ) {
-	err_unexpected( got, 1, (union err_tok)expected); 
+void error_unexpected_tok( token_s got, token_type expected, const char * file, const int line ) {
+	err_unexpected( got, 1, (union err_tok)expected, file, line); 
 }
 
 token_s token_at(long id)

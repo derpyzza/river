@@ -23,15 +23,24 @@ static struct Node *var_stmt(void);
 static struct Node *expr_stmt(void);
 
 
-static void panic_cat(token_type expected, tokcat until) {
-	error_unexpected_tok(peek(), expected);
+static void panic_cat(token_type expected, tokcat until, const char * file, const int line) {
+	error_unexpected_tok(peek(), expected, file, line);
 	while(!check_next(T_EOF) && !check_next_cat(until)) consume();
 }
 
-static void panic(token_type expected, token_type until) 
+static void panic(token_type expected, token_type until, const char * file, const int line) 
 {
-	error_unexpected_tok(peek(), expected);
+	error_unexpected_tok(peek(), expected, file, line);
 	while(!check_next(T_EOF) && !check_next(until)) consume();
+}
+
+#define PANIC(t, u) panic(t, u, __FILE__, __LINE__)
+#define PANIC_CAT(t, u) panic_cat(t, u, __FILE__, __LINE__)
+
+struct Node *stmt(void) {
+	struct Node *stmt = parse_expr();
+	match(T_SEMI);
+	return stmt;
 }
 
 
@@ -71,9 +80,15 @@ static struct Node *top_level(void) {
 		return const_def();
 	}
 
+	// should redo my function / variable parsing strategy here.
+	// i should first try to match on keywords that i know for sure cannot be followed by one or the other,
+	// and if i don't fine said keywords, i should then search for the `TYPE ID ( '=' / '=>' )` pattern.
+	// for instance, the 'pub' keyword is guaranteed to never be a variable definition, it'll always be either a function, struct, enum, union, interface or type.
+	// similarly, the `let` keyword will never ever be followed up with anything other than a variable declaration.
 
+	// check for functions or variables. These require a lookahead to differenciate between them.
 	if ( check_next(T_INT) && check_next_n(2, T_IDENTIFIER) ) {
-		return check_next_n(3, T_PAREN_OPEN) || check_next_n(3, T_FAT_ARROW) 
+		return (check_next_n(3, T_PAREN_OPEN) || check_next_n(3, T_FAT_ARROW)) 
 		? fn_def() : global_var(); 
 	}
 
@@ -94,7 +109,7 @@ static struct Node *import_def(void) {
 
 	if (!match(T_IDENTIFIER)) 
 	{
-		panic(T_IDENTIFIER, T_SEMI);
+		PANIC(T_IDENTIFIER, T_SEMI);
 		return NULL;
 	}
 	imp->path.root = current_tok().source;
@@ -106,7 +121,7 @@ static struct Node *import_def(void) {
 
 		while(match(T_DOT)) {
 			if(!match(T_IDENTIFIER)) {
-				panic(T_IDENTIFIER, T_SEMI);
+				PANIC(T_IDENTIFIER, T_SEMI);
 				return NULL;
 			}
 			imp->path.subpath[imp->path.cur_subpath] = current_tok().source; 
@@ -117,7 +132,7 @@ static struct Node *import_def(void) {
 
 	if(match(T_AS)) {
 		if(!match(T_IDENTIFIER)) {
-			panic(T_IDENTIFIER, T_SEMI);
+			PANIC(T_IDENTIFIER, T_SEMI);
 			return NULL;
 		}
 		imp->has_name = 1;
@@ -125,7 +140,7 @@ static struct Node *import_def(void) {
 	}
 
 	if (!match(T_SEMI)) {
-		panic_cat(T_SEMI, TC_KEYWORD);
+		PANIC_CAT(T_SEMI, TC_KEYWORD);
 		return NULL;
 	}
 	return imp;
@@ -157,8 +172,8 @@ static struct Node *var_assign(void) {
 	consume();
 	node->name = cur_lit()->literal._str;	
 
-	if (!match(T_EQUAL_SIGN)) panic_cat(T_EQUAL_SIGN, TC_KEYWORD);
-	if( !match(T_INTEGER_LITERAL)) panic_cat(T_INTEGER_LITERAL, TC_KEYWORD);
+	if (!match(T_EQUAL_SIGN)) PANIC_CAT(T_EQUAL_SIGN, TC_KEYWORD);
+	if( !match(T_INTEGER_LITERAL)) PANIC_CAT(T_INTEGER_LITERAL, TC_KEYWORD);
 	node->value = cur_lit()->literal._int;
 	return node;
 }
@@ -174,7 +189,7 @@ static struct Node *global_var(void) {
 		has_commas = 1;
 		vec_push(node->children, var_assign());
 	}
-	if(!match(T_SEMI)) panic_cat(T_SEMI, TC_KEYWORD);
+	if(!match(T_SEMI)) PANIC_CAT(T_SEMI, TC_KEYWORD);
 
 	if (has_commas)
 		return node;
@@ -224,9 +239,7 @@ static struct Node *struct_def(void) {
 	node->name = cur_lit()->literal._str;
 	match(T_BRACE_OPEN);
 	while(!match(T_BRACE_CLOSE)) {
-		struct Node* item = struct_field();
-		printf("sizeof item is: %zx\n", sizeof(*item));
-		
+		struct Node* item = struct_field();		
 		if(item) {
 			if (item->tag == N_NODE_LIST) {
 				for(int i = 0; i < item->children->current; i++) 
@@ -265,17 +278,13 @@ static struct Node *fn_def(void) {
 	if(match(T_FAT_ARROW)) {
 		fn->body = parse_expr();
 	}
-	// parse block
-	// else if(match(T_BRACE_OPEN)) {
-	// 	fn->body = block_expr();
-	// } 
 	else {
 		// TODO: support proper "OR" type errors;
-		panic(T_FAT_ARROW, T_SEMI);
+		PANIC(T_FAT_ARROW, T_SEMI);
 	}
 
 	if(!match(T_SEMI)) {
-		panic_cat(T_SEMI, TC_KEYWORD);
+		PANIC_CAT(T_SEMI, TC_KEYWORD);
 	}
 	return fn;
 }
@@ -288,6 +297,8 @@ struct Node *new_node(enum NodeTag type) {
 		exit(-1);
 	}
 	node->tag = type;
+	node->has_name = 0;
+	node->is_stmt = 0;
 	switch(node->tag) {
 		default: break;
 		case N_NODE_LIST:

@@ -19,6 +19,14 @@ static struct Node *new_bin_expr(enum BinOpType type, struct Node *rhs, struct N
 static enum UnOpType token_to_unop(token_type type);
 static enum BinOpType token_to_binop(token_type type);
 
+static struct Node *assignment(void) {
+	if(check_next(T_IDENTIFIER) && check_next_n(2, T_EQUAL_SIGN)) {
+		
+	}
+	match(T_EQUAL_SIGN);
+	match(T_INTEGER_LITERAL);
+}
+
 struct Node *parse_expr(void) {
 
 	struct Node *expr = term();

@@ -3,6 +3,8 @@
 // Parse the following text and make it return a .c file
 // With the equivalent code
 
+int x = 10 
+
 struct thingy {
 	int x;
 	int x, y, z;
@@ -10,14 +12,14 @@ struct thingy {
 }
 
 
-int main => 10;
+int main => 10
 
 const int ten = 11;
 
-int x = 23;
+int x = 23
 
-const int ten = 11;
+const int ten = 11
 
-const int ten = 11;
+const int ten = 11
 
 const int ten = 11;
