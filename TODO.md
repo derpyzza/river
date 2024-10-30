@@ -13,6 +13,26 @@ maybe tooling:
     package manager
 
 
+bare minimum functional river compiler:
+
+functions:
+    TYPE NAME ( PARAMS ) => BODY
+
+Types:
+    int, float, str, char, bool, void ( for functions );
+    variables are typechecked
+
+Variable stuff:
+    let
+    modifiers:
+        mut, ^, []
+
+function bodies are flat list of variable declarations and expressions and function calls
+
+supports imports and moduling
+
+supports C foreign function importing ( for printf );
+
 # General
 -[ ] better error handling, with prettier errors ( maybe keep a separate `Diagnostics` module for error displaying, like you've seen other languages do? )
 -[ ] better memory handling, consider using some sort of memory pool or arena allocator where you allocate a bit fat chunk of memory at once and then distribute pointers to positions in the memory.
@@ -79,6 +99,22 @@ maybe tooling:
 
 
 # Notes and Junk
+
+river should probably be able to figure out struct alignment and place the fields in the most optimized alignment.
+
+How about adding semantic casing?
+constants in all caps:
+    const Int SOMETHING = 10;
+function and variable names in snake_case:
+    Bool is_false = true;
+    Void do_something() = {
+        println("Something");
+    }
+private variables begin with an underscore:
+    Int _private = 10;
+types, structs, enums and unions should all be written in PascalCase:
+    Int, Byte, Short, Long, UInt, ULong, UShort, UByte,
+    Char, Str, Float, Double, Bool, Void.
 
 grouping syntax:
 

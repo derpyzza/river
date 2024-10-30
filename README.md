@@ -80,9 +80,9 @@ The `defer` keyword just executes the given statement at the end of the current 
 
 ```c 
 
-struct object;
+struct object {...};
 
-{
+int main() => {
     object x = new_object();
     defer delete_object;
 
@@ -94,23 +94,8 @@ struct object;
 }
 
 ```
-## Ranges 
 
-```c
-
-range 0..10, 2
-range 0..10:2
-for (0 till 10 every 2) {
-
-}
-
-for ( 0 to 10) {
-
-}
-
-```
-
-## For in / for each statements
+## For in / for each expressions
 ```c 
 
 for x in array {
@@ -118,7 +103,8 @@ for x in array {
 }
 
 ```
-## Default Arguments
+
+## Default values
 
 ```c 
 
@@ -127,7 +113,7 @@ struct object {
         param2 = 30;
 }
 
-void function_definition ( int x, int y = 20, bool open = true ) {
+void function_definition ( int x, int y = 20, bool has_something = true ) {
     // define function over here
 }
 
@@ -135,21 +121,11 @@ void function_definition ( int x, int y = 20, bool open = true ) {
 
 ## Pattern matching & Destructuring
 ```c 
-match user.name {
-    "Sami" => {},
-    "Hello" => {},
+switch user.rank {
+    case "Employee" => {},
+    case "Admin" => {},
     _ => {}
 };
-```
-## Closures 
-```c
-int x = () => {
-    int x = 20;
-    x += 12;
-    x
-}
-
-x() // returns 12;
 ```
 
 ## Implicit Returns 
@@ -177,71 +153,5 @@ let x = x()
 // C 
 
 Type x = x(y(c(t(4))));
-
-```
-
-## Namespaces 
-
-```c
-namespace matrix {
-    multiply(Vector v): Matrix {...}
-}
-
-namespace vector {
-    multiply(Vector v): Vector {...}
-}
-
-
-// This
-
-{
-    using namespace matrix;
-
-    let x = multiply(v);
-}
-
-let x = matrix:multiply(v);
-
-// Translates to
-
-{
-    Matrix x = matrix_multiply(v);
-}
-
-Matrix x = matrix_multiply(v);
-
-```
-
-
-## easy struct matrix mapping:
-
-consider a struct `Matrix`:
-```c 
-Struct Matrix {
-    int col, row;
-    float data[col*row];
-};
-
-```
-typing 
-
-```c 
-Matrix m = {
-    3 4 6 6 7
-    2 4 2 5 7
-    4 2 6 2 2
-};
-```
-
-would map to 
-```c 
-Matrix m = (Matrix) {
-    .col = 5, .row = 3,
-    .data = {
-        3, 4, 6, 6, 7,
-        2, 4, 2, 5, 7,
-        4, 2, 6, 2, 2
-    }
-}
 
 ```

@@ -8,7 +8,7 @@ typedef struct string_s {
 	char* string;
 } string_s;
 
-typedef struct src_file_s {
+typedef struct file_s {
 	int is_valid;
 	char* path;
 	string_s data;
