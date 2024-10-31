@@ -1,0 +1,19 @@
+// imports only the println function from std.io ( and whatever else it needs of-course )
+import std.io.{ println };
+
+void fizzbuzz(int i) {
+	switch i {
+		// cases are evaluated in order
+		case i % 3 == 0 and i % 5 == 0 => println("FizzBuzz"),
+		case i % 3 == 0 => println("Fizz"),
+		case i % 5 == 0 => println("Buzz"),
+		default => println(i)
+	}
+}
+
+int main => {
+
+	for i in [0..100] => fizzbuzz(i);
+
+	0
+}

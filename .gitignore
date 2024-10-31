@@ -1,7 +1,7 @@
 in.c
 in.rvr
 in.*
-*.rvr
+./*.rvr
 bin/
 .vscode/
 
