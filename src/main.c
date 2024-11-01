@@ -131,11 +131,13 @@ main(int argc, char** argv) {
 		// }
 
 		TokenArray* tkn = tokenize(&source->data);
-		// print_token_array(source->data, *tkn);
+		print_token_array(&source->data, *tkn);
 
 		struct Node *node = parse_tokens(tkn, source);
-		if(node != NULL)
+		if(node != NULL) {
+			printf("==== AST DUMP ====\n");
 			print_ast(*node);
+		}
 		else printf("file had errors, compilation terminated\n");
 		// printf("\n");
 		// fprintf(out_file, "%s", codegen(node));

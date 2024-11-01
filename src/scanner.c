@@ -493,8 +493,8 @@ void print_token_array(String *src, TokenArray tkn)
 {
 	printf("===DUMPING TS===\n");
 	// printf("File: %s\n", src.path);
-	// printf("[TI:CI] token[TN]: tkn, value: val\n"
-				 // "----------------------------------\n");
+	printf("[TI:CI] token[TN]: tkn, value: val\n"
+				 "----------------------------------\n");
 	int i = 0;
 	for (i = 0; i <= tkn.current_token; i++ ) {
 		Token current = tkn.token_list[i];
@@ -505,49 +505,51 @@ void print_token_array(String *src, TokenArray tkn)
 			TokenType type = current.type;
 			switch(cur_lit.type) {
 				case LIT_INT:
-					printf("[%02i:%02i]\n source: %.*s\n\t token[%02i]: %s, value: %02lli\n", 
+					printf("[%02i:%02i]\t source: \"%.*s\" token[%02i]: %s, value[id:%i]: %02lli\n", 
 							i, 
 							chid,
 							(int)current.source.len,
 							current.source.c_ptr,
 							type,
 							token_strings[type], 
-							// current.literal_id,
+							current.literal_id,
 							lit.integer
 							);
 				break;
 				case LIT_FLOAT:
-					printf("[%02i:%02i]\t source: %.*s\n\t token[%02i]: %s, value: %f\n", 
+					printf("[%02i:%02i]\t source: \"%.*s\" token[%02i]: %s, value[id:%i]: %f\n", 
 							i, 
 							chid,
 							(int)current.source.len,
 							current.source.c_ptr,
 							type,
 							token_strings[type], 
-							// current.literal_id,
+							current.literal_id,
 							lit.floating
 							);
 				break;
 				case LIT_STRING:
-					printf("[%02i:%02i]\t source: %.*s\n\t token[%02i]: %s, value: %.*s\n", 
+					printf("[%02i:%02i]\t source: \"%.*s\" token[%02i]: %s, value[id:%i]: %.*s\n", 
 							i, 
 							chid,
 							(int)current.source.len,
 							current.source.c_ptr,
 							type,
 							token_strings[type], 
+							current.literal_id,
 							(int)cur_lit.value.string.len,
 							cur_lit.value.string.c_ptr
 							);
 				break;
 				case LIT_CHAR:
-					printf("[%02i:%02i]\t source: %.*s\n\t token[%02i]: %s, value: %c\n", 
+					printf("[%02i:%02i]\t source: \"%.*s\" token[%02i]: %s, value[id:%i]: %c\n", 
 							i, 
 							chid,
 							(int)current.source.len,
 							current.source.c_ptr,
 							type,
 							token_strings[type], 
+							current.literal_id,
 							cur_lit.value.character);
 				default:
 
@@ -555,7 +557,7 @@ void print_token_array(String *src, TokenArray tkn)
 			}
 		}
 		else  {
-			printf("[%02i:%02i]\t source: %.*s\n\t token[%02i]: %s\n", 
+			printf("[%02i:%02i]\t source: \"%.*s\" token[%02i]: %s\n", 
 					i,
 					current.chr_index,
 					(int)current.source.len,

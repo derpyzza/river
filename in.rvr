@@ -3,9 +3,12 @@
 // Parse the following text and make it return a .c file
 // With the equivalent code
 
-int x = 10;
+int bleh = 10;
+string q = "str";
+long y = 232;
+Vector3 pos = 34;
 
-// let val = "hello";
+let something = "smth";
 
 struct thingy {
 	int x;

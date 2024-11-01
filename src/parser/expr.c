@@ -1,5 +1,4 @@
 #include "parser.h"
-#include "parser_utils.h"
 #include "expr.h"
 #include "../scanner.h"
 
@@ -33,7 +32,7 @@ struct Node *parse_expr(void) {
 	struct Node *expr = term();
 
 	while (match(T_PLUS) || match(T_MINUS)) {
-		int op = token_to_binop(current_tok()->type);
+		int op = token_to_binop(current_tok().type);
 		struct Node *rhs = term();
 		expr = new_bin_expr(op, expr, rhs);
 	}
@@ -44,7 +43,7 @@ static struct Node *term(void) {
 	struct Node *expr = factor();
 
 	while (match(T_ASTERISK) || match(T_FORWARD_SLASH)) {
-		int op = token_to_binop(current_tok()->type);
+		int op = token_to_binop(current_tok().type);
 		struct Node *rhs = factor();
 		expr = new_bin_expr(op, expr, rhs);
 	}
@@ -53,7 +52,7 @@ static struct Node *term(void) {
 
 static struct Node *factor(void) {
 	if (match(T_BANG) || match(T_MINUS)) {
-		int op = token_to_unop(current_tok()->type);
+		int op = token_to_unop(current_tok().type);
 		struct Node *right = factor();
 		struct Node *expr = new_un_expr(op, right);
 		return expr;
@@ -64,7 +63,7 @@ static struct Node *factor(void) {
 static struct Node *primary(void) {
 	if (match(T_INTEGER_LITERAL)){
 		struct Node *node = new_node(N_LIT);
-		node->value = cur_lit();
+		node->value = current_tok().literal_id;
 		return node;
 	}
 
@@ -76,7 +75,7 @@ static struct Node *primary(void) {
 	//
 	if (match(T_STRING_LITERAL)){
 		struct Node *node = new_node(N_LIT);
-		node->value = cur_lit();
+		node->value = current_tok().literal_id;
 		return node;
 	}
 	//
@@ -178,7 +177,7 @@ void print_expr(struct Node *expr) {
 		}
 		case N_LIT:
 		{
-			printf(" lit: %lli ", expr->value->value.integer);
+			print_lit(lit_id(expr->value));
 			break;
 		}
 		default:

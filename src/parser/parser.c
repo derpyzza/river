@@ -6,7 +6,7 @@
 #include "parser.h"
 #include "../utils.h"
 #include "../scanner.h"
-#include "parser_utils.h"
+#include "../diagnostics.h"
 
 // Forward declarations so that i can rearrange the definitions as i wish
 static struct Node *top_level(void);
@@ -23,10 +23,130 @@ static struct Node *var_stmt(void);
 static struct Node *expr_stmt(void);
 
 
-// static void panic_cat(TokenType expected, CatType until, const char * file, const int line) {
-// 	error_unexpected_tok(current()+1, expected, file, line);
-// 	while(!check_next(T_EOF) && !check_next_cat(until)) consume();
-// }
+void print_lit(Literal *lit);
+
+struct Parser {
+	int current;
+	struct File *source; // current file being parsed
+	struct TokenArray *tokens;
+	int had_error;
+	struct Vec *errors;
+};
+
+// spooky global parser struct
+static struct Parser parser;
+
+
+void init_parser(File *source, TokenArray *tokens) {
+	parser.source = source;
+	parser.tokens = tokens;
+	parser.current = -1;
+	parser.had_error = 0;
+	parser.errors = NULL;
+}
+
+void consume(void) { 
+	parser.current++;
+}
+
+int current(void) {
+	 return parser.current; 
+}
+
+Token current_tok(void) {
+	return parser.tokens->token_list[parser.current]; 
+}
+
+struct Token *token_at(long id) {
+	if (id >= parser.tokens->current_token ) {
+		return NULL;
+	}
+	return &parser.tokens->token_list[id];
+}
+
+// get literal stored in the literal id field of given token
+struct Literal *lit_at_tok(long tok_id)
+{
+	if (tok_id >= parser.tokens->current_token) {
+		printf("ERROR: tok_id exceeds total number of tokens\n");
+		return &(Literal){.type = LIT_NONE};
+	}
+	int lit_id = token_at(tok_id)->literal_id;	
+	return &parser.tokens->literal_list[lit_id];
+}
+
+// get literal stored in the given id
+struct Literal *lit_id(long lit_id){
+	if (lit_id >= parser.tokens->current_literal) {
+		printf("ERROR: tok_id exceeds total number of tokens\n");
+		return &(Literal){.type = LIT_NONE};
+	}
+	return &parser.tokens->literal_list[lit_id];
+}
+
+// shortcut to get the lit stored in the lit_id field of the current token
+struct Literal *cur_lit() {
+	return lit_at_tok(parser.current);
+}
+
+struct Token peek_n(int offset) {
+	if (parser.current + offset > parser.tokens->current_token ) {
+		return token_eof();
+	}
+	return parser.tokens->token_list[parser.current + offset];
+}
+
+struct Token peek(void) { 
+	return peek_n(1); 
+}
+
+struct Token prev_n(int offset) {
+	if (parser.current + offset < 0 ) {
+		return token_none();
+	}
+	return parser.tokens->token_list[parser.current - offset];
+}
+
+struct Token prev(void) { 
+	return prev_n(1);
+}
+
+int check_next_n(int offset, int expected) { 
+	// printf("T: %i\n", peek_n(offset).type == expected);
+	return (peek_n(offset).type == expected); 
+}
+
+int check_next (int expected) { 
+	// printf("next is: %s\n", token_to_str(peek().type));
+	return check_next_n(1, expected);
+}
+
+int check_type_token(void) {
+	TokenType next = peek().type;
+	if ((next >= T_UBYTE && next <= T_BOOL) || (next == T_IDENTIFIER)) {
+		return 1;	
+	}
+
+	return 0;
+}
+
+int check_next_cat ( int cat ) {
+	return (peek().cat == cat); 
+}
+
+void error_unexpected( int got, int expected, int is_tok, const char * file, const int line ) {
+	if (!parser.had_error) {
+		parser.had_error = 1;
+		parser.errors = vec_of(struct ParseError*, 8);
+	}
+	struct ParseError *err = malloc(sizeof(struct ParseError));
+	err->type = expected;
+	err->got = got;
+	err->debug_file = file;
+	err->debug_line = line;
+	err->is_tok = is_tok;
+	vec_push(parser.errors, err);
+}
 
 enum PanicType {
 	P_CAT = 0,
@@ -42,13 +162,83 @@ static void panic(int expected, int is_expected_tok, int until, int is_until_tok
 }
 
 #define PANIC(e, et, u, ut) panic(e, et, u, ut, __FILE__, __LINE__)
-// #define PANIC_CAT(t, u) panic_cat(t, u, __FILE__, __LINE__)
 
-struct Node *stmt(void) {
-	struct Node *stmt = parse_expr();
-	match(T_SEMI);
-	return stmt;
+void report_error(ParseError *error) {
+	printf("[%sCOMPILER_DEBUG%s]: error emitted from <%s:%i>\n", 
+	      TERM_LRED,
+       	TERM_RESET, 
+				error->debug_file,
+				error->debug_line);
+
+	if ( error->is_tok ) {
+		printf("%s:%i:%i: ERROR Unexpected token; expected '%s', got '%.*s' (%s)\n",
+			parser.source->path,
+			parser.tokens->token_list[error->got].line,
+			parser.tokens->token_list[error->got].chr_index,
+			token_to_str(error->type),
+			(int)parser.tokens->token_list[error->got].source.len,
+			parser.tokens->token_list[error->got].source.c_ptr,
+			token_to_str(parser.tokens->token_list[error->got].type));
+	} else {
+		printf("%s:%i:%i: ERROR Unexpected token; expected <%s>, got '%.*s' (%s)\n",
+			parser.source->path,
+			parser.tokens->token_list[error->got].line,
+			parser.tokens->token_list[error->got].chr_index,
+			token_to_str(error->type),
+			(int)parser.tokens->token_list[error->got].source.len,
+			parser.tokens->token_list[error->got].source.c_ptr,
+			token_to_str(parser.tokens->token_list[error->got].type));
+	}
 }
+
+int check_errors(void) {
+	if (parser.had_error) {
+		for (int i = 0; i < parser.errors->current; i++) {
+			report_error((struct ParseError*)parser.errors->data[i]);
+		}
+		return 1;
+	} else return 0;
+}
+
+int match_type_token(void) {
+	TokenType next = peek().type;
+	if(check_type_token()) {
+		consume();
+		return next;
+	}
+	return 0;
+}
+
+int match_cat(int cat) {
+	if ( tok_to_cat(peek().type) == cat ) { 
+		consume();
+		return 1; 
+	} 
+	return 0;
+}
+
+int match_range(int start, int end) 
+{
+	if (peek().type >= start && peek().type <= end) {
+		consume();
+		return 1;
+	}
+	return 0;
+}
+
+int match( TokenType expected) {
+	if (peek().type == expected) {
+		consume();
+		return 1;
+	}
+	return 0;
+}
+
+// struct Node *stmt(void) {
+// 	struct Node *stmt = parse_expr();
+// 	match(T_SEMI);
+// 	return stmt;
+// }
 
 
 struct Node *parse_tokens( TokenArray *tokens, File *src ) 
@@ -77,7 +267,9 @@ struct Node *parse_tokens( TokenArray *tokens, File *src )
 				}
 			}
 			else vec_push(node->children, item);
+			// print_ast(*node);
 		} 
+
 	}
 
 	if(check_errors() == 0) {
@@ -93,7 +285,7 @@ static struct Node *top_level(void) {
 		return import_def();
 	}
 
-	if (match(T_CONST) || peek().type == T_CONST) {
+	if (match(T_CONST)) {
 		return const_def();
 	}
 
@@ -105,7 +297,6 @@ static struct Node *top_level(void) {
 
 	// check for functions or variables. These require a lookahead to differenciate between them.
 	if ( match(T_LET) ) {
-		printf("matched LET\n");
 		return global_var();	
 	} 
 	if ( check_type_token() ) {
@@ -120,6 +311,7 @@ static struct Node *top_level(void) {
 	// skip unknown characters for now *shrug*
 	// maybe panic here?
 	// dunno
+	printf("unknown node type: %s\n", token_to_str(current_tok().type));
 	consume();
 	return NULL;
 }
@@ -133,8 +325,8 @@ static struct Node *import_def(void) {
 		PANIC(T_IDENTIFIER, P_TOK, T_SEMI, P_TOK);
 		return NULL;
 	}
-	imp->path.root = current_tok()->source;
-	imp->path.full = current_tok()->source;
+	imp->path.root = current_tok().source;
+	imp->path.full = current_tok().source;
 
 	// check for subpaths
 	if(check_next(T_DOT)) {
@@ -145,8 +337,8 @@ static struct Node *import_def(void) {
 				PANIC(T_IDENTIFIER, P_TOK, T_SEMI, P_TOK);
 				return NULL;
 			}
-			imp->path.subpath[imp->path.cur_subpath] = current_tok()->source; 
-			imp->path.full.len += current_tok()->source.len + ( current_tok()->source.c_ptr - (imp->path.full.c_ptr + imp->path.full.len) );
+			imp->path.subpath[imp->path.cur_subpath] = current_tok().source; 
+			imp->path.full.len += current_tok().source.len + ( current_tok().source.c_ptr - (imp->path.full.c_ptr + imp->path.full.len) );
 			imp->path.cur_subpath++;
 		}
 	}
@@ -157,7 +349,7 @@ static struct Node *import_def(void) {
 			return NULL;
 		}
 		imp->has_name = 1;
-		imp->name_id = current_tok()->literal_id;
+		imp->name_id = current_tok().literal_id;
 	}
 
 	if (!match(T_SEMI)) {
@@ -172,12 +364,12 @@ static struct Node *import_def(void) {
 static struct Node* const_def(void) {
 	struct Node* node =new_node(N_CONST);
 	match_type_token();
-	node->type = current_tok()->type;
+	node->type = current_tok().type;
 	match(T_IDENTIFIER);
-	node->name_id = current_tok()->literal_id;
+	node->name_id = current_tok().literal_id;
 	match(T_EQUAL_SIGN);
 	match_cat(TC_LITERAL);
-	node->value = cur_lit();
+	node->value = current_tok().literal_id;
 	match(T_SEMI);
 	return node;
 }
@@ -185,27 +377,28 @@ static struct Node* const_def(void) {
 static struct Node *var_assign(void) {
 	struct Node* node = new_node(N_VAR);
 
-	// pull out type
-	if (prev().type != T_LET) {
+	if (current_tok().type == T_LET) {
+
+		if(!match(T_IDENTIFIER)) PANIC(T_IDENTIFIER, P_TOK, TC_KEYWORD, P_CAT);
+		node->name_id = current_tok().literal_id;	
+	} else {
+
+		// pull out type
 		consume();
-		node->type = current_tok()->type;
+		node->type = current_tok().type;
+
+		// pull out identifier
+		consume();
+		node->name_id = current_tok().literal_id;
 	}
 
-	printf("current token: %s, prev token: %s, next token: %s\n", 
-	       token_to_str(current_tok()->type),
-	       token_to_str(prev().type),
-	       token_to_str(peek().type)
-	     );
 
-	// pull out identifier
-	consume();
-	node->name_id = current_tok()->literal_id;	
-	printf("val name: %.*s\n", (int)lit_at(node->name_id)->value.string.len, lit_at(node->name_id)->value.string.c_ptr);
+  if (!match(T_EQUAL_SIGN))
+    PANIC(T_EQUAL_SIGN, P_TOK, TC_KEYWORD, P_CAT);
 
-	if (!match(T_EQUAL_SIGN)) PANIC(T_EQUAL_SIGN, P_TOK, TC_KEYWORD, P_CAT);
-	if( !match_cat(TC_LITERAL)) PANIC(TC_LITERAL, P_CAT, TC_KEYWORD, P_CAT);
-	node->type = current_tok()->type;
-	node->value = cur_lit();
+	if( !match_cat(TC_LITERAL)) 
+		PANIC(TC_LITERAL, P_CAT, TC_KEYWORD, P_CAT);
+	node->value = current_tok().literal_id;
 	return node;
 }
 
@@ -238,10 +431,10 @@ static struct Node* struct_item(TokenType type) {
 	struct Node* item = new_node(N_STRUCT_FIELD);
 	item->type = type;
 	match(T_IDENTIFIER);
-	item->name_id = current_tok()->literal_id;
+	item->name_id = current_tok().literal_id;
 	if(match(T_EQUAL_SIGN)) {
 		match_cat(TC_LITERAL);
-		item->value = cur_lit();
+		item->value = current_tok().literal_id;
 	}
 	return item;
 }
@@ -267,7 +460,7 @@ static struct Node* struct_field() {
 static struct Node *struct_def(void) {
 	struct Node* node = new_node(N_STRUCT_DEF);
 	match(T_IDENTIFIER);
-	node->name_id = current_tok()->literal_id;
+	node->name_id = current_tok().literal_id;
 	match(T_BRACE_OPEN);
 	while(!match(T_BRACE_CLOSE)) {
 		struct Node* item = struct_field();		
@@ -292,11 +485,11 @@ static struct Node *fn_def(void) {
  
 	// match type
 	consume();
-	fn->type = current_tok()->type;
+	fn->type = current_tok().type;
 
 	// match identifier
 	consume();
-	fn->name_id = current_tok()->literal_id;
+	fn->name_id = current_tok().literal_id;
 
 	// parse params
 	// if(match(T_PAREN_OPEN)) {
@@ -328,6 +521,8 @@ struct Node *new_node(enum NodeTag type) {
 		exit(-1);
 	}
 	node->tag = type;
+	node->name_id = -1;
+	node->value = -1;
 	node->has_name = 0;
 	node->is_stmt = 0;
 	switch(node->tag) {
@@ -345,15 +540,15 @@ struct Node *new_node(enum NodeTag type) {
 // }
 
 void print_lit(Literal *lit) {
-	if (lit)
+	if (lit >= 0)
 		switch (lit->type) {
 			case LIT_NONE: printf("<none>\n"); break;
-			case LIT_FALSE: printf("<false>\n"); break;
-			case LIT_TRUE: printf("<true>\n"); break;
-			case LIT_CHAR: printf("'%c'\n", lit->value.character); break;
-			case LIT_INT: printf("%lli\n", lit->value.integer); break;
-			case LIT_FLOAT: printf("%lf\n", lit->value.floating);
-			case LIT_STRING: printf("\"%.*s\"\n", (int)lit->value.string.len, lit->value.string.c_ptr);
+			case LIT_FALSE: printf("bool: <false>\n"); break;
+			case LIT_TRUE: printf("bool: <true>\n"); break;
+			case LIT_CHAR: printf("char: '%c'\n", lit->value.character); break;
+			case LIT_INT: printf("int: %lli\n", lit->value.integer); break;
+			case LIT_FLOAT: printf("float: %lf\n", lit->value.floating);
+			case LIT_STRING: printf("string: \"%.*s\"\n", (int)lit->value.string.len, lit->value.string.c_ptr);
 		}
 	else printf("<Uninitialized>\n");
 }
@@ -366,36 +561,36 @@ void print_ast(struct Node node)
 			default: printf("Unknown or not implemented yet!\n"); break;
 			case N_NONE: printf("None!\n"); break;
 			case N_VAR: {
-					printf("<var> name: %.*s, type: int, value: ",
-						(int)lit_at(cur->name_id)->value.string.len,
-						lit_at(cur->name_id)->value.string.c_ptr
+					printf("<var> name: %.*s, type: <TYPE>, value: ",
+						(int)lit_id(cur->name_id)->value.string.len,
+						lit_id(cur->name_id)->value.string.c_ptr
 					);
-					print_lit(cur->value);
+					print_lit(lit_id(cur->value));
 				}
 			break;
 			case N_STRUCT_FIELD: {
 				printf("\t<field> name: %.*s, type: %s, value: ",
 
-					(int)lit_at(cur->name_id)->value.string.len,
-					lit_at(cur->name_id)->value.string.c_ptr,
+					(int)lit_id(cur->name_id)->value.string.len,
+					lit_id(cur->name_id)->value.string.c_ptr,
 					token_to_str(cur->type)
 				);
-				print_lit(cur->value);
+				print_lit(lit_id(cur->value));
 				break;
 			} 				
 			case N_STRUCT_DEF: {
 				printf("<struct def> name: %.*s, body:\n", 
 
-					(int)lit_at(cur->name_id)->value.string.len,
-					lit_at(cur->name_id)->value.string.c_ptr
+					(int)lit_id(cur->name_id)->value.string.len,
+					lit_id(cur->name_id)->value.string.c_ptr
 				);
 				print_ast(*cur);
 				break;
 			}
 			case N_FUNC_DEF: {
 				printf("<fn def> name: %.*s, return: %s, body:\n\t",
-						(int)lit_at(cur->name_id)->value.string.len,
-						lit_at(cur->name_id)->value.string.c_ptr,
+						(int)lit_id(cur->name_id)->value.string.len,
+						lit_id(cur->name_id)->value.string.c_ptr,
 						token_to_str(cur->type)
 						);
 				print_expr(cur->body);
@@ -404,11 +599,11 @@ void print_ast(struct Node node)
 			break;
 			case N_CONST: {
 					printf("<const> name: %.*s, type: %s, body:",
-						(int)lit_at(cur->name_id)->value.string.len,
-						lit_at(cur->name_id)->value.string.c_ptr,
+						(int)lit_id(cur->name_id)->value.string.len,
+						lit_id(cur->name_id)->value.string.c_ptr,
 						token_to_str(cur->type)
 					);
-					print_lit(cur->value);
+				print_lit(lit_id(cur->value));
 			}
 			break;
 			case N_IMPORT: {
@@ -421,8 +616,8 @@ void print_ast(struct Node node)
 						);
 				if (cur->has_name) 
 					printf(", alias: %.*s",
-						(int)lit_at(cur->name_id)->value.string.len,
-						lit_at(cur->name_id)->value.string.c_ptr);
+						(int)lit_id(cur->name_id)->value.string.len,
+						lit_id(cur->name_id)->value.string.c_ptr);
 				printf("\n");
 				break;
 			}
