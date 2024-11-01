@@ -2,7 +2,7 @@
 import std.io.{ println };
 
 void fizzbuzz(int i) {
-	switch i {
+	switch {
 		// cases are evaluated in order
 		case i % 3 == 0 and i % 5 == 0 => println("FizzBuzz"),
 		case i % 3 == 0 => println("Fizz"),

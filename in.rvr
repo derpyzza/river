@@ -3,23 +3,18 @@
 // Parse the following text and make it return a .c file
 // With the equivalent code
 
-int x = 10 
+int x = 10;
+
+// let val = "hello";
 
 struct thingy {
 	int x;
-	int x, y, z;
+	int w, y = "Hello there", z = 'z';
 	byte q = 10, t, d;
 }
 
-
-int main => 10
-
-const int ten = 11;
-
-int x = 23
-
-const int ten = 11
-
-const int ten = 11
+int main => 10;
 
 const int ten = 11;
+
+int x = 23;

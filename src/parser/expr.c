@@ -1,6 +1,7 @@
 #include "parser.h"
 #include "parser_utils.h"
 #include "expr.h"
+#include "../scanner.h"
 
 #include <stdio.h>
 
@@ -16,23 +17,23 @@ static struct Node *new_un_expr(enum UnOpType type, struct Node *rhs);
 static struct Node *new_bin_expr(enum BinOpType type, struct Node *rhs, struct Node *lhs);
 
 
-static enum UnOpType token_to_unop(token_type type);
-static enum BinOpType token_to_binop(token_type type);
+static enum UnOpType token_to_unop(TokenType type);
+static enum BinOpType token_to_binop(TokenType type);
 
-static struct Node *assignment(void) {
-	if(check_next(T_IDENTIFIER) && check_next_n(2, T_EQUAL_SIGN)) {
+// static struct Node *assignment(void) {
+// 	if(check_next(T_IDENTIFIER) && check_next_n(2, T_EQUAL_SIGN)) {
 		
-	}
-	match(T_EQUAL_SIGN);
-	match(T_INTEGER_LITERAL);
-}
+// 	}
+// 	match(T_EQUAL_SIGN);
+// 	match(T_INTEGER_LITERAL);
+// }
 
 struct Node *parse_expr(void) {
 
 	struct Node *expr = term();
 
 	while (match(T_PLUS) || match(T_MINUS)) {
-		int op = token_to_binop(current_tok().type);
+		int op = token_to_binop(current_tok()->type);
 		struct Node *rhs = term();
 		expr = new_bin_expr(op, expr, rhs);
 	}
@@ -43,7 +44,7 @@ static struct Node *term(void) {
 	struct Node *expr = factor();
 
 	while (match(T_ASTERISK) || match(T_FORWARD_SLASH)) {
-		int op = token_to_binop(current_tok().type);
+		int op = token_to_binop(current_tok()->type);
 		struct Node *rhs = factor();
 		expr = new_bin_expr(op, expr, rhs);
 	}
@@ -52,7 +53,7 @@ static struct Node *term(void) {
 
 static struct Node *factor(void) {
 	if (match(T_BANG) || match(T_MINUS)) {
-		int op = token_to_unop(current_tok().type);
+		int op = token_to_unop(current_tok()->type);
 		struct Node *right = factor();
 		struct Node *expr = new_un_expr(op, right);
 		return expr;
@@ -63,7 +64,7 @@ static struct Node *factor(void) {
 static struct Node *primary(void) {
 	if (match(T_INTEGER_LITERAL)){
 		struct Node *node = new_node(N_LIT);
-		node->value = lit_at(current())->literal._int;
+		node->value = cur_lit();
 		return node;
 	}
 
@@ -73,11 +74,11 @@ static struct Node *primary(void) {
 	// 	return node;
 	// }
 	//
-	// if (match(T_STRING_LITERAL)){
-	// 	struct Node *node = new_node(N_LIT);
-	// 	node->value = lit_at(current()).literal._int;
-	// 	return node;
-	// }
+	if (match(T_STRING_LITERAL)){
+		struct Node *node = new_node(N_LIT);
+		node->value = cur_lit();
+		return node;
+	}
 	//
 	// if (match(T_TRUE)){
 	// 	struct Node *node = new_node(N_LIT);
@@ -110,7 +111,7 @@ static struct Node *new_un_expr(enum UnOpType type, struct Node *rhs) {
 	return expr;
 }
 
-static enum UnOpType token_to_unop(token_type type) {
+static enum UnOpType token_to_unop(TokenType type) {
 	switch (type) {
 		case T_MINUS: return UN_MINUS; break;
 		case T_AMP: return UN_ADDR; break;
@@ -120,7 +121,7 @@ static enum UnOpType token_to_unop(token_type type) {
 	}
 }
 
-static enum BinOpType token_to_binop(token_type type) {
+static enum BinOpType token_to_binop(TokenType type) {
 	switch(type) {
 		case T_PLUS: return BIN_ADD; break;
 		case T_MINUS: return BIN_SUB; break;
@@ -177,7 +178,7 @@ void print_expr(struct Node *expr) {
 		}
 		case N_LIT:
 		{
-			printf(" lit: %li ", expr->value);
+			printf(" lit: %lli ", expr->value->value.integer);
 			break;
 		}
 		default:

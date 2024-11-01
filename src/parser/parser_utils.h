@@ -1,39 +1,39 @@
 #pragma once
 
 #include "../scanner.h"
-#include "../common.h"
 
-void init_parser(file_s source, token_array_s* tokens);
-
+void init_parser(struct File* source, struct TokenArray* tokens);
 
 int current(void);
-struct token_s current_tok(void);
+struct Token *current_tok(void);
+struct Literal *cur_lit();
+struct Literal *lit_at(long tok_id);
 
 int check_errors();
 
+struct Token peek(void);
+struct Token peek_n(int offset);
 
-struct token_s peek(void);
-struct token_s peek_n(int offset);
+struct Token prev(void);
+struct Token prev_n(int offset);
 
-struct token_s prev(void);
-struct token_s prev_n(int offset);
-
-struct literal_s *lit_at(long tok_id);
-struct literal_s *cur_lit();
-struct token_s token_at(long id);
+struct Token *token_at(long id);
 
 // prints an "Unexpected token error"
-void error_unexpected_cat( token_s got, tokcat expected, const char * file, const int line );
-void error_unexpected_tok( token_s got, token_type expected, const char * file, const int line );
+void error_unexpected_cat( struct Token *got, int expected, const char * file, const int line );
+void error_unexpected_tok( struct Token *got, int expected, const char * file, const int line );
+void error_unexpected( int got, int expected, int is_tok, const char * file, const int line );
 void consume(void);
 // expect: returns whether or not the next token is as expected
-int check_next(token_type tok);
-int check_next_cat(tokcat cat);
-int check_next_n(int offset, token_type expected);
+int check_next(int tok);
+int check_type_token(void);
+int check_next_cat(int cat);
+int check_next_n(int offset, int expected);
 // match: if next token is as expected, consumes the token and returns true
-int match(token_type type);
+int match(int type);
+int match_cat(int cat);
 int match_range(int start, int end);
-int match_type_token();
+int match_type_token(void);
 
 // prints an "Unexpected token error" if the next token isn't as expected
 // int match_or_err(token_type expected);

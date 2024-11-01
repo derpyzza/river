@@ -1,5 +1,7 @@
 #pragma once
 
+struct Node;
+
 enum BinOpType {
 	BIN_NONE = 0,
 	BIN_ADD,

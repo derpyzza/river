@@ -16,7 +16,7 @@ all: $(EXEC)
 
 $(BIN)/%.o: $(SRC)/%.c 
 	@mkdir -p $(dir $@)
-	$(CC) $^ -c $(CFLAGS) $(LDFLAGS) -o $@
+	$(CC) $^ -c $(CFLAGS) -o $@
 
 $(EXEC): $(OBJ_FILES)
 	$(CC) $^ -o $@ $(CFLAGS) $(LDFLAGS)

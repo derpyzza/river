@@ -3,34 +3,34 @@
 #include <string.h>
 #include <strings.h>
 
-#include "common.h"
-// #include "utils.h"
+#include "utils.h"
 #include "scanner.h"
 #include "parser/parser.h"
 // #include "codegen.h"
 
-file_s *read_file(char* path) {
-	file_s *out = malloc(sizeof(file_s));
+struct File *read_file(char* path) {
+	File *out = malloc(sizeof(File));
 	out->path = path;
 	out->is_valid = 0;
+
 	FILE *in = fopen(path, "rb");
 	if (in == NULL) {
 		printf("Error, could not read file %s\n", path);
 		return out;
 	}
 	fseek(in, 0, SEEK_END); 
-	out->data.size = ftell(in); 
+	out->data.len = ftell(in); 
 	rewind(in); 
 
-	out->data.string = malloc(out->data.size + 1);
-	if (out->data.string == NULL) {
+	out->data.c_ptr = malloc(out->data.len + 1);
+	if (out->data.c_ptr == NULL) {
 		printf("Error, could not allocate enough memory for file %s\n", path);
 		fclose(in);
 		return out;
 	}
 
-	size_t bufsread = fread(out->data.string, 1, out->data.size, in);
-	if ( bufsread < out->data.size ) {
+	size_t bufsread = fread(out->data.c_ptr, 1, out->data.len, in);
+	if ( bufsread < out->data.len ) {
 		printf("Error, could not read enough bytes from file %s\n", path);
 		fclose(in);
 		return out;
@@ -42,12 +42,12 @@ file_s *read_file(char* path) {
 	return out;
 }
 
-typedef struct path_s {
+typedef struct FilePath {
 	char* path;
 	char* ext;
-} path_s;
+} FilePath;
 
-path_s split_path(char* path) {
+struct FilePath split_path(char* path) {
 	char* _path = malloc(sizeof(path));
 	int len = sizeof(path);
 	int id = 0;
@@ -60,7 +60,7 @@ path_s split_path(char* path) {
 
 	char* _ext = malloc(len - id * sizeof(char) + 1);
 	strcpy(_ext, c);
-	return (path_s){ .path = _path, .ext = _ext };
+	return (FilePath){ .path = _path, .ext = _ext };
 }
 
 
@@ -92,9 +92,9 @@ main(int argc, char** argv) {
 
 			// printf("bufsize: %li\n", strlen(buf));
 			// This is ugly, should change this.
-			string_s source = (string_s) {.size = strlen(buf), .string = buf};
-			token_array_s* tkn = tokenize(source);
-			print_token_array(source, *tkn);
+			String source = (String) {.len = strlen(buf), .c_ptr = buf};
+			TokenArray* tkn = tokenize(&source);
+			print_token_array(&source, *tkn);
 
 			// node_s *node = parse_tokens(tkn, source);
 			// print_ast(*node);
@@ -106,16 +106,20 @@ main(int argc, char** argv) {
 
 	// Compile all the files given in turn
 	for (int i = 1; i < argc; i++) {
+
 		char* raw_path = argv[i];
-		path_s path = split_path(raw_path);
+		FilePath path = split_path(raw_path);
+
 		if (strcmp(path.ext, ".rvr")) {
-			printf("Error: invalid filetype, expected \".rvr\", got \"%s\"\n", path.ext);
+			printf("Error: invalid filetype, expected \".rvr\", got \"%s\" instead.\n", path.ext);
 			continue;
 		}
+
 		printf("Compiling file %s...\n", raw_path);
-		file_s* source = read_file(raw_path);
+
+		File* source = read_file(raw_path);
 		if (!source->is_valid) {
-			printf("ERROR: source file %s not valid\n", raw_path);
+			printf("ERROR, invalid source file: %s\n", raw_path);
 			exit(1);
 		}
 
@@ -126,10 +130,10 @@ main(int argc, char** argv) {
 		// 	continue;
 		// }
 
-		token_array_s* tkn = tokenize(source->data);
+		TokenArray* tkn = tokenize(&source->data);
 		// print_token_array(source->data, *tkn);
 
-		struct Node *node = parse_tokens(tkn, *source);
+		struct Node *node = parse_tokens(tkn, source);
 		if(node != NULL)
 			print_ast(*node);
 		else printf("file had errors, compilation terminated\n");

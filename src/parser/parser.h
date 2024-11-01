@@ -1,49 +1,33 @@
 #pragma once
 
 #include "../scanner.h"
-#include "expr.h"
 
 typedef struct ParseError {
 	int is_tok;
-	union {
-		token_type tok;
-		tokcat cat;
-	};
-	// char *msg;
-	token_s got;
-	const char * debug_file;
+	int type;
 	int debug_line;
+	int got;
+	// char *msg;
+	const char * debug_file;
 } ParseError;
 
-typedef struct Var {
-	substr_s name;
-	int is_assign;
-	literal_s val;
-} Var;
-
-typedef struct AssignedVar {
-	token_type name;
-	// you can declare 16 variables in a comma separated list.
-	// after that you'll have to switch to a newline;
-	// i.e 
-	// int q, w, e, r, t, y, u, i, o, p, a, s, d, f, g, h; // <- stop at 'h'
-	// int j, k, l; // ... and so on.
-	//
-	// this is because parsing is a pain and only an insane person
-	// would declare more than 16 variables in one line.
-	struct Var val[16];
-} AssignedVar;
+// typedef struct Var {
+// 	int is_assign;
+// 	struct Substr *name;
+// 	struct Literal *val;
+// } Var;
 
 // this can be used for import paths
 // but also for namespacing!
 // i.e import x.y.z.w;
 // or X::Y::Z::W.do_something();
+
 typedef struct Path {
-	substr_s full;
-	substr_s root;
 	int has_subpaths;
 	int cur_subpath;
-	substr_s subpath[32];
+	struct String full;
+	struct String root;
+	struct String subpath[32];
 } Path;
 
 enum NodeTag {
@@ -73,19 +57,19 @@ enum NodeTag {
 // ineffeciently laid out struct but meh.
 // can change this later if it bottlenecks somehow
 struct Node {
+	int type;
+	int has_name;
+	int name_id; // index of name substring in literals array
+	int is_stmt;
+
 	enum NodeTag tag;
 	struct Vec* children;
 
 	// for expressions
 	struct Node *lhs, *rhs;
 	struct Path path;
-
-	token_type type;
-	int has_name;
-	int is_stmt;
-	substr_s name;
 	
-	long int value;
+	struct Literal *value;
 
 	// for functions and control flow expressions.
 	struct Node
@@ -96,8 +80,19 @@ struct Node {
 		*inc;
 };
 
-struct Node *parse_tokens( token_array_s *tokens, file_s src ); 
+
+struct Parser {
+	int current;
+	struct File *source; // current file being parsed
+	struct TokenArray *tokens;
+	int had_error;
+	struct Vec *errors;
+};
+
+// spooky global parser struct
+static struct Parser parser;
+
+struct Node *parse_tokens( struct TokenArray *tokens, struct File *src ); 
 struct Node *new_node(enum NodeTag tag);
 void print_ast(struct Node node);
-struct ParseError parse_error(token_type expected);
-// char* node_to_string(char* string, node_s node);
+struct ParseError parse_error(int expected);

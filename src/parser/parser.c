@@ -23,19 +23,26 @@ static struct Node *var_stmt(void);
 static struct Node *expr_stmt(void);
 
 
-static void panic_cat(token_type expected, tokcat until, const char * file, const int line) {
-	error_unexpected_tok(peek(), expected, file, line);
-	while(!check_next(T_EOF) && !check_next_cat(until)) consume();
+// static void panic_cat(TokenType expected, CatType until, const char * file, const int line) {
+// 	error_unexpected_tok(current()+1, expected, file, line);
+// 	while(!check_next(T_EOF) && !check_next_cat(until)) consume();
+// }
+
+enum PanicType {
+	P_CAT = 0,
+	P_TOK = 1
+};
+
+static void panic(int expected, int is_expected_tok, int until, int is_until_tok, const char * file, const int line) {
+	error_unexpected(parser.current + 1, expected, is_expected_tok, file, line);
+	if (is_expected_tok)
+		while(!check_next(T_EOF) && !check_next(until)) consume();
+	else
+		while(!check_next(T_EOF) && !check_next_cat(until)) consume();
 }
 
-static void panic(token_type expected, token_type until, const char * file, const int line) 
-{
-	error_unexpected_tok(peek(), expected, file, line);
-	while(!check_next(T_EOF) && !check_next(until)) consume();
-}
-
-#define PANIC(t, u) panic(t, u, __FILE__, __LINE__)
-#define PANIC_CAT(t, u) panic_cat(t, u, __FILE__, __LINE__)
+#define PANIC(e, et, u, ut) panic(e, et, u, ut, __FILE__, __LINE__)
+// #define PANIC_CAT(t, u) panic_cat(t, u, __FILE__, __LINE__)
 
 struct Node *stmt(void) {
 	struct Node *stmt = parse_expr();
@@ -44,9 +51,19 @@ struct Node *stmt(void) {
 }
 
 
-struct Node *parse_tokens( token_array_s *tokens, file_s src ) 
+struct Node *parse_tokens( TokenArray *tokens, File *src ) 
 { 
 	init_parser(src, tokens);
+
+	// malloc a big chunk of memory at the start and just use that
+	// setting the number of nodes to be equal to the number of tokens in a file is 
+	// super duper wasteful, since the number of nodes will always be a lot less than
+	// the number of tokens, as every node is made up of one or more tokens.
+	// still, it's an alright number to target, and it makes sure that we don't have to 
+	// reallocate at all. This might cause problems with big files on machines with lesser 
+	// amounts of RAM to spare, but ehhhhh.
+	// we'll burn that bridge when we get to it :)
+	// struct Node* nodeList = malloc(sizeof(struct Node) * parser.tokens->current_token); 
 
 	struct Node *node = new_node(N_PROG);
 	node->children = vec_of(struct Node*, 16);
@@ -87,7 +104,11 @@ static struct Node *top_level(void) {
 	// similarly, the `let` keyword will never ever be followed up with anything other than a variable declaration.
 
 	// check for functions or variables. These require a lookahead to differenciate between them.
-	if ( check_next(T_INT) && check_next_n(2, T_IDENTIFIER) ) {
+	if ( match(T_LET) ) {
+		printf("matched LET\n");
+		return global_var();	
+	} 
+	if ( check_type_token() ) {
 		return (check_next_n(3, T_PAREN_OPEN) || check_next_n(3, T_FAT_ARROW)) 
 		? fn_def() : global_var(); 
 	}
@@ -109,11 +130,11 @@ static struct Node *import_def(void) {
 
 	if (!match(T_IDENTIFIER)) 
 	{
-		PANIC(T_IDENTIFIER, T_SEMI);
+		PANIC(T_IDENTIFIER, P_TOK, T_SEMI, P_TOK);
 		return NULL;
 	}
-	imp->path.root = current_tok().source;
-	imp->path.full = current_tok().source;
+	imp->path.root = current_tok()->source;
+	imp->path.full = current_tok()->source;
 
 	// check for subpaths
 	if(check_next(T_DOT)) {
@@ -121,26 +142,26 @@ static struct Node *import_def(void) {
 
 		while(match(T_DOT)) {
 			if(!match(T_IDENTIFIER)) {
-				PANIC(T_IDENTIFIER, T_SEMI);
+				PANIC(T_IDENTIFIER, P_TOK, T_SEMI, P_TOK);
 				return NULL;
 			}
-			imp->path.subpath[imp->path.cur_subpath] = current_tok().source; 
-			imp->path.full.len += current_tok().source.len + ( current_tok().source.c_ptr - (imp->path.full.c_ptr + imp->path.full.len) );
+			imp->path.subpath[imp->path.cur_subpath] = current_tok()->source; 
+			imp->path.full.len += current_tok()->source.len + ( current_tok()->source.c_ptr - (imp->path.full.c_ptr + imp->path.full.len) );
 			imp->path.cur_subpath++;
 		}
 	}
 
 	if(match(T_AS)) {
 		if(!match(T_IDENTIFIER)) {
-			PANIC(T_IDENTIFIER, T_SEMI);
+			PANIC(T_IDENTIFIER, P_TOK, T_SEMI, P_TOK);
 			return NULL;
 		}
 		imp->has_name = 1;
-		imp->name = cur_lit()->literal._str;
+		imp->name_id = current_tok()->literal_id;
 	}
 
 	if (!match(T_SEMI)) {
-		PANIC_CAT(T_SEMI, TC_KEYWORD);
+		PANIC(T_SEMI, P_TOK, TC_KEYWORD, P_CAT);
 		return NULL;
 	}
 	return imp;
@@ -151,12 +172,12 @@ static struct Node *import_def(void) {
 static struct Node* const_def(void) {
 	struct Node* node =new_node(N_CONST);
 	match_type_token();
-	node->type = current_tok().type;
+	node->type = current_tok()->type;
 	match(T_IDENTIFIER);
-	node->name = cur_lit()->literal._str;
+	node->name_id = current_tok()->literal_id;
 	match(T_EQUAL_SIGN);
-	match(T_INTEGER_LITERAL);
-	node->value = cur_lit()->literal._int;
+	match_cat(TC_LITERAL);
+	node->value = cur_lit();
 	match(T_SEMI);
 	return node;
 }
@@ -165,16 +186,26 @@ static struct Node *var_assign(void) {
 	struct Node* node = new_node(N_VAR);
 
 	// pull out type
-	consume();
-	node->type = current_tok().type;
+	if (prev().type != T_LET) {
+		consume();
+		node->type = current_tok()->type;
+	}
+
+	printf("current token: %s, prev token: %s, next token: %s\n", 
+	       token_to_str(current_tok()->type),
+	       token_to_str(prev().type),
+	       token_to_str(peek().type)
+	     );
 
 	// pull out identifier
 	consume();
-	node->name = cur_lit()->literal._str;	
+	node->name_id = current_tok()->literal_id;	
+	printf("val name: %.*s\n", (int)lit_at(node->name_id)->value.string.len, lit_at(node->name_id)->value.string.c_ptr);
 
-	if (!match(T_EQUAL_SIGN)) PANIC_CAT(T_EQUAL_SIGN, TC_KEYWORD);
-	if( !match(T_INTEGER_LITERAL)) PANIC_CAT(T_INTEGER_LITERAL, TC_KEYWORD);
-	node->value = cur_lit()->literal._int;
+	if (!match(T_EQUAL_SIGN)) PANIC(T_EQUAL_SIGN, P_TOK, TC_KEYWORD, P_CAT);
+	if( !match_cat(TC_LITERAL)) PANIC(TC_LITERAL, P_CAT, TC_KEYWORD, P_CAT);
+	node->type = current_tok()->type;
+	node->value = cur_lit();
 	return node;
 }
 
@@ -189,7 +220,7 @@ static struct Node *global_var(void) {
 		has_commas = 1;
 		vec_push(node->children, var_assign());
 	}
-	if(!match(T_SEMI)) PANIC_CAT(T_SEMI, TC_KEYWORD);
+	if(!match(T_SEMI)) PANIC(T_SEMI, P_TOK, TC_KEYWORD, P_CAT);
 
 	if (has_commas)
 		return node;
@@ -203,20 +234,20 @@ static struct Node *global_var(void) {
 // If we're parsing the item 'r' for example, we'd have to do about 12 tokens of look-back
 // to know what the type is. instead, the type is parsed and stored when it's encountered, and
 // then passed in to any variable that is being parsed.
-static struct Node* struct_item(token_type type) {
+static struct Node* struct_item(TokenType type) {
 	struct Node* item = new_node(N_STRUCT_FIELD);
 	item->type = type;
 	match(T_IDENTIFIER);
-	item->name = cur_lit()->literal._str;
+	item->name_id = current_tok()->literal_id;
 	if(match(T_EQUAL_SIGN)) {
-		match(T_INTEGER_LITERAL);
-		item->value = cur_lit()->literal._int;
+		match_cat(TC_LITERAL);
+		item->value = cur_lit();
 	}
 	return item;
 }
 
 static struct Node* struct_field() {
-	token_type field_type = match_type_token();
+	TokenType field_type = match_type_token();
 	struct Node* item = struct_item(field_type);
 
 	if(peek().type == T_COMMA) {
@@ -236,7 +267,7 @@ static struct Node* struct_field() {
 static struct Node *struct_def(void) {
 	struct Node* node = new_node(N_STRUCT_DEF);
 	match(T_IDENTIFIER);
-	node->name = cur_lit()->literal._str;
+	node->name_id = current_tok()->literal_id;
 	match(T_BRACE_OPEN);
 	while(!match(T_BRACE_CLOSE)) {
 		struct Node* item = struct_field();		
@@ -261,11 +292,11 @@ static struct Node *fn_def(void) {
  
 	// match type
 	consume();
-	fn->type = current_tok().type;
+	fn->type = current_tok()->type;
 
 	// match identifier
 	consume();
-	fn->name = cur_lit()->literal._str;
+	fn->name_id = current_tok()->literal_id;
 
 	// parse params
 	// if(match(T_PAREN_OPEN)) {
@@ -280,11 +311,11 @@ static struct Node *fn_def(void) {
 	}
 	else {
 		// TODO: support proper "OR" type errors;
-		PANIC(T_FAT_ARROW, T_SEMI);
+		PANIC(T_FAT_ARROW, P_TOK, T_SEMI, P_TOK);
 	}
 
 	if(!match(T_SEMI)) {
-		PANIC_CAT(T_SEMI, TC_KEYWORD);
+		PANIC(T_SEMI, P_TOK, TC_KEYWORD, P_CAT);
 	}
 	return fn;
 }
@@ -313,6 +344,20 @@ struct Node *new_node(enum NodeTag type) {
 // 	return (ParseError) { .expected = expected, .got = peek() };
 // }
 
+void print_lit(Literal *lit) {
+	if (lit)
+		switch (lit->type) {
+			case LIT_NONE: printf("<none>\n"); break;
+			case LIT_FALSE: printf("<false>\n"); break;
+			case LIT_TRUE: printf("<true>\n"); break;
+			case LIT_CHAR: printf("'%c'\n", lit->value.character); break;
+			case LIT_INT: printf("%lli\n", lit->value.integer); break;
+			case LIT_FLOAT: printf("%lf\n", lit->value.floating);
+			case LIT_STRING: printf("\"%.*s\"\n", (int)lit->value.string.len, lit->value.string.c_ptr);
+		}
+	else printf("<Uninitialized>\n");
+}
+
 void print_ast(struct Node node)
 {
 	for ( int i = 0; i < node.children->current; i++ ) {
@@ -321,59 +366,63 @@ void print_ast(struct Node node)
 			default: printf("Unknown or not implemented yet!\n"); break;
 			case N_NONE: printf("None!\n"); break;
 			case N_VAR: {
-					printf("<var> name: %.*s, type: int, value: %li\n",
-						cur->name.len,
-						cur->name.c_ptr,
-						cur->value
+					printf("<var> name: %.*s, type: int, value: ",
+						(int)lit_at(cur->name_id)->value.string.len,
+						lit_at(cur->name_id)->value.string.c_ptr
 					);
+					print_lit(cur->value);
 				}
 			break;
 			case N_STRUCT_FIELD: {
-				printf("\t<field> name: %.*s, type: %s, value: %li\n",
-					cur->name.len,
-					cur->name.c_ptr,
-					token_to_str(cur->type),
-					cur->value
+				printf("\t<field> name: %.*s, type: %s, value: ",
+
+					(int)lit_at(cur->name_id)->value.string.len,
+					lit_at(cur->name_id)->value.string.c_ptr,
+					token_to_str(cur->type)
 				);
+				print_lit(cur->value);
 				break;
 			} 				
 			case N_STRUCT_DEF: {
 				printf("<struct def> name: %.*s, body:\n", 
-					cur->name.len,
-					cur->name.c_ptr
+
+					(int)lit_at(cur->name_id)->value.string.len,
+					lit_at(cur->name_id)->value.string.c_ptr
 				);
 				print_ast(*cur);
 				break;
 			}
 			case N_FUNC_DEF: {
 				printf("<fn def> name: %.*s, return: %s, body:\n\t",
-						cur->name.len,
-						cur->name.c_ptr,
+						(int)lit_at(cur->name_id)->value.string.len,
+						lit_at(cur->name_id)->value.string.c_ptr,
 						token_to_str(cur->type)
 						);
 				print_expr(cur->body);
+				printf("\n");
 			}
 			break;
 			case N_CONST: {
-					printf("<const> name: %.*s, type: %s, body: %li\n",
-						cur->name.len, cur->name.c_ptr,
-						token_to_str(cur->type),
-						cur->value      
+					printf("<const> name: %.*s, type: %s, body:",
+						(int)lit_at(cur->name_id)->value.string.len,
+						lit_at(cur->name_id)->value.string.c_ptr,
+						token_to_str(cur->type)
 					);
+					print_lit(cur->value);
 			}
 			break;
 			case N_IMPORT: {
-				substr_s root = cur->path.root;
+				String root = cur->path.root;
 				printf("<imp def> path: %.*s, root: %.*s", 
-						cur->path.full.len,
+						(int)cur->path.full.len,
 						cur->path.full.c_ptr,
-						root.len, root.c_ptr
+						(int)root.len, 
+						root.c_ptr
 						);
 				if (cur->has_name) 
 					printf(", alias: %.*s",
-						cur->name.len,
-						cur->name.c_ptr
-							);
+						(int)lit_at(cur->name_id)->value.string.len,
+						lit_at(cur->name_id)->value.string.c_ptr);
 				printf("\n");
 				break;
 			}

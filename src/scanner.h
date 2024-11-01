@@ -1,8 +1,10 @@
 #pragma once
 
-#include "common.h"
 
-typedef enum token_type {
+// Forward declarations because C is stupid about these
+#include "utils.h"
+
+typedef enum TokenType {
 	T_NONE = 0,
 	// Single Character tokens
 	T_EQUAL_SIGN,
@@ -78,7 +80,7 @@ typedef enum token_type {
 	T_EOF,
 
 	MAX_TKNS,
-} token_type;
+} TokenType;
 
 static const int NUM_KEY_WORDS = T_EOF - T_TRUE;
 
@@ -158,7 +160,8 @@ static const char* token_strings[MAX_TKNS] = {
 	"EOF",
 };
 
-typedef enum tokcat {
+// category type
+typedef enum CatType {
 	TC_NONE,
 	TC_KEYWORD,
 	TC_LITERAL,
@@ -166,14 +169,9 @@ typedef enum tokcat {
 	TC_SYMBOL,
 	TC_OPERATOR,
 	TC_MAX
-}tokcat;
+} CatType;
 
-typedef struct substr_s{
-	int len;
-	char* c_ptr;
-}substr_s;
-
-typedef enum literal_type {
+typedef enum LiteralType {
 	LIT_NONE = 0,
 	LIT_INT,
 	LIT_FLOAT,
@@ -181,69 +179,69 @@ typedef enum literal_type {
 	LIT_STRING,
 	LIT_TRUE,
 	LIT_FALSE,
-} literal_type;
+} LiteralType;
 
-typedef union literal_u {
-	long long int _int;
-	double _float;
-	char _char;
-	unsigned char _bool;
-	substr_s _str;
-} literal_u;
+typedef union LitUnion {
+	long long int integer;
+	double floating;
+	char character;
+	unsigned char boolean;
+	struct String string;
+} LitUnion;
 
-typedef struct literal_s {
-	literal_type type;
-	literal_u literal;
-} literal_s;
+typedef struct Literal {
+	enum LiteralType type;
+	union LitUnion value;
+} Literal;
 
-typedef struct token_s {
-	token_type type;
-	tokcat cat;
-	substr_s source; // the source string for this token;
-	int chr_index; 	// the starting character index
-	int has_literal;
-	int literal_id;
+typedef struct Token {
 	int line;
-} token_s;
+	int chr_index; 	// the starting character index
+	int literal_id;
+	int has_literal;
+	enum CatType cat;
+	enum TokenType type;
+	struct String source; // the source string for this token;
+} Token;
 
 // Dynamic array of tokens;
-typedef struct token_array_s {
+typedef struct TokenArray {
 	long max_tokens;
 	long current_token;
 	long max_literals;
 	long current_literal;
-	token_s* token_list;
-	literal_s* literal_list;
-} token_array_s;
+	struct Token* token_list;
+	struct Literal* literal_list;
+} TokenArray;
 
-void print_token_array(string_s src, token_array_s tkn);
-token_array_s* tokenize (string_s src);
-tokcat tok_to_cat(token_type token);
+void print_token_array(struct String *src, TokenArray tkn);
+struct TokenArray* tokenize( struct String *src );
+enum CatType tok_to_cat(enum TokenType token);
 
-static inline char* token_to_str(token_type type) {
+static inline char* token_to_str(enum TokenType type) {
 	return (char*) token_strings[type];
 }
 
 // useful for termination
-static inline token_s token_eof(void) {
-	return (token_s) {
+static inline Token token_eof(void) {
+	return (Token) {
+		.chr_index = 0,
+		.literal_id = 0,
+		.has_literal = 0,
 		.type = T_EOF,
-		.chr_index = 0,
-		.has_literal = 0,
-		.literal_id = 0
 	};
 } 
 
-static inline token_s token_none(void) {
-	return (token_s) {
+static inline Token token_none(void) {
+	return (Token) {
+		.chr_index = 0,
+		.literal_id = 0,
+		.has_literal = 0,
 		.type = T_NONE,
-		.chr_index = 0,
-		.has_literal = 0,
-		.literal_id = 0
 	};
 } 
 
-static inline const char* tokcat_to_str(tokcat cat) {
+static inline const char* tokcat_to_str(enum CatType cat) {
 	switch(cat) {
 		case TC_KEYWORD: return "Keyword"; break;
 		case TC_ID: return "Identifier"; break;
@@ -254,7 +252,7 @@ static inline const char* tokcat_to_str(tokcat cat) {
 	}
 }
 
-static inline char token_to_char(token_type token) {
+static inline char token_to_char(enum TokenType token) {
 	if (token <= T_HAT && token >= T_EQUAL_SIGN) {
 		char tokens[(T_HAT - T_EQUAL_SIGN) + 1] = {
 			'=', '(', ')', '{', '}', '[', ']', ',', '.', '+', '-', '*', '/', '%', ';', '!',

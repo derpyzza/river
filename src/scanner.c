@@ -1,51 +1,52 @@
 #include "scanner.h"
 #include "utils.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
-struct scanner_s {
+struct Scanner {
 	char *start;
 	int line;
 };
 
-static struct scanner_s scanner;
+static struct Scanner scanner;
 
-#define MAKE_LIT_STR(x) (literal_s){ LIT_STRING , (literal_u) { ._str = x }}
-#define MAKE_LIT_INT(x) (literal_s){ LIT_INT , (literal_u) { ._int = x }}
-#define MAKE_LIT_FLOAT(x) (literal_s){ LIT_FLOAT , (literal_u) { ._float = x }}
+#define MAKE_LIT_STR(x) (Literal){ LIT_STRING , (LitUnion) { .string = x }}
+#define MAKE_LIT_INT(x) (Literal){ LIT_INT , (LitUnion) { .integer = x }}
+#define MAKE_LIT_FLOAT(x) (Literal){ LIT_FLOAT , (LitUnion) { .floating = x }}
 
-static inline int char_is_digit(char c)
+static inline int _is_digit(char c)
 {
 	return (c >= '0' && c <= '9');
 }
 
-static inline int char_is_alpha(char c)
+static inline int _is_alpha(char c)
 {
 	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || ( c == '_' );
 }
 
-static inline int char_is_alphanum( char c )
+static inline int _is_alphanum( char c )
 {
-	return (char_is_alpha(c) || char_is_digit(c));
+	return (_is_alpha(c) || _is_digit(c));
 }
 
-static inline int char_is_whitespace(char c)
+static inline int _is_whitespace(char c)
 {
 	return (c == ' ' || c == '\n' || c == '\t' || c == '\r');
 }
 
 // returns the next character in a string without consuming the current one
-static inline char peek(char* s)
+static inline char _peek(char* s)
 {
 	return (*++s);
 }
 
-static inline int line() {
+static inline int _line() {
 	return scanner.line;
 }
 
-tokcat tok_to_cat(token_type token) {
+enum CatType tok_to_cat(enum TokenType token) {
 	if ( in_range_inc(token, T_EQUAL_SIGN, T_HAT) ) 
 	{
 		return TC_SYMBOL;
@@ -63,28 +64,28 @@ tokcat tok_to_cat(token_type token) {
 	return TC_NONE;
 }
 
-static token_array_s* init_token_array(void)
+static struct TokenArray* init_token_array(void)
 {
-	token_array_s* tkn = malloc(sizeof(token_array_s));
+	TokenArray* tkn = malloc(sizeof(*tkn));
 	tkn->max_tokens = 512;
 	tkn->current_token = 0;
-	tkn->token_list = malloc(sizeof(token_s) * tkn->max_tokens);
+	tkn->token_list = malloc(sizeof(*tkn->token_list) * tkn->max_tokens);
 	// Empty out the array
-	tkn->token_list = memset(tkn->token_list, 0, sizeof(token_s) * tkn->max_tokens);
+	tkn->token_list = memset(tkn->token_list, 0, sizeof(*tkn->token_list) * tkn->max_tokens);
 
 	tkn->max_literals = 512;
 	tkn->current_literal = 0;
-	tkn->literal_list = malloc(sizeof(literal_s) * tkn->max_literals);
-	tkn->literal_list = memset(tkn->literal_list, 0, sizeof(literal_s) * tkn->max_literals);
+	tkn->literal_list = malloc(sizeof(*tkn->literal_list) * tkn->max_literals);
+	tkn->literal_list = memset(tkn->literal_list, 0, sizeof(*tkn->literal_list) * tkn->max_literals);
 
 	return tkn;
 }
 
-static void push_token_lit (
-		token_array_s* tkn,
-		token_type token,
-		substr_s source,
-		literal_s lit,
+static void _push_token_lit (
+		struct TokenArray* tkn,
+		enum TokenType token,
+		struct String source,
+		struct Literal lit,
 		int chr_index
 	) 
 {
@@ -102,7 +103,7 @@ static void push_token_lit (
 	tkn->token_list[tkn->current_token].cat = tok_to_cat(token);
 	tkn->token_list[tkn->current_token].chr_index = chr_index;
 	tkn->token_list[tkn->current_token].source = source;
-	tkn->token_list[tkn->current_token].line = line();
+	tkn->token_list[tkn->current_token].line = _line();
 	if (lit.type != LIT_NONE) {
 		tkn->literal_list[tkn->current_literal] = lit;
 		tkn->token_list[tkn->current_token].literal_id = tkn->current_literal;
@@ -115,48 +116,53 @@ static void push_token_lit (
 		tkn->current_token++;
 }
 
-static void push_token(token_array_s* tkn, token_type token, substr_s source, int chr_index ) 
+static void _push_token( 
+  	struct TokenArray* tkn,
+    enum TokenType token,
+    struct String source,
+    int chr_index 
+  )
 {
-	push_token_lit(tkn, token, source, (literal_s){.type = LIT_NONE}, chr_index);
+	_push_token_lit(tkn, token, source, (Literal){.type = LIT_NONE}, chr_index);
 }
 
 // convert input string into list of tokens
-token_array_s* tokenize ( string_s src )
+struct TokenArray* tokenize( struct String *src )
 {
 	// TODO: refactor this mess into something that's less of a mess
-	token_array_s* tkn = init_token_array();
+	TokenArray* tkn = init_token_array();
 
 	// pointers to the start of the string
 	// and the current character
-	char *start = (char*) src.string;
-	size_t len = src.size;
+	char *start = (char*) src->c_ptr;
+	size_t len = src->len;
 	scanner.line = 1;
 	char* line_start = start;
 
 	// printf("Scanning %s for tokens ...\n", src.path);
-	for (char *c = (char*) src.string; c - start < len; c++) {
-		if (char_is_digit(*c)) {
+	for (char *c = (char*) src->c_ptr; c - start < len; c++) {
+		if (_is_digit(*c)) {
 
 			int _start = c-start;
 			char* str_ptr = c;
 			// skip over numbers
 			int num = (*c - '0');
 			// literal_type lit_type = LIT_INT;
-			while(char_is_digit(peek(c))) 
+			while(_is_digit(_peek(c))) 
 			{
 				c++;
 				num = (num * 10) + (*c - '0');
 			}
-			if (peek(c) == '.') {
+			if (_peek(c) == '.') {
 				c++;
 				c++;
-				if (!char_is_digit(*c) && !(*c == 'f') && !(*c == 'd')) {
-					printf("ERROR: extra period after number %i at line %i\n", num, line());
+				if (!_is_digit(*c) && !(*c == 'f') && !(*c == 'd')) {
+					printf("ERROR: extra period after number %i at line %i\n", num, _line());
 				}
 				else {
 					double pnum = 0;
 					int level = 1;
-					while(char_is_digit(*c)) 
+					while(_is_digit(*c)) 
 					{
 						double temp = 0;
 						temp = (*c - '0');
@@ -168,10 +174,9 @@ token_array_s* tokenize ( string_s src )
 					pnum += num;
 					int len = c-start-_start;
 
-					// printf("PNUM: %f\n", pnum);
-					push_token_lit(tkn,
+					_push_token_lit(tkn,
 							T_FLOATING_LITERAL, 
-							(substr_s){.len = len, .c_ptr = str_ptr},
+							(String){.len = len, .c_ptr = str_ptr},
 							MAKE_LIT_FLOAT(pnum),
 							c - line_start
 							);
@@ -179,23 +184,23 @@ token_array_s* tokenize ( string_s src )
 				continue;
 			}
 			int len = c-start-_start;
-			push_token_lit(tkn,
+			_push_token_lit(tkn,
 					T_INTEGER_LITERAL, 
-					(substr_s){.len = len + 1, .c_ptr = str_ptr},
-					(literal_s){ LIT_INT , (literal_u) { ._int = num }},
+					(String){.len = len + 1, .c_ptr = str_ptr},
+					(Literal){ LIT_INT , (LitUnion) { .integer = num }},
 					c - line_start
 					);
-		} else if (char_is_alpha(*c)) {
+		} else if (_is_alpha(*c)) {
 			int str_start = c-start;
 			char* str_ptr = c;
 			// the first letter of an identifier MUST be an alphabetical character, but every subsequent character can be alphanumeric.
 			// so _1234 is a valid identifier but 12t is not for example.
-			while(char_is_alphanum(peek(c))) 
+			while(_is_alphanum(_peek(c))) 
 			{
 				c++;
 			}
 			int str_len = c-start-str_start + 1;
-			substr_s substr = (substr_s){.c_ptr = str_ptr, .len = str_len};
+			String substr = (String){.c_ptr = str_ptr, .len = str_len};
 
 			// This flag is here because i couldn't figure out the
 			// proper control flow needed to make sure that keyword
@@ -207,9 +212,9 @@ token_array_s* tokenize ( string_s src )
 				if (
 						substr.len == strlen(token_strings[id]) &&
 						!memcmp(substr.c_ptr, token_strings[id], substr.len)) {
-					token_type token = id;
+					TokenType token = id;
 
-					push_token(
+					_push_token(
 					tkn, 
 					token,
 					substr,
@@ -219,7 +224,7 @@ token_array_s* tokenize ( string_s src )
 				}
 			}
 			if (!flag)
-			push_token_lit(
+			_push_token_lit(
 					tkn, 
 					T_IDENTIFIER,
 					substr,
@@ -227,7 +232,7 @@ token_array_s* tokenize ( string_s src )
 					c - line_start
 					);
 		}
-		else if (char_is_whitespace(*c)){
+		else if (_is_whitespace(*c)){
 			if (*c == '\n') {
 				scanner.line++;
 				line_start = c;
@@ -236,178 +241,178 @@ token_array_s* tokenize ( string_s src )
 		else {
 			switch (*c) {
 				case '(':
-					push_token(tkn, T_PAREN_OPEN, (substr_s){.len = 1, .c_ptr = c}, c - line_start);
+					_push_token(tkn, T_PAREN_OPEN, (String){.len = 1, .c_ptr = c}, c - line_start);
 				break;
 				case ')':
-					push_token(tkn, T_PAREN_CLOSE, (substr_s){.len = 1, .c_ptr = c}, c - line_start);
+					_push_token(tkn, T_PAREN_CLOSE, (String){.len = 1, .c_ptr = c}, c - line_start);
 				break;
 				case '{':
-					push_token(tkn, T_BRACE_OPEN, (substr_s){.len = 1, .c_ptr = c},c - line_start);
+				_push_token(tkn, T_BRACE_OPEN, (String){.len = 1, .c_ptr = c},c - line_start);
 				break;
 				case '}':
-					push_token(tkn, T_BRACE_CLOSE,(substr_s){.len = 1, .c_ptr = c}, c - line_start);
+				_push_token(tkn, T_BRACE_CLOSE,(String){.len = 1, .c_ptr = c}, c - line_start);
 				break;
 				case '[':
-					push_token(tkn, T_BRACKET_OPEN, (substr_s){.len = 1, .c_ptr = c},c - line_start);
+				_push_token(tkn, T_BRACKET_OPEN, (String){.len = 1, .c_ptr = c},c - line_start);
 				break;
 				case ']':
-					push_token(tkn, T_BRACKET_CLOSE,(substr_s){.len = 1, .c_ptr = c}, c - line_start);
+				_push_token(tkn, T_BRACKET_CLOSE,(String){.len = 1, .c_ptr = c}, c - line_start);
 				break;
 				case ';':
-					push_token(tkn, T_SEMI,(substr_s){.len = 1, .c_ptr = c}, c - line_start);
+				_push_token(tkn, T_SEMI,(String){.len = 1, .c_ptr = c}, c - line_start);
 				break;
 				case ',':
-					push_token(tkn, T_COMMA,(substr_s){.len = 1, .c_ptr = c}, c - line_start);
+				_push_token(tkn, T_COMMA,(String){.len = 1, .c_ptr = c}, c - line_start);
 				break;
 				case '?':
-					push_token(tkn, T_QUESTION,(substr_s){.len = 1, .c_ptr = c}, c - line_start);
+				_push_token(tkn, T_QUESTION,(String){.len = 1, .c_ptr = c}, c - line_start);
 				break;
 				case ':':
-					push_token(tkn, T_COLON,(substr_s){.len = 1, .c_ptr = c}, c - line_start);
+				_push_token(tkn, T_COLON,(String){.len = 1, .c_ptr = c}, c - line_start);
 				break;
 				case '~':
-					push_token(tkn, T_TILDE,(substr_s){.len = 1, .c_ptr = c}, c - line_start);
+				_push_token(tkn, T_TILDE,(String){.len = 1, .c_ptr = c}, c - line_start);
 				break;
 				case '^':
-					push_token(tkn, T_HAT,(substr_s){.len = 1, .c_ptr = c}, c - line_start);
+				_push_token(tkn, T_HAT,(String){.len = 1, .c_ptr = c}, c - line_start);
 				break;
 				case '&':
-					if (peek(c) == '=')
+					if (_peek(c) == '=')
 					{
-						push_token(tkn, T_AND_EQ, (substr_s){.len = 2, .c_ptr = c}, c - line_start);
+					_push_token(tkn, T_AND_EQ, (String){.len = 2, .c_ptr = c}, c - line_start);
 						c++;
-					} else if (peek(c) == '&') {
-						push_token(tkn, T_LOG_AND, (substr_s){.len = 2, .c_ptr = c}, c - line_start);
+					} else if (_peek(c) == '&') {
+					_push_token(tkn, T_LOG_AND, (String){.len = 2, .c_ptr = c}, c - line_start);
 						c++;
 					}
-					else push_token(tkn, T_AMP,(substr_s){.len = 1, .c_ptr = c}, c - line_start);
+					else _push_token(tkn, T_AMP,(String){.len = 1, .c_ptr = c}, c - line_start);
 				break;
 				case '|':
-					if (peek(c) == '=')
+					if (_peek(c) == '=')
 					{
-						push_token(tkn, T_OR_EQ, (substr_s){.len = 2, .c_ptr = c},c - line_start);
+					_push_token(tkn, T_OR_EQ, (String){.len = 2, .c_ptr = c},c - line_start);
 						c++;
-					} else if (peek(c) == '|') {
-						push_token(tkn, T_LOG_OR, (substr_s){.len = 2, .c_ptr = c}, c - line_start);
+					} else if (_peek(c) == '|') {
+					_push_token(tkn, T_LOG_OR, (String){.len = 2, .c_ptr = c}, c - line_start);
 						c++;
 					}
-					else push_token(tkn, T_PIPE, (substr_s){.len = 1, .c_ptr = c}, c - line_start);
+					else _push_token(tkn, T_PIPE, (String){.len = 1, .c_ptr = c}, c - line_start);
 				break;
 				case '.':
-					if (peek(c) == '.') {
-						push_token(tkn, T_DOT_DOT,  (substr_s){.len = 2, .c_ptr = c},c - line_start);
+					if (_peek(c) == '.') {
+					_push_token(tkn, T_DOT_DOT,  (String){.len = 2, .c_ptr = c},c - line_start);
 						c++;
 					}
-					else push_token(tkn, T_DOT,  (substr_s){.len = 1, .c_ptr = c},c - line_start);
+					else _push_token(tkn, T_DOT,  (String){.len = 1, .c_ptr = c},c - line_start);
 				break;
 				case '*':
-					if (peek(c) == '=') {
-						push_token(tkn, T_MULT_EQ,  (substr_s){.len = 2, .c_ptr = c},c - line_start);
+					if ( _peek(c) == '=') {
+					_push_token(tkn, T_MULT_EQ,  (String){.len = 2, .c_ptr = c},c - line_start);
 						c++;
 					}
-					else push_token(tkn, T_ASTERISK,  (substr_s){.len = 1, .c_ptr = c},c - line_start);
+					else _push_token(tkn, T_ASTERISK,  (String){.len = 1, .c_ptr = c},c - line_start);
 				break;
 				case '+':
-					if (peek(c) == '=') {
-						push_token(tkn, T_ADD_EQ,  (substr_s){.len = 2, .c_ptr = c},c - line_start);
+					if (_peek(c) == '=') {
+					_push_token(tkn, T_ADD_EQ,  (String){.len = 2, .c_ptr = c},c - line_start);
 						c++;
-					} else if (peek(c) == '+') {
-						push_token(tkn, T_INC,  (substr_s){.len = 2, .c_ptr = c},c - line_start);
+					} else if (_peek(c) == '+') {
+					_push_token(tkn, T_INC,  (String){.len = 2, .c_ptr = c},c - line_start);
 						c++;
 					}
-					else push_token(tkn, T_PLUS,  (substr_s){.len = 1, .c_ptr = c},c - line_start);
+					else _push_token(tkn, T_PLUS,  (String){.len = 1, .c_ptr = c},c - line_start);
 				break;
 				case '-':
-					if (peek(c) == '=') {
-						push_token(tkn, T_SUB_EQ,  (substr_s){.len = 2, .c_ptr = c},c - line_start);
+					if (_peek(c) == '=') {
+					_push_token(tkn, T_SUB_EQ,  (String){.len = 2, .c_ptr = c},c - line_start);
 						c++;
 					} 
-					else if (peek(c) == '-') {
-						push_token(tkn, T_DEC,  (substr_s){.len = 2, .c_ptr = c},c - line_start);
+					else if (_peek(c) == '-') {
+					_push_token(tkn, T_DEC,  (String){.len = 2, .c_ptr = c},c - line_start);
 						c++;
 					}
-					else if (peek(c) == '>') {
-						push_token(tkn, T_ARROW,  (substr_s){.len = 2, .c_ptr = c},c - line_start);
+					else if (_peek(c) == '>') {
+					_push_token(tkn, T_ARROW,  (String){.len = 2, .c_ptr = c},c - line_start);
 						c++;
 					}
-					else push_token(tkn, T_MINUS,  (substr_s){.len = 1, .c_ptr = c},c - line_start);
+					else _push_token(tkn, T_MINUS,  (String){.len = 1, .c_ptr = c},c - line_start);
 				break;
 				case '/':
-					if (peek(c) == '=') { 
-						push_token(tkn, T_DIV_EQ,  (substr_s){.len = 2, .c_ptr = c},c - line_start);
+					if (_peek(c) == '=') { 
+					_push_token(tkn, T_DIV_EQ,  (String){.len = 2, .c_ptr = c},c - line_start);
 						c++;
 					} 
 					// COMMENT
-					else if  (peek(c) == '/')
+					else if  (_peek(c) == '/')
 					{
-						while(peek(c) != '\n') {
+						while(_peek(c) != '\n') {
 							c++;
 						}
 						line_start = c;
 					}
-					else push_token(tkn, T_FORWARD_SLASH,  (substr_s){.len = 1, .c_ptr = c}, c - line_start);
+					else _push_token(tkn, T_FORWARD_SLASH,  (String){.len = 1, .c_ptr = c}, c - line_start);
 				break;
 				case '%':
-					if (peek(c) == '=') {
-						push_token(tkn, T_MOD_EQ, (substr_s){.len = 2, .c_ptr = c}, c - line_start);
+					if (_peek(c) == '=') {
+					_push_token(tkn, T_MOD_EQ, (String){.len = 2, .c_ptr = c}, c - line_start);
 						c++;
 					}
-					else push_token(tkn, T_MODULUS,  (substr_s){.len = 1, .c_ptr = c},c - line_start);
+					else _push_token(tkn, T_MODULUS,  (String){.len = 1, .c_ptr = c},c - line_start);
 				break;
 				case '!':
-					if (peek(c) == '=') {
-						push_token(tkn, T_NOT_EQ,  (substr_s){.len = 2, .c_ptr = c},c - line_start);
+					if (_peek(c) == '=') {
+					_push_token(tkn, T_NOT_EQ,  (String){.len = 2, .c_ptr = c},c - line_start);
 						c++;
 					}
-					else push_token(tkn, T_BANG,  (substr_s){.len = 1, .c_ptr = c},c - line_start);
+					else _push_token(tkn, T_BANG,  (String){.len = 1, .c_ptr = c},c - line_start);
 				break;
 				case '=':
-					if (peek(c) == '=')
+					if (_peek(c) == '=')
 					{
-						push_token(tkn, T_EQ_EQ,  (substr_s){.len = 2, .c_ptr = c},c - line_start);
+					_push_token(tkn, T_EQ_EQ,  (String){.len = 2, .c_ptr = c},c - line_start);
 						c++;
-					} else if (peek(c) == '>') {
-						push_token(tkn, T_FAT_ARROW,  (substr_s){.len = 2, .c_ptr = c},c - line_start);
+					} else if (_peek(c) == '>') {
+					_push_token(tkn, T_FAT_ARROW,  (String){.len = 2, .c_ptr = c},c - line_start);
 						c++;
 					}
-					else push_token(tkn, T_EQUAL_SIGN,  (substr_s){.len = 1, .c_ptr = c},c - line_start);
+					else _push_token(tkn, T_EQUAL_SIGN,  (String){.len = 1, .c_ptr = c},c - line_start);
 				break;
 				case '<':
-					if (peek(c) == '=') {
-						push_token(tkn, T_LESS_THAN_EQ,  (substr_s){.len = 2, .c_ptr = c},c - line_start);
+					if (_peek(c) == '=') {
+					_push_token(tkn, T_LESS_THAN_EQ,  (String){.len = 2, .c_ptr = c},c - line_start);
 						c++;
 					}
-					else if (peek(c) == '<' ) {
-						push_token(tkn, T_SHL,  (substr_s){.len = 2, .c_ptr = c},c-line_start);
+					else if (_peek(c) == '<' ) {
+					_push_token(tkn, T_SHL,  (String){.len = 2, .c_ptr = c},c-line_start);
 						c++;
 					}
-					else push_token(tkn, T_LESS_THAN,  (substr_s){.len = 1, .c_ptr = c},c - line_start);
+					else _push_token(tkn, T_LESS_THAN,  (String){.len = 1, .c_ptr = c},c - line_start);
 				break;
 				case '>':
-					if (peek(c) == '=')
+					if (_peek(c) == '=')
 					{
-						push_token(tkn, T_GREATER_THAN_EQ,  (substr_s){.len = 2, .c_ptr = c},c - line_start);
+					_push_token(tkn, T_GREATER_THAN_EQ,  (String){.len = 2, .c_ptr = c},c - line_start);
 						c++;
 					}
-					else if (peek(c) == '>' ) {
-						push_token(tkn, T_SHR,  (substr_s){.len = 2, .c_ptr = c},c-line_start);
+					else if (_peek(c) == '>' ) {
+					_push_token(tkn, T_SHR,  (String){.len = 2, .c_ptr = c},c-line_start);
 						c++;
 					}
-					else push_token(tkn, T_GREATER_THAN,  (substr_s){.len = 1, .c_ptr = c},c - line_start);
+					else _push_token(tkn, T_GREATER_THAN,  (String){.len = 1, .c_ptr = c},c - line_start);
 				break;
 				// STRING HANDLING
 				case '"':
 				{
-					if(peek(c) == '"') {
+					if(_peek(c) == '"') {
 
-					push_token_lit(
+				_push_token_lit(
 							tkn,
 							T_STRING_LITERAL,
-						 (substr_s){.len = 2, .c_ptr = c},
-							(literal_s) {
+						 (String){.len = 2, .c_ptr = c},
+							(Literal) {
 								.type = LIT_STRING,
-								.literal = (literal_u) {
-									._str = (substr_s){.c_ptr = c, .len = 1}
+								.value = (LitUnion) {
+									.string = (String){.c_ptr = c, .len = 1}
 								}
 							},
 							c - line_start);
@@ -415,10 +420,10 @@ token_array_s* tokenize ( string_s src )
 					}
 					int str_start = c-start;
 					char* str_ptr = c;
-					while( peek(c) != '"' && ((c - start) != len) ) {
-						if ( peek(c) == '\n' ) {
+					while( _peek(c) != '"' && ((c - start) != len) ) {
+						if ( _peek(c) == '\n' ) {
 							c++;
-							printf("WARNING: Unterminated string on a newline at line %i\n", line());
+							printf("WARNING: Unterminated string on a newline at line %i\n", _line());
 							scanner.line++;
 							// continue;
 						}
@@ -433,15 +438,15 @@ token_array_s* tokenize ( string_s src )
 
 					int len = c-start-str_start;
 					// char* substr = substring(start, str_start, c-start-str_start);
-					substr_s substr = (substr_s){ .c_ptr = str_ptr + 1, .len = len - 1 };
-					push_token_lit(
+					String substr = (String){ .c_ptr = str_ptr + 1, .len = len - 1 };
+				_push_token_lit(
 							tkn,
 							T_STRING_LITERAL, 
-							(substr_s){.len = len + 1, .c_ptr = str_ptr},
-							(literal_s) {
+							(String){.len = len + 1, .c_ptr = str_ptr},
+							(Literal) {
 								.type = LIT_STRING,
-								.literal = (literal_u) {
-									._str = substr
+								.value = (LitUnion) {
+									.string = substr
 								}
 							},
 							c - line_start);
@@ -450,20 +455,20 @@ token_array_s* tokenize ( string_s src )
 				case '\'':
 				{
 					char* str_ptr = c;
-					if(peek(++c) != '\'') {
+					if(_peek(++c) != '\'') {
 						printf("ERROR, unterminated character\n");
 						c++;
 						continue;
 					}
 					else {
-						push_token_lit(
+					_push_token_lit(
 								tkn,
 								T_CHAR_LITERAL,
-								(substr_s){.len = 3, .c_ptr = str_ptr},
-								(literal_s){
+								(String){.len = 3, .c_ptr = str_ptr},
+								(Literal){
 								.type = LIT_CHAR,
-								.literal = (literal_u) {
-									._char = *c
+								.value = (LitUnion) {
+									.character = *c
 								}
 								},
 								c - line_start 
@@ -474,17 +479,17 @@ token_array_s* tokenize ( string_s src )
 				break;
 				default:
 					printf("Unknown character encountered: %c at l:%i\n", *c,
-							line());
+							_line());
 				break;
 			}
 		}
 	}
-	push_token(tkn, T_EOF, (substr_s){.len = 0, .c_ptr = scanner.start + len}, len);
+_push_token(tkn, T_EOF, (String){.len = 0, .c_ptr = scanner.start + len}, len);
 
 	return tkn;
 }
 
-void print_token_array(string_s src, token_array_s tkn)
+void print_token_array(String *src, TokenArray tkn)
 {
 	printf("===DUMPING TS===\n");
 	// printf("File: %s\n", src.path);
@@ -492,58 +497,58 @@ void print_token_array(string_s src, token_array_s tkn)
 				 // "----------------------------------\n");
 	int i = 0;
 	for (i = 0; i <= tkn.current_token; i++ ) {
-		token_s current = tkn.token_list[i];
+		Token current = tkn.token_list[i];
 		if (current.has_literal) {
-			literal_s cur_lit = tkn.literal_list[current.literal_id];
-			literal_u lit = cur_lit.literal;
+			Literal cur_lit = tkn.literal_list[current.literal_id];
+			LitUnion lit = cur_lit.value;
 			int chid = current.chr_index;
-			token_type type = current.type;
+			TokenType type = current.type;
 			switch(cur_lit.type) {
 				case LIT_INT:
-					printf("[%02i:%02i]\n source: %.*s\n\t token[%02i]: %s, value: %02i\n", 
+					printf("[%02i:%02i]\n source: %.*s\n\t token[%02i]: %s, value: %02lli\n", 
 							i, 
 							chid,
-							current.source.len,
+							(int)current.source.len,
 							current.source.c_ptr,
 							type,
 							token_strings[type], 
 							// current.literal_id,
-							lit._int
+							lit.integer
 							);
 				break;
 				case LIT_FLOAT:
 					printf("[%02i:%02i]\t source: %.*s\n\t token[%02i]: %s, value: %f\n", 
 							i, 
 							chid,
-							current.source.len,
+							(int)current.source.len,
 							current.source.c_ptr,
 							type,
 							token_strings[type], 
 							// current.literal_id,
-							lit._float
+							lit.floating
 							);
 				break;
 				case LIT_STRING:
 					printf("[%02i:%02i]\t source: %.*s\n\t token[%02i]: %s, value: %.*s\n", 
 							i, 
 							chid,
-							current.source.len,
+							(int)current.source.len,
 							current.source.c_ptr,
 							type,
 							token_strings[type], 
-							cur_lit.literal._str.len,
-							cur_lit.literal._str.c_ptr
+							(int)cur_lit.value.string.len,
+							cur_lit.value.string.c_ptr
 							);
 				break;
 				case LIT_CHAR:
 					printf("[%02i:%02i]\t source: %.*s\n\t token[%02i]: %s, value: %c\n", 
 							i, 
 							chid,
-							current.source.len,
+							(int)current.source.len,
 							current.source.c_ptr,
 							type,
 							token_strings[type], 
-							cur_lit.literal._char);
+							cur_lit.value.character);
 				default:
 
 				break;
@@ -553,7 +558,7 @@ void print_token_array(string_s src, token_array_s tkn)
 			printf("[%02i:%02i]\t source: %.*s\n\t token[%02i]: %s\n", 
 					i,
 					current.chr_index,
-					current.source.len,
+					(int)current.source.len,
 					current.source.c_ptr,
 					current.type,
 					token_to_str(current.type));
