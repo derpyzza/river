@@ -1,7 +1,7 @@
 // imports only the println function from std.io ( and whatever else it needs of-course )
 import std.io.{ println };
 
-void fizzbuzz(int i) {
+void fizzbuzz (int i) {
 	switch {
 		// cases are evaluated in order
 		case i % 3 == 0 and i % 5 == 0 => println("FizzBuzz"),

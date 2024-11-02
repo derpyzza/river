@@ -48,19 +48,22 @@ typedef struct FilePath {
 } FilePath;
 
 struct FilePath split_path(char* path) {
-	char* _path = malloc(sizeof(path));
-	int len = sizeof(path);
+	int len = strlen(path);
+	char* name = malloc(sizeof(name) * len);
 	int id = 0;
 	char* c = path;
-	for(c = path; *c != '.'; c++) {
-		_path[id] = *c;
+	while(*c != '.') {
+		*name++ = *c++;
 		id++;
 	}
-	_path[id] = 0;
+	name[id] = '\0';
 
-	char* _ext = malloc(len - id * sizeof(char) + 1);
-	strcpy(_ext, c);
-	return (FilePath){ .path = _path, .ext = _ext };
+	printf("size is %li\n", (len - id) * sizeof(char) + 1);
+	char* ext = malloc((len - id) * sizeof(char) + 1);
+	if(ext != NULL) 
+		strcpy(ext, c);
+	else printf("Error: Could not malloc ext file\n"), exit(-1);
+	return (FilePath){ .path = name, .ext = ext };
 }
 
 
