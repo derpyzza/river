@@ -106,6 +106,43 @@ int q = @c,
 
 ```
 
+# Pointers and arrays
+
+```c
+// pointers are defined as such:
+
+^ type name = value;
+
+// pointers are marked with the caret or hat '^' operator.
+// pointers can have up to 8 levels of indirection:
+
+^^^^^^^^ type name = value; // pointer to pointer to pointer to ... 8 times to a type of value.
+
+^^^^^^^^ int ptr; // pointer to pointer to pointer to ... 8 times to an int.
+
+// unlike in C, pointers and arrays are distinct types
+// however, they are both defined before the type:
+
+[size]type name = value;
+[6]int arr = [1, 2, 3, 4, 5, 6]; // array of six integers
+
+// array types must always contain the size
+
+[]type name = value; // => ERROR, missing array size
+
+// arrays can be pointed to too:
+
+^[6]int arr; // pointer to an array of 6 ints
+[6]^int arr; // array of 6 pointers to ints
+^[6]^int arr; // pointer to array of 6 pointers to ints
+
+// like with regular pointers, pointers to arrays can have up to 8 levels of indirection:
+^^^^^^^^[6]int arr; // pointer to pointer to pointer to ... 8 times to an array of 6 ints;
+
+^^^^^^^^[6]^^^^^^^^int arr; // pointer to pointer t ... 8 times an array of 6 pointers to pointers to ... 8 times to an int;
+    
+```
+
 # Functions 
 
 ```c
@@ -398,11 +435,6 @@ let person = get_person(id);
 
 type Colour = (ubyte, ubyte, ubyte, ubyte);
 Colour red = (255, 0, 0, 255);
-
-```
-
-# Arrays 
-```c
 
 ```
 

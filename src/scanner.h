@@ -182,43 +182,43 @@ typedef enum LiteralType {
 } LiteralType;
 
 typedef union LitUnion {
-	long long int integer;
+	ilong integer;
 	double floating;
 	char character;
-	unsigned char boolean;
+	bool boolean;
 	struct String string;
 } LitUnion;
 
 typedef struct Literal {
-	enum LiteralType type;
-	union LitUnion value;
+	LiteralType type;
+	LitUnion value;
 } Literal;
 
 typedef struct Token {
 	int line;
 	int chr_index; 	// the starting character index
 	int literal_id;
-	int has_literal;
-	enum CatType cat;
-	enum TokenType type;
-	struct String source; // the source string for this token;
+	bool has_literal;
+	CatType cat;
+	TokenType type;
+	String source; // the source string for this token;
 } Token;
 
 // Dynamic array of tokens;
 typedef struct TokenArray {
-	long max_tokens;
-	long current_token;
-	long max_literals;
-	long current_literal;
-	struct Token* token_list;
-	struct Literal* literal_list;
+	size max_tokens;
+	size max_literals;
+	size current_token;
+	size current_literal;
+	Token* token_list;
+	Literal* literal_list;
 } TokenArray;
 
-void print_token_array(struct String *src, TokenArray tkn);
-struct TokenArray* tokenize( struct String *src );
-enum CatType tok_to_cat(enum TokenType token);
+void print_token_array(String *src, TokenArray tkn);
+TokenArray* tokenize( String *src );
+CatType tok_to_cat( TokenType token);
 
-static inline char* token_to_str(enum TokenType type) {
+static inline char* token_to_str(TokenType type) {
 	return (char*) token_strings[type];
 }
 
@@ -241,7 +241,7 @@ static inline Token token_none(void) {
 	};
 } 
 
-static inline const char* tokcat_to_str(enum CatType cat) {
+static inline const char* tokcat_to_str(CatType cat) {
 	switch(cat) {
 		case TC_KEYWORD: return "Keyword"; break;
 		case TC_ID: return "Identifier"; break;
@@ -252,7 +252,7 @@ static inline const char* tokcat_to_str(enum CatType cat) {
 	}
 }
 
-static inline char token_to_char(enum TokenType token) {
+static inline char token_to_char(TokenType token) {
 	if (token <= T_HAT && token >= T_EQUAL_SIGN) {
 		char tokens[(T_HAT - T_EQUAL_SIGN) + 1] = {
 			'=', '(', ')', '{', '}', '[', ']', ',', '.', '+', '-', '*', '/', '%', ';', '!',

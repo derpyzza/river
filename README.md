@@ -7,13 +7,17 @@
 > With that in mind however, feel free to take a look around, and drop some feedback if you'd like. 
 > However, do note that since this project is currently in it's infancy, i'm not accepting any proper contributions for now.
 
-A Small C-inspired language that's transpiled down to C
+A Small C-inspired language that's transpiled down to human-readable C99 code.
 
 named river 
 cause it flows down to C ( badum tiss )
 
 River is a programming language for those who like the DIY-nature of C, but sometimes wished that they had access to the convenient higher level features from other languages ( but are too scared of C++ ).
 Simply put, river is a dialect of C with a boatload of syntax sugar and niceties piled on top, along with a side of an expressive type system and garnished with some really nice functional features to top it all off.
+
+The goal is to be able to seamlessly use both C and river in the same codebase, and replace C files with river as needed ( and river files with C, if you want to ).
+
+Outputs to a human readable C99.
 
 # Quick start
 This repository only contains the river compiler for now.

@@ -1,11 +1,11 @@
 // #include "codegen.h"
-// #include "parser.h"
+#include "parser/parser.h"
 // #include "scanner.h"
 // #include <string.h>
 //
 // static char* function(node_s *tree);
 //
-// char* codegen(node_s *tree) {
+char* codegen(struct Node *tree) {
 // 	switch(tree->type) {
 // 		case N_BLOCK: {
 // 			char* buf = malloc(sizeof(char) * 2048);
@@ -35,4 +35,5 @@
 // 			node_to_string(body, *tree->node.func_def.body)
 // 			);
 // 	return str;
-// }
+  return (char*)"todo!";
+}

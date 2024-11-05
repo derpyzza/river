@@ -16,6 +16,10 @@ struct thingy {
 	byte q = 10, t, d;
 }
 
+
+int func => 10 + 5 / 2;
+int func => 10 + 12 / 2;
+
 int main => 10;
 
 const int ten = 11;

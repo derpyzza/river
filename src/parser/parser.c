@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -15,22 +16,19 @@ static struct Node *import_def(void);
 static struct Node *const_def(void);
 static struct Node *fn_def(void);
 static struct Node *struct_def(void);
-static struct Node *type_def(void);
-static struct Node *enum_def(void);
-static struct Node *union_def(void);
-static struct Node *stmt(void);
-static struct Node *var_stmt(void);
-static struct Node *expr_stmt(void);
-
-
-void print_lit(Literal *lit);
+// static struct Node *type_def(void);
+// static struct Node *enum_def(void);
+// static struct Node *union_def(void);
+// static struct Node *stmt(void);
+// static struct Node *var_stmt(void);
+// static struct Node *expr_stmt(void);
 
 struct Parser {
-	int current;
-	struct File *source; // current file being parsed
-	struct TokenArray *tokens;
-	int had_error;
-	struct Vec *errors;
+	size current;
+	bool had_error;
+	File *source; // current file being parsed
+	Vec *errors;
+	TokenArray *tokens;
 };
 
 // spooky global parser struct
@@ -41,7 +39,7 @@ void init_parser(File *source, TokenArray *tokens) {
 	parser.source = source;
 	parser.tokens = tokens;
 	parser.current = -1;
-	parser.had_error = 0;
+	parser.had_error = False;
 	parser.errors = NULL;
 }
 
@@ -49,7 +47,7 @@ void consume(void) {
 	parser.current++;
 }
 
-int current(void) {
+size current(void) {
 	 return parser.current; 
 }
 
@@ -57,7 +55,7 @@ Token current_tok(void) {
 	return parser.tokens->token_list[parser.current]; 
 }
 
-struct Token *token_at(long id) {
+Token *token_at(size id) {
 	if (id >= parser.tokens->current_token ) {
 		return NULL;
 	}
@@ -65,7 +63,7 @@ struct Token *token_at(long id) {
 }
 
 // get literal stored in the literal id field of given token
-struct Literal *lit_at_tok(long tok_id)
+struct Literal *lit_at_tok(size tok_id)
 {
 	if (tok_id >= parser.tokens->current_token) {
 		printf("ERROR: tok_id exceeds total number of tokens\n");
@@ -85,7 +83,7 @@ struct Literal *lit_id(long lit_id){
 }
 
 // shortcut to get the lit stored in the lit_id field of the current token
-struct Literal *cur_lit() {
+struct Literal *cur_lit(void) {
 	return lit_at_tok(parser.current);
 }
 
@@ -134,7 +132,7 @@ int check_next_cat ( int cat ) {
 	return (peek().cat == cat); 
 }
 
-void error_unexpected( int got, int expected, int is_tok, const char * file, const int line ) {
+void error_unexpected( int got, int expected, bool is_tok, const char * file, const int line ) {
 	if (!parser.had_error) {
 		parser.had_error = 1;
 		parser.errors = vec_of(struct ParseError*, 8);
@@ -191,13 +189,13 @@ void report_error(ParseError *error) {
 	}
 }
 
-int check_errors(void) {
+bool check_errors(void) {
 	if (parser.had_error) {
 		for (int i = 0; i < parser.errors->current; i++) {
 			report_error((struct ParseError*)parser.errors->data[i]);
 		}
-		return 1;
-	} else return 0;
+		return True;
+	} else return False;
 }
 
 int match_type_token(void) {
@@ -256,7 +254,7 @@ struct Node *parse_tokens( TokenArray *tokens, File *src )
 	// struct Node* nodeList = malloc(sizeof(struct Node) * parser.tokens->current_token); 
 
 	struct Node *node = new_node(N_PROG);
-	node->children = vec_of(struct Node*, 16);
+	node->children = vec_of(struct Node*, 8);
 
 	while(!match(T_EOF)) {
 		struct Node* item = top_level();
@@ -374,6 +372,13 @@ static struct Node* const_def(void) {
 	return node;
 }
 
+// static ^Node var_assign => {}
+// fun int add (int x, y) = x + y;
+// fun ^Node var_assign = {}
+// let ^Node node = new Node();
+// ^Node node = new Node();
+// let node = new Node();
+
 static struct Node *var_assign(void) {
 	struct Node* node = new_node(N_VAR);
 
@@ -385,6 +390,15 @@ static struct Node *var_assign(void) {
 
 		// pull out type
 		consume();
+
+		// the type can either be a set of built-in types,
+		// or an identifier that corresponds to a user defined type
+		// ( which can be one of a struct, an enum, a union, or a type alias ) 
+		// 
+
+		TokenType t = current_tok().type;
+		if( t == T_IDENTIFIER )
+			node->type_id = current_tok().literal_id;
 		node->type = current_tok().type;
 
 		// pull out identifier
@@ -439,7 +453,7 @@ static struct Node* struct_item(TokenType type) {
 	return item;
 }
 
-static struct Node* struct_field() {
+static struct Node* struct_field(void) {
 	TokenType field_type = match_type_token();
 	struct Node* item = struct_item(field_type);
 
@@ -514,8 +528,7 @@ static struct Node *fn_def(void) {
 }
 
 struct Node *new_node(enum NodeTag type) {
-	size_t size = sizeof(struct Node);
-	struct Node* node = malloc(size);
+	struct Node* node = malloc(sizeof(struct Node));
 	if (node == NULL) {
 		printf("Error, could not malloc new node\n");
 		exit(-1);
@@ -535,28 +548,30 @@ struct Node *new_node(enum NodeTag type) {
 	return node;
 }
 
-// struct ParseError parse_error(token_type expected) {
-// 	return (ParseError) { .expected = expected, .got = peek() };
-// }
 
+// TODO: Probably a waste of effort, but consider writing a set of proper string builder functions for generating debug parser output.
 void print_lit(Literal *lit) {
-	if (lit >= 0)
+	if (lit->type >= 0)
 		switch (lit->type) {
-			case LIT_NONE: printf("<none>\n"); break;
-			case LIT_FALSE: printf("bool: <false>\n"); break;
-			case LIT_TRUE: printf("bool: <true>\n"); break;
-			case LIT_CHAR: printf("char: '%c'\n", lit->value.character); break;
-			case LIT_INT: printf("int: %lli\n", lit->value.integer); break;
-			case LIT_FLOAT: printf("float: %lf\n", lit->value.floating);
-			case LIT_STRING: printf("string: \"%.*s\"\n", (int)lit->value.string.len, lit->value.string.c_ptr);
+			case LIT_NONE: printf("<none>"); break;
+			case LIT_FALSE: printf("bool: <false>"); break;
+			case LIT_TRUE: printf("bool: <true>"); break;
+			case LIT_CHAR: printf("char: '%c'", lit->value.character); break;
+			case LIT_INT: printf("int: %li", lit->value.integer); break;
+			case LIT_FLOAT: printf("float: %lf", lit->value.floating);
+			case LIT_STRING: printf("string: \"%.*s\"", (int)lit->value.string.len, lit->value.string.c_ptr);
 		}
 	else printf("<Uninitialized>\n");
 }
 
-void print_ast(struct Node node)
+void print_ast(struct Node *node, int level)
 {
-	for ( int i = 0; i < node.children->current; i++ ) {
-		struct Node *cur = node.children->data[i];
+	if (!node) exit(-1);
+	if (level == 0) printf("<root>\n");
+	for ( int i = 0; i < node->children->current; i++ ) {
+		printf("\t");
+		struct Node *cur = node->children->data[i];
+		if (cur == NULL) continue;
 		switch(cur->tag) {
 			default: printf("Unknown or not implemented yet!\n"); break;
 			case N_NONE: printf("None!\n"); break;
@@ -566,33 +581,37 @@ void print_ast(struct Node node)
 						lit_id(cur->name_id)->value.string.c_ptr
 					);
 					print_lit(lit_id(cur->value));
+					printf("\n");
 				}
 			break;
 			case N_STRUCT_FIELD: {
-				printf("\t<field> name: %.*s, type: %s, value: ",
+				printf("<field> name: %.*s, type: %s, value: ",
 
 					(int)lit_id(cur->name_id)->value.string.len,
 					lit_id(cur->name_id)->value.string.c_ptr,
 					token_to_str(cur->type)
 				);
 				print_lit(lit_id(cur->value));
+				printf("\n");
 				break;
 			} 				
 			case N_STRUCT_DEF: {
-				printf("<struct def> name: %.*s, body:\n", 
+				printf("\n\t<STRUCT DEF>\n\t\tname: %.*s, body:\n", 
 
 					(int)lit_id(cur->name_id)->value.string.len,
 					lit_id(cur->name_id)->value.string.c_ptr
 				);
-				print_ast(*cur);
+				print_ast(cur, 1);
+				printf("\n");
 				break;
 			}
 			case N_FUNC_DEF: {
-				printf("<fn def> name: %.*s, return: %s, body:\n\t",
+				printf("<fn def> name: %.*s, return: %s, body: ",
 						(int)lit_id(cur->name_id)->value.string.len,
 						lit_id(cur->name_id)->value.string.c_ptr,
 						token_to_str(cur->type)
 						);
+				// printf("\t");
 				print_expr(cur->body);
 				printf("\n");
 			}
@@ -604,6 +623,7 @@ void print_ast(struct Node node)
 						token_to_str(cur->type)
 					);
 				print_lit(lit_id(cur->value));
+				printf("\n");
 			}
 			break;
 			case N_IMPORT: {

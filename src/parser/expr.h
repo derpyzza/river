@@ -1,8 +1,8 @@
 #pragma once
 
-struct Node;
+#include "parser.h"
 
-enum BinOpType {
+typedef enum BinOpType {
 	BIN_NONE = 0,
 	BIN_ADD,
 	BIN_SUB,
@@ -12,15 +12,15 @@ enum BinOpType {
 	BIN_BAND,
 	BIN_BOR,
 	BIN_BXOR,
-};
+} BinOpType;
 
-enum UnOpType {
+typedef enum UnOpType {
 	UN_NONE = 0,
 	UN_MINUS,
 	UN_BANG,
 	UN_DEREF,
 	UN_ADDR
-};
+}UnOpType;
 
-struct Node* parse_expr(void);
-void print_expr(struct Node *expr);
+Node* parse_expr(void);
+void print_expr(Node *expr);

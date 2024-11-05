@@ -11,7 +11,7 @@
 struct File *read_file(char* path) {
 	File *out = malloc(sizeof(File));
 	out->path = path;
-	out->is_valid = 0;
+	out->is_valid = False;
 
 	FILE *in = fopen(path, "rb");
 	if (in == NULL) {
@@ -29,7 +29,7 @@ struct File *read_file(char* path) {
 		return out;
 	}
 
-	size_t bufsread = fread(out->data.c_ptr, 1, out->data.len, in);
+	size bufsread = fread(out->data.c_ptr, 1, out->data.len, in);
 	if ( bufsread < out->data.len ) {
 		printf("Error, could not read enough bytes from file %s\n", path);
 		fclose(in);
@@ -38,7 +38,7 @@ struct File *read_file(char* path) {
 
 	fclose(in);
 	// everything went fine
-	out->is_valid = 1;
+	out->is_valid = True;
 	return out;
 }
 
@@ -48,7 +48,7 @@ typedef struct FilePath {
 } FilePath;
 
 struct FilePath split_path(char* path) {
-	int len = strlen(path);
+	size len = strlen(path);
 	char* name = malloc(sizeof(name) * len);
 	int id = 0;
 	char* c = path;
@@ -73,9 +73,8 @@ main(int argc, char** argv) {
 
 	// REPL MODE
 	if (argc < 2) {
-		int should_quit = 0;
 		printf("No input files\n");
-		while(!should_quit) {
+		while(True) {
 			// arbitrarily sized buffer for now
 			char* buf = malloc(2048);
 			fputs("rvrcc>> ", stdout);
@@ -139,7 +138,7 @@ main(int argc, char** argv) {
 		struct Node *node = parse_tokens(tkn, source);
 		if(node != NULL) {
 			printf("==== AST DUMP ====\n");
-			print_ast(*node);
+			print_ast(node, 0);
 		}
 		else printf("file had errors, compilation terminated\n");
 		// printf("\n");

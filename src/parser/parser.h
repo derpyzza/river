@@ -1,12 +1,14 @@
 #pragma once
 
+#include <stdint.h>
+#include <stdio.h>
 #include "../scanner.h"
 
 typedef struct ParseError {
-	int is_tok;
-	int type;
-	int debug_line;
-	int got;
+	bool is_tok; // guess
+	int type; // token / cat type
+	int debug_line; // compiler source line that the error is emitted from
+	int got; // index to got token
 	// char *msg;
 	const char * debug_file;
 } ParseError;
@@ -23,14 +25,14 @@ typedef struct ParseError {
 // or X::Y::Z::W.do_something();
 
 typedef struct Path {
-	int has_subpaths;
+	bool has_subpaths;
 	int cur_subpath;
-	struct String full;
-	struct String root;
-	struct String subpath[32];
+	String full;
+	String root;
+	String subpath[32];
 } Path;
 
-enum NodeTag {
+typedef enum NodeTag {
 	N_NONE,
 	N_NODE_LIST, // hack
 	N_PROG,
@@ -52,37 +54,145 @@ enum NodeTag {
 	N_FOREACH,
 	N_VAR,
 	N_CONST
+} NodeTag;
+
+typedef enum RT_Type {
+	RT_ISIZE,
+	RT_USIZE,
+	
+	RT_BYTE,
+	RT_SHORT,
+	RT_INT,
+	RT_LONG,
+
+	RT_UBYTE,
+	RT_USHORT,
+	RT_UINT,
+	RT_ULONG,
+
+	RT_FLOAT,
+	RT_DOUBLE,
+
+	RT_CHAR,
+	RT_STRING,
+	RT_BOOL,
+	RT_VOID, // only for function return types
+	RT_BUILT_IN_TYPES, // handy for iteration
+
+	RT_STRUCT,
+	RT_TUPLE,
+	RT_ENUM,
+	RT_UNION,
+	RT_ALIAS, // typedef
+	RT_POINTER,
+	RT_FUNCTION,
+	RT_ARRAY,
+} RT_Type;
+
+typedef union RT_Union RT_Union;
+union RT_Union {
+
+	// pointer sized integers — the return type of the sizeof operator
+	size isize_t; 	// signed
+	usize usize_t;	// unsigned
+	
+	// unsigned integer types
+	uint64_t uinteger_t;
+	// signed integer types
+	int64_t integer_t;
+
+	// floating point types
+	double floating_t;				
+	long double long_floating_t; // in case i need a longer float
+
+	bool bool_t; // boolean type. 
+	uint char_t; // char in river. single utf-8 character
+
+	struct {
+		int indirection; // levels of indirection; upto 8;
+		RT_Union *ptr;
+	}pointer_t;
+
+	struct {
+		size len;
+		RT_Union *type;
+	} array_t;
+
+	struct {
+		uint *start;
+		size len;
+	} string_t;
+
+	struct {
+		int offset;
+		Vec members;
+	} struct_t;
+	// struct {} tuple_t;
+	// struct {} union_t;
+	// struct {} enum_t;
+	struct {
+		RT_Union *returnType;
+		String name;
+	} function_t;
+
+	struct {
+		RT_Union *type;
+		String alias;
+	} typealias;
+	
 };
 
+typedef struct RType {
+	RT_Type tag;
+	RT_Union value;
+} RType;
+
+// NOTE: 
 // ineffeciently laid out struct but meh.
 // can change this later if it bottlenecks somehow
+
+// master node struct that represents a single node of the AST.
+// just haphazardly stuffed with every possible value a node could need.
+
+// most data is stored as just an index to an item in the token stream's literal array, 
+// rather than storing pointers or copies of the required values.
+// I'm storing the literal arrays anyway, might as well squeeze as much use out of them as possible!
+typedef struct Node Node;
 struct Node {
 	// static type hint
 	int type;
+	// index of literal string for custom type identifiers
+	int type_id;
 	// is an identifier
-	int has_name;
+	bool has_name;
 	// index of name substring in literals array
 	int name_id; 
+	// has default argument: for struct fields and function arguments
+	bool has_def_value;
+	//	index of default value
+	int arg_id;
 	// self explanatory
-	int is_stmt;
+	bool is_stmt;
 	/** 
 	* index of value in the literals array; 
 	* literally just the same as name_id but a node
 	* could have both an identifier and also a value
 	* which is why there's two of them
+
+	* ( eg node var: { name = "var", value = 10, type = "i32" } )
 	*/ 
 	int value;
 
-	enum NodeTag tag;
-	struct Vec* children;
+	NodeTag tag;
+	Vec* children;
 	// for import or method paths
-	struct Path path;
+	Path path;
 
 	// for expressions
-	struct Node *lhs, *rhs;
+	Node *lhs, *rhs;
 
 	// handy for functions and control flow expressions.
-	struct Node
+	Node
 		*cond, 	// condition
 		*els, 	// else-clause
 		*body, 	// body
@@ -90,33 +200,33 @@ struct Node {
 		*inc;		// increment expression, for `for` loops
 };
 
-struct Node *parse_tokens( struct TokenArray *tokens, struct File *src ); 
-struct Node *new_node(enum NodeTag tag);
-void print_ast(struct Node node);
-struct ParseError parse_error(int expected);
+Node *parse_tokens( TokenArray *tokens, File *src ); 
+Node *new_node( NodeTag tag );
+void print_ast( Node *node, int level );
+ParseError parse_error(int expected);
 
-int current(void);
-struct Token current_tok(void);
+/** returns the current token array index */
+size current(void);
+Token current_tok(void);
 
-int check_errors();
+bool check_errors(void);
 
+Token peek(void);
+Token peek_n(int offset);
 
-struct Token peek(void);
-struct Token peek_n(int offset);
+Token prev(void);
+Token prev_n(int offset);
 
-struct Token prev(void);
-struct Token prev_n(int offset);
+void print_lit(Literal* lit);
 
-void print_lit(struct Literal* lit);
-
-struct Literal *lit_id(long tok_id);
-struct Literal *lit_at_tok(long tok_id);
-struct Literal *cur_lit();
-struct Token *token_at(long id);
+Literal *lit_id(size tok_id);
+Literal *lit_at_tok(size tok_id);
+Literal *cur_lit(void);
+Token *token_at(size id);
 
 // prints an "Unexpected token error"
 
-void error_unexpected( int got, int expected, int is_tok, const char * file, const int line );
+void error_unexpected( int got, int expected, bool is_tok, const char * file, const int line );
 void consume(void);
 // expect: returns whether or not the next token is as expected
 int check_next(int tok);
@@ -125,7 +235,7 @@ int check_next_n(int offset, int expected);
 // match: if next token is as expected, consumes the token and returns true
 int match(TokenType type);
 int match_range(int start, int end);
-int match_type_token();
+int match_type_token(void);
 
 // prints an "Unexpected token error" if the next token isn't as expected
 // int match_or_err(token_type expected);
