@@ -12,6 +12,7 @@
 typedef intptr_t size;
 typedef uintptr_t usize;
 typedef uint32_t bool;
+// unsigned int type
 typedef uint32_t uint;
 typedef uint64_t ulong;
 // kinda ugly, i'd much rather just use long
