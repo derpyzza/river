@@ -3,7 +3,7 @@ This is the language spec for river.
 for now this is more of a sketchpad for features, but it'll get leaner and cleaner with each commit!
 
 # Comments
-```c 
+```rs 
 
 // Double slashes indicate a single line comment 
 
@@ -11,6 +11,10 @@ for now this is more of a sketchpad for features, but it'll get leaner and clean
     A Slash followed by an asterisk marks a multiline comment, 
     which is ended by an asterisk followed by a slash.
     Just like in C!
+
+    /*
+        however, unlike in C, comments can be nested
+    */
 */
 
 ```
@@ -21,7 +25,7 @@ for now this is more of a sketchpad for features, but it'll get leaner and clean
 // River comes with several builtin basic data types
 // The builtin types are as follows:
 /*
- * void     - No type / no value
+ * void     - has only one value, void, used for expressions that return nothing
  * bool     - boolean type / true | false
  * ubyte    - Unsigned 8 bit integer
  * ushort   - Unsigned 16 bit integer
@@ -33,31 +37,44 @@ for now this is more of a sketchpad for features, but it'll get leaner and clean
  * long     - Signed 64 bit integer
  * float    - Floating point number
  * double   - Double precision floating point number
- * isize    - Signed pointer sized integer
  * usize    - Unsigned pointer sized integer
- // maybe replace char with rune for better clarity?
+ * size     - Signed pointer sized integer
+ * anyptr   - A pointer type that can be cast down to any pointer type. equivalent to C's void*
  * char     - A Single utf-8 code point i.e represents a single utf-8 character,
               and is therefore four bytes and not a byte like in C.
- * str      - A statically sized utf-8 string literal
+ * string   - A statically sized utf-8 string literal
 */
 
 // River has the following literal types:
 /*
- *  null        - no value. compiles down to (void*)0;
- *  numbers     - signed / unsigned integers, floating point. 
+ *  null        - memory address 0x0. only applicable to pointers. compiles down to (void*)0;
+ *  numbers     - signed / unsigned integers, floating point numbers. 
  *  string      - "string"
  *  true        - just the value true. compiles down to the expression (0==0)
  *  false       - just the value false. compiles down to (0!=0);
+ *  nil         - Just the value nil
  */
 
- 123 // integer
- 123.223 // floating point. defaults to double
- 123.44f // float
- 232.24d // double
- 12_232 // same as 12232, underscores help with readability
- 0x32def // hex
- 0b11010100 // binary
- 0o232ac // octal
+    123        // integer
+    123.223    // floating point. defaults to double
+    // Note: all these letters can be in upper or lower case
+    123.44f    // float
+    232.24d    // double
+    123u       // unsigned int ( u32 )
+    123i       // signed int ( i32 )
+    123u8      // explicit u8 literal
+    123u16     // explicit u16 literal
+    123u32     // explicit u32 literal
+    123u64     // explicit u64 literal
+    123i8      // explicit i8 literal
+    123i16     // explicit i16 literal
+    123i32     // explicit i32 literal
+    123i64     // explicit i64 literal
+    12_232     // same as 12232, underscores help with readability
+    12'232     // same as with underscores, whichever you prefer
+    0xBEEF     // hex
+    0b11010100 // binary
+    0c127      // octal
 ```
 
 # Variable Definition & Declaration
@@ -67,42 +84,40 @@ for now this is more of a sketchpad for features, but it'll get leaner and clean
 // The let keyword inferences the type of a variable by whatever the first value is that the 
 // variable is assigned to.
 // Here it takes on the value of an int.
-let x = 45;
+x := 45;
 x = "str"; // illegal
 
 // Variables are immutable by default
 // And also private to their scope
 
 // to declare a mutable variable add the mut keyword before the variable name:
-let mut x = 0;
+mut x := 0;
 x = 10; // legal
-
-let mut x, mut y, mut z;
 
 // you can declare variables without initializing them.
 // However, when declaring a variable, you must provide it's type
 // i.e using let is illegal
-let y, z, w; // illegal
-int y, z, w; // legal
+y, z, w; // illegal
+y, z, w: int; // legal
 
 // You can assign multiple variables at once:
-int x = 20, y = 50, z = 40;
+let x = 20, y = 50, z = 40;
 // Even if the types are separate:
 let x = "X", y = 230, z = false; // perfectly valid, though do note the use of the 'let' keyword 
 
 // variables are non-nullable by default
 // to have a nullable variable, it must be explicitly marked as such
 // by appending a '?' to the variable name
-// Unlike pointers, nullability is a datatype
-str? name = get_name();
+// nullability is defined as a datatype
+let name: string? = get_name();
 
-int x = 10;
-^int y = &x;
+let x = 10;
+let y: ^int = &x; // & is the address of operator, pointer types are expressed by adding a caret before the type name
 
 // pointer dereferencing
-int q = @c, 
-    w = @v,
-    e = @b;
+let q = ^c, 
+    w = ^v,
+    e = ^b;
 
 ```
 
@@ -111,19 +126,19 @@ int q = @c,
 ```c
 // pointers are defined as such:
 
-^ type name = value;
+let name: ^type = value;
 
 // pointers are marked with the caret or hat '^' operator.
 // pointers can have up to 8 levels of indirection:
 
-^^^^^^^^ type name = value; // pointer to pointer to pointer to ... 8 times to a type of value.
+let name: ^^^^^^^^type = value; // pointer to pointer to pointer to ... 8 times to a type of value.
 
-^^^^^^^^ int ptr; // pointer to pointer to pointer to ... 8 times to an int.
+let ptr: ^^^^^^^^int ; // pointer to pointer to pointer to ... 8 times to an int.
 
 // unlike in C, pointers and arrays are distinct types
 // however, they are both defined before the type:
 
-[size]type name = value;
+name: [size]type = value;
 [6]int arr = [1, 2, 3, 4, 5, 6]; // array of six integers
 
 // array types must always contain the size
@@ -706,25 +721,53 @@ u32 val = 10;
 # Misc + Reference
 
 ## Character / operator list:
-\+ \- \* / % ! != += -= *= /= %= ^ ~ & | && ||
-. , > >= <= < ? : ; ' " = == ( ) { } [ ]
+// arithmetic operators
+
+    + - * / %
+
+// equality and comparisons
+
+    != == <= >= > <
+
+// logical operators 
+
+    not and or
+
+// bitwise operators
+
+    band bor bixor binot
+    or perhaps
+    &b |b ~b !b
+    b& b| b~ b!
+
+    or maybe, unary
+    & | ~ !
+
+// assignment 
++= -= *= /= %=
+
+ ^ ~ & && ||
+. , ? : ; ' " = ( ) { } [ ]
 @ .. ... -> =>
 
 ## Keyword list 
 
-keywords from C:
+// type stuff
+uint int void usize size string bool null unset
+u8 u16 u32 u64 i8 i16 i32 i64 f32 f64 f80 anyptr
 
-short char int long float double void
-if else for while break continue
-goto struct return 
-enum union sizeof const
+// declaration stuff
+struct enum union fun let const mut
 
-river keywords:
+// control flow stuff
+if else for while break continue goto return defer label
 
-usize isize let str bool byte ubyte null
-foreach defer label
-pub mut
+// 
+sizeof typeof alignof
+
 new delete macro
+
 impl interface import as from with is
+extern // ffi
 
 # Grammar specification
