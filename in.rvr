@@ -3,4 +3,4 @@
 // Parse the following text and make it return a .c file
 // With the equivalent code
 
-fun main -> int = 10 + 12 / 2 * 6;
+fun main -> int = -12 + 14 / 2 * 6;

@@ -44,7 +44,7 @@ void vec_pushi(Vec *v, int i) {
 	vec_push(v, (void *)(size)i);
 }
 
-void vec_pop(Vec *v){
+void _vec_pop(Vec *v){
 	if (v->current == 0) {
 		return;
 	}

@@ -9,10 +9,27 @@
 struct Scanner {
 	int line;
 	String *src;
+	// TokenArray *tkn;
 	char *file_start;
 	char *cur;
 	char *tok_start; // start of the current lexeme
 };
+
+/*
+
+
+	single(
+		'(', T_PAREN_OPEN
+	),
+
+	multi(
+		'=' T_EQ,
+		single('=', T_EQ_EQ),
+		single('>', T_FAT_ARROW),
+	),
+
+	*/
+
 
 static struct Scanner scanner;
 
@@ -64,45 +81,25 @@ TokCat tok_to_cat(TokenType token) {
 	if ( in_range_inc(token, T_INTEGER_LITERAL, T_NULL) )  {
 		return TC_LITERAL;
 	}
-	if ( in_range_inc(token, T_UBYTE, T_LET) ) {
+	if ( in_range_inc(token, T_RETURN, T_LET) ) {
 		return TC_KEYWORD;
 	}	
 	if ( token == T_IDENTIFIER ) return TC_ID;
 	return TC_NONE;
 }
 
-static TokenArray* init_token_array(void) {
-	TokenArray* tkn = (TokenArray*)malloc(sizeof(*tkn));
-	tkn->max = 512;
-	tkn->current = 0;
-	tkn->tokens = (Token*)malloc(sizeof(*tkn->tokens) * tkn->max);
-	// Empty out the array
-	tkn->tokens = (Token*)memset(tkn->tokens, 0, sizeof(*tkn->tokens) * tkn->max);
-	return tkn;
-}
-
-
-static void _push_token(TokenArray* tknarr, Token tkn) {
-	if (tknarr->current + 1 > tknarr->max) {
-		tknarr->max *= 2;
-		tknarr->tokens = (Token*)realloc(tknarr->tokens, tknarr->max);
-	}
-
-	tkn.span.c_ptr = scanner.tok_start;
-	tkn.span.len = scanner.cur - scanner.tok_start + 1;
-
-	tknarr->tokens[tknarr->current++] = tkn;
-}
-
-
-static void _push_tok (TokenArray *tkn, TokenType type) {
-	_push_token(tkn,
+static void _push_tok (VecToken *tkn, TokenType type) {
+	String span;
+	span.c_ptr = scanner.tok_start;
+	span.len = scanner.cur - scanner.tok_start + 1;
+	vec_push_Token(tkn,
 	  (Token){
+	  	.span = span,
 	  	.type = type	
 	  });
 }
 
-static void _scan_num(TokenArray *tkn) {
+static void _scan_num(VecToken *tkn) {
 
 	ilong num = _c_to_int();
 
@@ -138,7 +135,7 @@ static void _scan_num(TokenArray *tkn) {
 	_push_tok(tkn, T_INTEGER_LITERAL);
 }
 
-static void _scan_word(TokenArray *tkn) {
+static void _scan_word(VecToken *tkn) {
 	char* str_ptr = scanner.cur;
 	// the first letter of an identifier MUST be an alphabetical character, but every subsequent character can be alphanumeric.
 	// so _1234 is a valid identifier but 12t is not for example.
@@ -166,9 +163,15 @@ static void _scan_word(TokenArray *tkn) {
 	if (!flag) _push_tok ( tkn, T_IDENTIFIER );
 }
 
+// void _init_scanner(TokenArray* tkn, String *src) {
+	
+// }
+
 // convert input string into list of tokens
-struct TokenArray* tokenize( String *src ) {
-	TokenArray* tkn = init_token_array();
+VecToken* tokenize( String *src ) {
+	VecToken *tkn = new_vec_Token(512);
+	// _init_scanner(tkn, src);
+
 	scanner.src = src;
 
 	// pointers to the start of the string
@@ -180,69 +183,44 @@ struct TokenArray* tokenize( String *src ) {
 	scanner.cur = src->c_ptr;
 
 	// printf("Scanning %s for tokens ...\n", src.path);
-	for (; scanner.cur - scanner.file_start < len; _advance()) {
+	for ( ; scanner.cur - scanner.file_start < len; _advance() ) {
 		scanner.tok_start = scanner.cur;
-		if (_is_digit()) {
+
+		if ( _is_digit() ) {
 			_scan_num(tkn);
-		} else if (_is_alpha(_cur())) {
+		} else if ( _is_alpha() ) {
 			_scan_word(tkn);
-		}
-		else if (_is_whitespace()){
+		} else if ( _is_whitespace() ) {
 			if (_cur() == '\n') {
 				scanner.line++;
 				line_start = scanner.cur;
 			}
-		}
-		else {
+		} else {
 			switch (_cur()) {
 
-				case '(':
-					_push_tok(tkn, T_PAREN_OPEN);
-				break;
+				case '(': _push_tok(tkn, T_PAREN_OPEN); break;
 
-				case ')':
-					_push_tok(tkn, T_PAREN_CLOSE);
-				break;
+				case ')': _push_tok(tkn, T_PAREN_CLOSE); break;
 
-				case '{':
-					_push_tok(tkn, T_BRACE_OPEN);
-				break;
+				case '{': _push_tok(tkn, T_BRACE_OPEN); break;
 
-				case '}':
-					_push_tok(tkn, T_BRACE_CLOSE);
-				break;
+				case '}': _push_tok(tkn, T_BRACE_CLOSE); break;
 
-				case '[':
-					_push_tok(tkn, T_BRACKET_OPEN);
-				break;
+				case '[': _push_tok(tkn, T_BRACKET_OPEN); break;
 
-				case ']':
-					_push_tok(tkn, T_BRACKET_CLOSE);
-				break;
+				case ']': _push_tok(tkn, T_BRACKET_CLOSE); break;
 
-				case ';':
-					_push_tok(tkn, T_SEMI);
-				break;
+				case ';': _push_tok(tkn, T_SEMI); break;
 
-				case ',':
-					_push_tok(tkn, T_COMMA);
-				break;
+				case ',': _push_tok(tkn, T_COMMA); break;
 
-				case '?':
-					_push_tok(tkn, T_QUESTION);
-				break;
+				case '?': _push_tok(tkn, T_QUESTION); break;
 
-				case ':':
-					_push_tok(tkn, T_COLON);
-				break;
+				case ':': _push_tok(tkn, T_COLON); break;
 
-				case '~':
-					_push_tok(tkn, T_TILDE);
-				break;
+				case '~': _push_tok(tkn, T_TILDE); break;
 
-				case '^':
-					_push_tok(tkn, T_HAT);
-				break;
+				case '^': _push_tok(tkn, T_HAT); break;
 
 				case '&':
 					if (_peek() == '=') {
@@ -418,35 +396,14 @@ struct TokenArray* tokenize( String *src ) {
 	return tkn;
 }
 
-void print_token_array(String *src, TokenArray tkn)
-{
+void print_token_array(String *src, VecToken tkn) {
 	printf("===DUMPING TS===\n");
 	// printf("File: %s\n", src.path);
 	printf("[TI:CI] token[TN]: tkn, value: val\n"
 				 "----------------------------------\n");
 	for (int i = 0; i < tkn.current; i++ ) {
-		Token current = tkn.tokens[i];
+		Token current = tkn.data[i];
 		switch(current.type) {
-			// 	printf("[%02i:%02li]\t source: \"%.*s\" token[%02i]: %s, int: %02li\n", 
-			// 		i, 
-			// 		current.span.c_ptr - src->c_ptr,
-			// 		(int)current.span.len,
-			// 		current.span.c_ptr,
-			// 		current.type,
-			// 		token_strings[current.type], 
-			// 		current.ival
-			// 		);
-			// break;
-			// 	printf("[%02i:%02li]\t source: \"%.*s\" token[%02i]: %s, float: %Lf\n", 
-			// 		i, 
-			// 		current.span.c_ptr - src->c_ptr,
-			// 		(int)current.span.len,
-			// 		current.span.c_ptr,
-			// 		current.type,
-			// 		token_strings[current.type], 
-			// 		current.fval
-			// 		);
-			// break;
 			case T_INTEGER_LITERAL:
 			case T_FLOATING_LITERAL:
 			case T_CHAR_LITERAL:
@@ -462,16 +419,6 @@ void print_token_array(String *src, TokenArray tkn)
 					current.span.c_ptr
 					);
 			break;
-				// printf("[%02i:%02li]\t source: \"%.*s\" token[%02i]: %s, char: %.*s\n", 
-				// 	i, 
-				// 	current.span.c_ptr - src->c_ptr,
-				// 	(int)current.span.len,
-				// 	current.span.c_ptr,
-				// 	current.type,
-				// 	token_strings[current.type], 
-				// 	(int)current.span.len,
-				// 	current.span.c_ptr
-				// );
 			default:
 				printf("[%02i:%02li] source: \"%.*s\" token[%02i]: %s\n", 
 					i,

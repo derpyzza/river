@@ -13,6 +13,8 @@ typedef struct ParseError {
 	const char * debug_file;
 } ParseError;
 
+create_vec_type(ParseError, ParseErrors);
+
 // typedef struct Var {
 // 	int is_assign;
 // 	struct Substr *name;
@@ -159,33 +161,13 @@ typedef struct RType {
 // I'm storing the literal arrays anyway, might as well squeeze as much use out of them as possible!
 typedef struct Node Node;
 struct Node {
-	char* op;
-	// static type hint
-	int type;
-	// index of literal string for custom type identifiers
-	int type_id;
-	// is an identifier
-	bool has_name;
-	// index of name substring in literals array
-	int name_id; 
-	// has default argument: for struct fields and function arguments
-	bool has_def_value;
-	//	index of default value
-	int arg_id;
-	// self explanatory
-	bool is_stmt;
-	/** 
-	* index of value in the literals array; 
-	* literally just the same as name_id but a node
-	* could have both an identifier and also a value
-	* which is why there's two of them
-
-	* ( eg node var: { name = "var", value = 10, type = "i32" } )
-	*/ 
-	int value;
+	TokenType op;
+	String *type; 	// static type hint
+	String *name; 	// name bound to this object
+	String *value; 	// literal value
 
 	NodeTag tag;
-	Vec* children;
+	struct VecNode* children;
 	// for import or method paths
 	Path path;
 
@@ -201,7 +183,9 @@ struct Node {
 		*inc;		// increment expression, for `for` loops
 };
 
-Node *parse_tokens( TokenArray *tokens, File *src ); 
+create_vec_type(Node*, Node);
+
+Node *parse_tokens( VecToken *tokens, File *src ); 
 Node *new_node( NodeTag tag );
 void print_ast( Node *node, int level );
 ParseError parse_error(int expected);
@@ -217,13 +201,9 @@ Token peek_n(int offset);
 
 Token prev(void);
 Token prev_n(int offset);
-
-void print_lit(Literal* lit);
-
-Literal *lit_id(size tok_id);
-Literal *lit_at_tok(size tok_id);
-Literal *cur_lit(void);
 Token *token_at(size id);
+
+String* cur_tok_span(void);
 
 // prints an "Unexpected token error"
 
@@ -238,5 +218,3 @@ int match(TokenType type);
 int match_range(int start, int end);
 int match_type_token(void);
 
-// prints an "Unexpected token error" if the next token isn't as expected
-// int match_or_err(token_type expected);

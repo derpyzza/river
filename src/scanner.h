@@ -54,16 +54,16 @@ typedef enum TokenType {
 
 	// built in types
 	// int types
-	T_UBYTE, T_USHORT, T_UINT, T_ULONG,
-	T_BYTE, T_SHORT, T_INT, T_LONG, // uint, int ( word size integers )
-	// floats
-	T_FLOAT, T_DOUBLE, // f80
-	// size
-	T_USIZE, T_SIZE,
-	// alphanumeric
-	T_CHAR, T_STRING,
-	//misc
-	T_VOID, T_BOOL,
+	// T_UBYTE, T_USHORT, T_UINT, T_ULONG,
+	// T_BYTE, T_SHORT, T_INT, T_LONG, // uint, int ( word size integers )
+	// // floats
+	// T_FLOAT, T_DOUBLE, // f80
+	// // size
+	// T_USIZE, T_SIZE,
+	// // alphanumeric
+	// T_CHAR, T_STRING,
+	// //misc
+	// T_VOID, T_BOOL,
 
 
 	// misc keywords
@@ -132,16 +132,16 @@ static const char* token_strings[MAX_TKNS] = {
 	// ==keywords==
 	// types
 	// int
-	"ubyte", "ushort", "uint", "ulong",
-	"byte", "short", "int", "long",
-	// float
-	"float", "double",
-	// size
-	"usize", "size",
-	// alphanumeric
-	"char",  "string",
-	// other
-	"void", "bool", 
+	// "ubyte", "ushort", "uint", "ulong",
+	// "byte", "short", "int", "long",
+	// // float
+	// "float", "double",
+	// // size
+	// "usize", "size",
+	// // alphanumeric
+	// "char",  "string",
+	// // other
+	// "void", "bool", 
 
 
 	// keywords
@@ -179,15 +179,10 @@ typedef struct Token {
 	TokenType type; 
 } Token;
 
-// Dynamic array of tokens;
-typedef struct TokenArray {
-	size max;
-	size current;
-	Token* tokens;
-} TokenArray;
+create_vec_type(Token, Token);
 
-void print_token_array(String *src, TokenArray tkn);
-TokenArray* tokenize( String *src );
+void print_token_array(String *src, VecToken tkn);
+VecToken* tokenize( String *src );
 TokCat tok_to_cat( TokenType token);
 
 static inline const char* token_to_str(TokenType type) {
