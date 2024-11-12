@@ -144,7 +144,7 @@ main(int argc, char** argv) {
 		}
 		else printf("file had errors, compilation terminated\n");
 		printf("\n");
-		codegen(out_file, (Node *)node->children->data[0]);
+		codegen(out_file, node->children->data[0]);
 		fclose(out_file);
 		free(tkn);
 	}

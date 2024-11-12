@@ -1,4 +1,4 @@
-// #include "utils.h"
+#include "utils.h"
 #include "codegen.h"
 #include "parser/parser.h"
 #include "scanner.h"
@@ -8,6 +8,7 @@
 // static char* gen_expr(Node *expr);
 
 void codegen(FILE* file, Node *tree) {
+  NULL_PTR_PANIC(tree);
  	switch(tree->tag) {
  		case N_FUNC_DEF:
  			fprintf(file, "%.*s %.*s () {\n\treturn ",

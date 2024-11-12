@@ -50,23 +50,7 @@ typedef enum TokenType {
 	// literals
 	T_TRUE, T_FALSE, T_NULL,
 
-	// == keywords ==
-
-	// built in types
-	// int types
-	// T_UBYTE, T_USHORT, T_UINT, T_ULONG,
-	// T_BYTE, T_SHORT, T_INT, T_LONG, // uint, int ( word size integers )
-	// // floats
-	// T_FLOAT, T_DOUBLE, // f80
-	// // size
-	// T_USIZE, T_SIZE,
-	// // alphanumeric
-	// T_CHAR, T_STRING,
-	// //misc
-	// T_VOID, T_BOOL,
-
-
-	// misc keywords
+		// misc keywords
 	T_RETURN, 
 	T_IF, T_ELSE, T_THEN, T_DO, T_WHILE, T_FOR, T_IN,
 	T_GOTO, T_LABEL, T_BREAK, T_CONTINUE, T_DEFER,
@@ -128,22 +112,7 @@ static const char* token_strings[MAX_TKNS] = {
 	"char literal",
 	"string literal",
 	"true", "false", "null",
-
-	// ==keywords==
-	// types
-	// int
-	// "ubyte", "ushort", "uint", "ulong",
-	// "byte", "short", "int", "long",
-	// // float
-	// "float", "double",
-	// // size
-	// "usize", "size",
-	// // alphanumeric
-	// "char",  "string",
-	// // other
-	// "void", "bool", 
-
-
+	
 	// keywords
 	"return", 
 	"if", "else", "then", "do", "while", "for", "in",
@@ -179,7 +148,7 @@ typedef struct Token {
 	TokenType type; 
 } Token;
 
-create_vec_type(Token, Token);
+CREATE_VEC_TYPE(Token, Token)
 
 void print_token_array(String *src, VecToken tkn);
 VecToken* tokenize( String *src );

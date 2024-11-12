@@ -222,7 +222,7 @@ struct Node *parse_tokens( VecToken *tokens, File *src )
 			}
 			else vec_push_Node(node->children, item);
 			// print_ast(*node);
-		} 
+		} else printf("Null item :(\n");
 
 	}
 
@@ -235,6 +235,7 @@ struct Node *parse_tokens( VecToken *tokens, File *src )
 
 static struct Node *top_level(void) {
 
+	printf("first token we encounter is: %s\n", token_to_str(current_tok().type));
 	if(match(T_FUN)) return fn_def();
 
 	// skip unknown characters for now *shrug*
@@ -426,8 +427,9 @@ String * cur_tok_span() {
 }
 
 // function_def -> "fun" <ID> ( "(" <params_list> ")" )? ( "->" <type> )? "=" <expr> ";" .
-static struct Node *fn_def(void) {
-	struct Node* fn = new_node(N_FUNC_DEF);
+static Node *fn_def(void) {
+	printf("fn def matched!\n");
+	Node* fn = new_node(N_FUNC_DEF);
 	// we are guaranteed to atleast have the following tokens if we've entered this function:
 	// a type token, an identifier, and either a '(' or a '=>'
 	// so we don't need to match the first two, we can just directly consume them and store
@@ -468,10 +470,11 @@ static struct Node *fn_def(void) {
 	if(!match(T_SEMI)) {
 		PANIC(T_SEMI, P_TOK, TC_KEYWORD, P_CAT);
 	}
+	printf("returning fn!\n");
 	return fn;
 }
 
-struct Node *new_node(enum NodeTag type) {
+Node *new_node(NodeTag type) {
 	struct Node* node = (Node *)malloc(sizeof(struct Node));
 	if (node == NULL) {
 		printf("Error, could not malloc new node\n");
@@ -506,8 +509,7 @@ struct Node *new_node(enum NodeTag type) {
 
 
 // TODO: Probably a waste of effort, but consider writing a set of proper string builder functions for generating debug parser output.
-void print_ast(struct Node *node, int level)
-{
+void print_ast( Node *node, int level ) {
 	if (!node) exit(-1);
 	if (level == 0) printf("<root>\n");
 	for ( int i = 0; i < node->children->current; i++ ) {

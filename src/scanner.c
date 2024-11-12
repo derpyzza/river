@@ -1,7 +1,6 @@
 #include "scanner.h"
 #include "utils.h"
 
-#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -15,42 +14,31 @@ struct Scanner {
 	char *tok_start; // start of the current lexeme
 };
 
-/*
-
-
-	single(
-		'(', T_PAREN_OPEN
-	),
-
-	multi(
-		'=' T_EQ,
-		single('=', T_EQ_EQ),
-		single('>', T_FAT_ARROW),
-	),
-
-	*/
-
-
 static struct Scanner scanner;
 
-static inline bool _is_digit( char c = *scanner.cur ) {
+static inline bool _is_digit( char c ) {
 	return (c >= '0' && c <= '9');
 }
 
-static inline bool _is_alpha( char c = *scanner.cur ) {
+static inline bool _is_alpha( char c ) {
 	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || ( c == '_' );
 }
 
-static inline bool _is_alphanum( char c = *scanner.cur ) {
+static inline bool _is_alphanum( char c ) {
 	return (_is_alpha(c) || _is_digit(c));
 }
 
-static inline bool _is_whitespace( char c = *scanner.cur ) {
+static inline bool _is_whitespace( char c ) {
 	return (c == ' ' || c == '\n' || c == '\t' || c == '\r');
 }
 
 // returns the next character in a string without consuming the current one
-static inline char _peek(int by = 1) {
+static inline char _peek(void) {
+	char *c = scanner.cur;
+	return *(c+1);
+}
+
+static inline char _peek_by(int by) {
 	char *c = scanner.cur;
 	return *(c+by);
 }
@@ -67,21 +55,25 @@ static inline int _c_to_int(void) {
 	return *scanner.cur - '0';
 }
 
-static inline void _advance(int by = 1) {
+static inline void _advance(void) {
+	scanner.cur++;
+}
+
+static inline void _advance_by(int by) {
 	scanner.cur += by;
 }
 
 TokCat tok_to_cat(TokenType token) {
-	if ( in_range_inc(token, T_EQUAL, T_HAT) ) {
+	if ( IN_RANGE_INC(token, T_EQUAL, T_HAT) ) {
 		return TC_SYMBOL;
 	}
-	if ( in_range_inc(token, T_DIV_EQ, T_SHR) ) {
+	if ( IN_RANGE_INC(token, T_DIV_EQ, T_SHR) ) {
 		return TC_OPERATOR;
 	}
-	if ( in_range_inc(token, T_INTEGER_LITERAL, T_NULL) )  {
+	if ( IN_RANGE_INC(token, T_INTEGER_LITERAL, T_NULL) )  {
 		return TC_LITERAL;
 	}
-	if ( in_range_inc(token, T_RETURN, T_LET) ) {
+	if ( IN_RANGE_INC(token, T_RETURN, T_LET) ) {
 		return TC_KEYWORD;
 	}	
 	if ( token == T_IDENTIFIER ) return TC_ID;
@@ -101,31 +93,18 @@ static void _push_tok (VecToken *tkn, TokenType type) {
 
 static void _scan_num(VecToken *tkn) {
 
-	ilong num = _c_to_int();
-
 	while(_is_digit(_peek())) {
 		_advance();
-		num = (num * 10) + _c_to_int();
 	} 
 	
 	if (_peek() == '.') {
-		_advance(2);
+		_advance_by(2);
 		if (!_is_digit(_cur()) && !(_cur() == 'f') && !(_cur() == 'd')) {
-			printf("ERROR: extra period after number %li at line %i\n", num, _line());
+			printf("ERROR: extra period after number at line %i\n", _line());
 		} else {
-			long double pnum = 0;
-			int level = 1;
 			while(_is_digit(_cur())) {
-				double temp = 0;
-				temp = _c_to_int();
-				for (int i = 0; i < level; i++) { temp /= 10; }
 				_advance();
-				level++;
-				pnum += temp;
 			}
-			pnum += num;
-			// int len = c-start-_start;
-
 			_push_tok(tkn, T_FLOATING_LITERAL);
 			return;
 		}
@@ -186,17 +165,17 @@ VecToken* tokenize( String *src ) {
 	for ( ; scanner.cur - scanner.file_start < len; _advance() ) {
 		scanner.tok_start = scanner.cur;
 
-		if ( _is_digit() ) {
+		if ( _is_digit( _cur() ) ) {
 			_scan_num(tkn);
-		} else if ( _is_alpha() ) {
+		} else if ( _is_alpha( _cur() ) ) {
 			_scan_word(tkn);
-		} else if ( _is_whitespace() ) {
-			if (_cur() == '\n') {
+		} else if ( _is_whitespace( _cur() ) ) {
+			if ( _cur() == '\n' ) {
 				scanner.line++;
 				line_start = scanner.cur;
 			}
 		} else {
-			switch (_cur()) {
+			switch ( _cur() ) {
 
 				case '(': _push_tok(tkn, T_PAREN_OPEN); break;
 
@@ -352,7 +331,7 @@ VecToken* tokenize( String *src ) {
 				case '"':
 				{
 					if(_peek() == '"') {
-						_advance(2);
+						_advance_by(2);
 						_push_tok ( tkn, T_STRING_LITERAL );
 					}
 					while( _peek() != '"' && ((scanner.cur - scanner.file_start) != len) ) {
@@ -433,5 +412,3 @@ void print_token_array(String *src, VecToken tkn) {
 	}
 	printf("Total used tokens: %ld, Unused tokens: %ld\n", tkn.current, tkn.max - tkn.current);
 }
-
-

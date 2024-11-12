@@ -6,14 +6,19 @@
 #define True ((0==0))
 #define False ((0!=0))
 
-#define in_range_inc(v, min, max) ((min <= v) && (v <= max))
-#define in_range_ex(v, min, max)  ((min < v) && (v < max))
+#define IN_RANGE_INC(v, min, max) ((min <= v) && (v <= max))
+#define IN_RANGE_EX(v, min, max)  ((min < v) && (v < max))
+
+#define NULL_PTR_PANIC(ptr) if (ptr == NULL)	\
+printf("NULL POINTER DEREFERENCE EXCEPTION AT %s, %i\n", __FILE__, __LINE__),	\
+exit(-1);
 
 typedef intptr_t size;
 typedef uintptr_t usize;
 // unsigned int type
 typedef uint32_t uint;
 typedef uint64_t ulong;
+typedef uint32_t bool;
 // kinda ugly, i'd much rather just use long
 // but the problem is when i want a number bigger than int:
 // on my machine, sizeof long == int, which means i have to type long long int
@@ -62,7 +67,7 @@ typedef struct Vec {
 // evil preprocessor macro hack
 // declares a type-safe dynamic array, along with all the functions required to push data into and pull data from it.
 // T is the base type, I is the name for the outputted datatype
-#define create_vec_type(T, I)																					\
+#define CREATE_VEC_TYPE(T, I)																					\
 	typedef struct Vec##I {				 																			\
 		T *data; 																													\
 		size current, max;																								\
