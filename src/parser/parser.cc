@@ -11,11 +11,11 @@
 
 // Forward declarations so that i can rearrange the definitions as i wish
 static struct Node *top_level(void);
-static struct Node *global_var(void);
-static struct Node *import_def(void);
-static struct Node *const_def(void);
 static struct Node *fn_def(void);
-static struct Node *struct_def(void);
+// static struct Node *global_var(void);
+// static struct Node *import_def(void);
+// static struct Node *const_def(void);
+// static struct Node *struct_def(void);
 // static struct Node *type_def(void);
 // static struct Node *enum_def(void);
 // static struct Node *union_def(void);
@@ -279,98 +279,73 @@ struct Node *parse_tokens( TokenArray *tokens, File *src )
 
 static struct Node *top_level(void) {
 
-	if (match(T_IMPORT)) {
-		return import_def();
-	}
-
-	if (match(T_CONST)) {
-		return const_def();
-	}
-
-	// should redo my function / variable parsing strategy here.
-	// i should first try to match on keywords that i know for sure cannot be followed by one or the other,
-	// and if i don't fine said keywords, i should then search for the `TYPE ID ( '=' / '=>' )` pattern.
-	// for instance, the 'pub' keyword is guaranteed to never be a variable definition, it'll always be either a function, struct, enum, union, interface or type.
-	// similarly, the `let` keyword will never ever be followed up with anything other than a variable declaration.
-
-	// check for functions or variables. These require a lookahead to differenciate between them.
-	if ( match(T_LET) ) {
-		return global_var();	
-	} 
-	if ( check_type_token() ) {
-		return (check_next_n(3, T_PAREN_OPEN) || check_next_n(3, T_FAT_ARROW)) 
-		? fn_def() : global_var(); 
-	}
-
-	if (match(T_STRUCT)) {
-		return struct_def();
-	}
+	if(match(T_FUN)) return fn_def();
 
 	// skip unknown characters for now *shrug*
 	// maybe panic here?
 	// dunno
-	printf("unknown node type: %s\n", token_to_str(current_tok().type));
+	// printf("unknown node type: %s\n", token_to_str(current_tok().type));
 	consume();
 	return NULL;
 }
 
 
-static struct Node *import_def(void) {
-	struct Node *imp = new_node(N_IMPORT);
+// static struct Node *import_def(void) {
+// 	struct Node *imp = new_node(N_IMPORT);
 
-	if (!match(T_IDENTIFIER)) 
-	{
-		PANIC(T_IDENTIFIER, P_TOK, T_SEMI, P_TOK);
-		return NULL;
-	}
-	imp->path.root = current_tok().source;
-	imp->path.full = current_tok().source;
+// 	if (!match(T_IDENTIFIER)) 
+// 	{
+// 		PANIC(T_IDENTIFIER, P_TOK, T_SEMI, P_TOK);
+// 		return NULL;
+// 	}
+// 	imp->path.root = current_tok().source;
+// 	imp->path.full = current_tok().source;
 
-	// check for subpaths
-	if(check_next(T_DOT)) {
-		imp->path.has_subpaths = 1;
+// 	// check for subpaths
+// 	if(check_next(T_DOT)) {
+// 		imp->path.has_subpaths = 1;
 
-		while(match(T_DOT)) {
-			if(!match(T_IDENTIFIER)) {
-				PANIC(T_IDENTIFIER, P_TOK, T_SEMI, P_TOK);
-				return NULL;
-			}
-			imp->path.subpath[imp->path.cur_subpath] = current_tok().source; 
-			imp->path.full.len += current_tok().source.len + ( current_tok().source.c_ptr - (imp->path.full.c_ptr + imp->path.full.len) );
-			imp->path.cur_subpath++;
-		}
-	}
+// 		while(match(T_DOT)) {
+// 			if(!match(T_IDENTIFIER)) {
+// 				PANIC(T_IDENTIFIER, P_TOK, T_SEMI, P_TOK);
+// 				return NULL;
+// 			}
+// 			imp->path.subpath[imp->path.cur_subpath] = current_tok().source; 
+// 			imp->path.full.len += current_tok().source.len + ( current_tok().source.c_ptr - (imp->path.full.c_ptr + imp->path.full.len) );
+// 			imp->path.cur_subpath++;
+// 		}
+// 	}
 
-	if(match(T_AS)) {
-		if(!match(T_IDENTIFIER)) {
-			PANIC(T_IDENTIFIER, P_TOK, T_SEMI, P_TOK);
-			return NULL;
-		}
-		imp->has_name = 1;
-		imp->name_id = current_tok().literal_id;
-	}
+// 	if(match(T_AS)) {
+// 		if(!match(T_IDENTIFIER)) {
+// 			PANIC(T_IDENTIFIER, P_TOK, T_SEMI, P_TOK);
+// 			return NULL;
+// 		}
+// 		imp->has_name = 1;
+// 		imp->name_id = current_tok().literal_id;
+// 	}
 
-	if (!match(T_SEMI)) {
-		PANIC(T_SEMI, P_TOK, TC_KEYWORD, P_CAT);
-		return NULL;
-	}
-	return imp;
-}
+// 	if (!match(T_SEMI)) {
+// 		PANIC(T_SEMI, P_TOK, TC_KEYWORD, P_CAT);
+// 		return NULL;
+// 	}
+// 	return imp;
+// }
 
 
 // const values are compile time evaluated constant expressions
-static struct Node* const_def(void) {
-	struct Node* node =new_node(N_CONST);
-	match_type_token();
-	node->type = current_tok().type;
-	match(T_IDENTIFIER);
-	node->name_id = current_tok().literal_id;
-	match(T_EQUAL_SIGN);
-	match_cat(TC_LITERAL);
-	node->value = current_tok().literal_id;
-	match(T_SEMI);
-	return node;
-}
+// static struct Node* const_def(void) {
+// 	struct Node* node =new_node(N_CONST);
+// 	match_type_token();
+// 	node->type = current_tok().type;
+// 	match(T_IDENTIFIER);
+// 	node->name_id = current_tok().literal_id;
+// 	match(T_EQUAL);
+// 	match_cat(TC_LITERAL);
+// 	node->value = current_tok().literal_id;
+// 	match(T_SEMI);
+// 	return node;
+// }
 
 // static ^Node var_assign => {}
 // fun int add (int x, y) = x + y;
@@ -379,60 +354,60 @@ static struct Node* const_def(void) {
 // ^Node node = new Node();
 // let node = new Node();
 
-static struct Node *var_assign(void) {
-	struct Node* node = new_node(N_VAR);
+// static struct Node *var_assign(void) {
+// 	struct Node* node = new_node(N_VAR);
 
-	if (current_tok().type == T_LET) {
+// 	if (current_tok().type == T_LET) {
 
-		if(!match(T_IDENTIFIER)) PANIC(T_IDENTIFIER, P_TOK, TC_KEYWORD, P_CAT);
-		node->name_id = current_tok().literal_id;	
-	} else {
+// 		if(!match(T_IDENTIFIER)) PANIC(T_IDENTIFIER, P_TOK, TC_KEYWORD, P_CAT);
+// 		node->name_id = current_tok().literal_id;	
+// 	} else {
 
-		// pull out type
-		consume();
+// 		// pull out type
+// 		consume();
 
-		// the type can either be a set of built-in types,
-		// or an identifier that corresponds to a user defined type
-		// ( which can be one of a struct, an enum, a union, or a type alias ) 
-		// 
+// 		// the type can either be a set of built-in types,
+// 		// or an identifier that corresponds to a user defined type
+// 		// ( which can be one of a struct, an enum, a union, or a type alias ) 
+// 		// 
 
-		TokenType t = current_tok().type;
-		if( t == T_IDENTIFIER )
-			node->type_id = current_tok().literal_id;
-		node->type = current_tok().type;
+// 		TokenType t = current_tok().type;
+// 		if( t == T_IDENTIFIER )
+// 			node->type_id = current_tok().literal_id;
+// 		node->type = current_tok().type;
 
-		// pull out identifier
-		consume();
-		node->name_id = current_tok().literal_id;
-	}
+// 		// pull out identifier
+// 		consume();
+// 		node->name_id = current_tok().literal_id;
+// 	}
 
 
-  if (!match(T_EQUAL_SIGN))
-    PANIC(T_EQUAL_SIGN, P_TOK, TC_KEYWORD, P_CAT);
+//   if (!match(T_EQUAL))
+//     PANIC(T_EQUAL, P_TOK, TC_KEYWORD, P_CAT);
 
-	if( !match_cat(TC_LITERAL)) 
-		PANIC(TC_LITERAL, P_CAT, TC_KEYWORD, P_CAT);
-	node->value = current_tok().literal_id;
-	return node;
-}
+// 	if( !match_cat(TC_LITERAL)) 
+// 		PANIC(TC_LITERAL, P_CAT, TC_KEYWORD, P_CAT);
+// 	node->value = current_tok().literal_id;
+// 	return node;
+// }
 
-static struct Node *global_var(void) {
+// static struct Node *global_var(void) {
 
-	struct Node* node = new_node(N_NODE_LIST);
-	int has_commas = 0;
-	struct Node* assign = var_assign();
+// 	struct Node* node = new_node(N_NODE_LIST);
+// 	int has_commas = 0;
+// 	struct Node* assign = var_assign();
 
-	if(peek().type == T_COMMA) vec_push(node->children, assign);
-	while(match(T_COMMA)) {
-		has_commas = 1;
-		vec_push(node->children, var_assign());
-	}
-	if(!match(T_SEMI)) PANIC(T_SEMI, P_TOK, TC_KEYWORD, P_CAT);
+// 	if(peek().type == T_COMMA) vec_push(node->children, assign);
+// 	while(match(T_COMMA)) {
+// 		has_commas = 1;
+// 		vec_push(node->children, var_assign());
+// 	}
+// 	if(!match(T_SEMI)) PANIC(T_SEMI, P_TOK, TC_KEYWORD, P_CAT);
 
-	if (has_commas)
-		return node;
-	else return assign;
-}
+// 	if (has_commas)
+// 		return node;
+// 	else return assign;
+// }
 
 // takes in the `type` of the variable as an argument, since the type could appear
 // a lot further before the current variable, so you can't just peek backwards to check it out
@@ -441,55 +416,56 @@ static struct Node *global_var(void) {
 // If we're parsing the item 'r' for example, we'd have to do about 12 tokens of look-back
 // to know what the type is. instead, the type is parsed and stored when it's encountered, and
 // then passed in to any variable that is being parsed.
-static struct Node* struct_item(TokenType type) {
-	struct Node* item = new_node(N_STRUCT_FIELD);
-	item->type = type;
-	match(T_IDENTIFIER);
-	item->name_id = current_tok().literal_id;
-	if(match(T_EQUAL_SIGN)) {
-		match_cat(TC_LITERAL);
-		item->value = current_tok().literal_id;
-	}
-	return item;
-}
+// static struct Node* struct_item(TokenType type) {
+// 	struct Node* item = new_node(N_STRUCT_FIELD);
+// 	item->type = type;
+// 	match(T_IDENTIFIER);
+// 	item->name_id = current_tok().literal_id;
+// 	if(match(T_EQUAL)) {
+// 		match_cat(TC_LITERAL);
+// 		item->value = current_tok().literal_id;
+// 	}
+// 	return item;
+// }
 
-static struct Node* struct_field(void) {
-	TokenType field_type = match_type_token();
-	struct Node* item = struct_item(field_type);
+// static struct Node* struct_field(void) {
+// 	TokenType field_type = match_type_token();
+// 	struct Node* item = struct_item(field_type);
 
-	if(peek().type == T_COMMA) {
+// 	if(peek().type == T_COMMA) {
 
-		struct Node* list = new_node(N_NODE_LIST);
-		vec_push(list->children, item);
+// 		struct Node* list = new_node(N_NODE_LIST);
+// 		vec_push(list->children, item);
 
-		// match all items
-		while(match(T_COMMA)) vec_push(list->children, struct_item(field_type));		
+// 		// match all items
+// 		while(match(T_COMMA)) vec_push(list->children, struct_item(field_type));		
 
-		return list;
-	}
+// 		return list;
+// 	}
 
-	return item;
-}
+// 	return item;
+// }
 
-static struct Node *struct_def(void) {
-	struct Node* node = new_node(N_STRUCT_DEF);
-	match(T_IDENTIFIER);
-	node->name_id = current_tok().literal_id;
-	match(T_BRACE_OPEN);
-	while(!match(T_BRACE_CLOSE)) {
-		struct Node* item = struct_field();		
-		if(item) {
-			if (item->tag == N_NODE_LIST) {
-				for(int i = 0; i < item->children->current; i++) 
-					vec_push(node->children, item->children->data[i]);
-			}
-			else vec_push(node->children, item);
-		}
-		match(T_SEMI);
-	}
-	return node;
-}
+// static struct Node *struct_def(void) {
+// 	struct Node* node = new_node(N_STRUCT_DEF);
+// 	match(T_IDENTIFIER);
+// 	node->name_id = current_tok().literal_id;
+// 	match(T_BRACE_OPEN);
+// 	while(!match(T_BRACE_CLOSE)) {
+// 		struct Node* item = struct_field();		
+// 		if(item) {
+// 			if (item->tag == N_NODE_LIST) {
+// 				for(int i = 0; i < item->children->current; i++) 
+// 					vec_push(node->children, item->children->data[i]);
+// 			}
+// 			else vec_push(node->children, item);
+// 		}
+// 		match(T_SEMI);
+// 	}
+// 	return node;
+// }
 
+// function_def -> "fun" <ID> ( "(" <params_list> ")" )? ( ":" <type> )? "=" <expr> ";" .
 static struct Node *fn_def(void) {
 	struct Node* fn = new_node(N_FUNC_DEF);
 	// we are guaranteed to atleast have the following tokens if we've entered this function:
@@ -497,28 +473,32 @@ static struct Node *fn_def(void) {
 	// so we don't need to match the first two, we can just directly consume them and store
 	// their data;
  
-	// match type
-	consume();
-	fn->type = current_tok().type;
-
 	// match identifier
-	consume();
-	fn->name_id = current_tok().literal_id;
+	if( match(T_IDENTIFIER) )
+		fn->name_id = current_tok().literal_id;
+	else printf("error, missing identifier");
 
 	// parse params
-	// if(match(T_PAREN_OPEN)) {
-	// 	while(!match(T_PAREN_CLOSE)) {
-	//
-	// 	}
-	// 	// error
-	// }
+	if(match(T_PAREN_OPEN)) {
+		while(!match(T_PAREN_CLOSE)) {
+			consume();
+		}
+		// error
+	}
 
-	if(match(T_FAT_ARROW)) {
+	
+	if (match(T_ARROW)) {
+		// match type
+		if (!match_type_token()) printf("ERROR: expected return type"), exit(-1);
+		fn->type = current_tok().type;
+	}
+
+	if(match(T_EQUAL)) {
 		fn->body = parse_expr();
 	}
 	else {
 		// TODO: support proper "OR" type errors;
-		PANIC(T_FAT_ARROW, P_TOK, T_SEMI, P_TOK);
+		PANIC(T_EQUAL, P_TOK, T_SEMI, P_TOK);
 	}
 
 	if(!match(T_SEMI)) {

@@ -159,6 +159,7 @@ typedef struct RType {
 // I'm storing the literal arrays anyway, might as well squeeze as much use out of them as possible!
 typedef struct Node Node;
 struct Node {
+	char* op;
 	// static type hint
 	int type;
 	// index of literal string for custom type identifiers

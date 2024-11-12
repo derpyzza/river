@@ -1,19 +1,17 @@
 // imports only the println function from std.io ( and whatever else it needs of-course )
-import std.io.{ println };
+let println = import std.io.{ println }; // assigning to a variable removes the need for specifying the full path
 
-void fizzbuzz (int i) {
-	switch {
+fun fizzbuzz(i: int) {
+	if i =>	{
 		// cases are evaluated in order
-		case i % 3 == 0 and i % 5 == 0 => println("FizzBuzz"),
-		case i % 3 == 0 => println("Fizz"),
-		case i % 5 == 0 => println("Buzz"),
-		default => println(i)
+		i % 3 == 0 and i % 5 == 0 { println("FizzBuzz") },
+		i % 3 == 0  { println("Fizz") },
+		i % 5 == 0 { println("Buzz") },
+		_ => { println(i) }	
 	}
 }
 
-int main => {
-
+fun main {
 	for i in [0..100] => fizzbuzz(i);
-
 	0
 }

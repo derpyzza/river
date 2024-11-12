@@ -1,6 +1,6 @@
 import std::io::{ println };
 
-void strcopy(^char a, ^char b) => {
+fun strcopy(a, b: ^char) {
 	^char og = a;
 	while @a != '\0' {
 		@b = @a;
@@ -14,9 +14,9 @@ void strcopy(^char a, ^char b) => {
 }
 
 
-int main => {
+fun main {
 	let a = "Hello";
-	[6]char b;
+	let b: [6]char;
 
 	strcopy(a, b);
 

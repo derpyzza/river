@@ -1,7 +1,5 @@
 #pragma once
 
-
-// Forward declarations because C is stupid about these
 #include "utils.h"
 
 typedef enum TokenType {
@@ -19,6 +17,7 @@ typedef enum TokenType {
 	T_QUESTION, T_COLON,
 	T_AMP, T_PIPE, T_ATSIGN,
 	T_TILDE, T_DOLLAR, T_HASH, T_HAT,
+	T_SINGLE_OP_END,
 
 	// combo operators
 	T_DIV_EQ,
@@ -41,6 +40,7 @@ typedef enum TokenType {
 	T_LOG_OR,
 	T_SHL,
 	T_SHR,
+	T_COMBO_OP_END,
 
 	T_IDENTIFIER,
 	T_INTEGER_LITERAL,
@@ -49,6 +49,7 @@ typedef enum TokenType {
 	T_STRING_LITERAL,
 	// literals
 	T_TRUE, T_FALSE, T_NULL,
+	T_LITERAL_END,
 
 	// == keywords ==
 
@@ -75,6 +76,7 @@ typedef enum TokenType {
 	T_MATCH, T_CASE, T_SIZEOF, T_TYPEOF,
 	T_MACRO, T_YIELD, T_EXPECT, T_ASSERT,
 	T_FUN, T_STATIC, T_CONST, T_MUT, T_UNDEF, T_PUB, T_LET,
+	T_KEYWORD_END,
 
 	T_EOF,
 
@@ -97,7 +99,8 @@ static const char* token_strings[MAX_TKNS] = {
 	"<", ">",
 	"?", ":",
 	"&", "|", "@",
-	"~", "$", "#", "^",
+	"~", "^",
+	"sing-op-end",
 
 	// combo operators
 	"/=",
@@ -120,6 +123,7 @@ static const char* token_strings[MAX_TKNS] = {
 	"||",
 	"<<",
 	">>",
+	"combo-op-end",
 
 	"identifier",
 	// literals
@@ -128,6 +132,7 @@ static const char* token_strings[MAX_TKNS] = {
 	"char literal",
 	"string literal",
 	"true", "false", "null",
+	"literal-end",
 
 	// ==keywords==
 	// types
@@ -153,7 +158,8 @@ static const char* token_strings[MAX_TKNS] = {
 	"switch", "case", "sizeof", "typeof",
 	"macro", "yield", "expect", "assert",
 	// variable decl
-	"fun", "static", "const", "mut", "undef", "pub", "let",
+	"fun", "static", "const", "mut", "pub", "let",
+	"keywords end",
 
 	"EOF",
 };
@@ -169,10 +175,14 @@ typedef enum TokCat {
 	TC_MAX
 } TokCat;
 
+typedef struct Span {
+	usize start, end;
+} Span;
+
 typedef struct Token {
 	usize line;
 	int chr_index; 			// the starting character index
-	String span;
+	Span span;
 	ilong ival; 				// storage for int literals
 	long double fval; 	// storage for float
 	TokCat cat; 				// the token category
@@ -187,12 +197,7 @@ typedef struct TokenArray {
 } TokenArray;
 
 void print_token_array(String *src, TokenArray tkn);
-TokenArray* tokenize( String *src );
 TokCat tok_to_cat( TokenType token);
-
-static inline const char* token_to_str(TokenType type) {
-	return (char*) token_strings[type];
-}
 
 // useful for termination
 static inline Token token_eof(void) {
@@ -208,6 +213,11 @@ static inline Token token_none(void) {
 		.type = T_NONE,
 	};
 } 
+
+
+static inline const char* token_to_str(TokenType type) {
+	return (char*) token_strings[type];
+}
 
 static inline const char* tokcat_to_str(TokCat cat) {
 	switch(cat) {

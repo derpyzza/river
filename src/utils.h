@@ -11,7 +11,6 @@
 
 typedef intptr_t size;
 typedef uintptr_t usize;
-typedef uint32_t bool;
 // unsigned int type
 typedef uint32_t uint;
 typedef uint64_t ulong;
@@ -33,13 +32,20 @@ typedef struct Result {
 	void *ok;
 } Result;
 
-// I bet a compiler would have a lot of use for string manipulation stuff
-// this struct should be moved into it's own module in that case.
 typedef struct String {
 	int len; // not size, because the string format expects an int as the length
 	int cap;
 	char* c_ptr;
 } String;
+
+
+// linked list of strings
+typedef struct StringBuilder {
+
+	String string;
+	String *next; // pointer to next string in list
+	
+} StringBuilder;
 
 typedef struct File {
 	bool is_valid;
@@ -61,5 +67,6 @@ void vec_push(Vec *v, void* item);
 void vec_pushi(Vec *v, int i);
 void vec_pop(Vec *v);
 
+String *str_new(size init);
 String *str_from(const char* s);
 void str_append(String* o, char* s);

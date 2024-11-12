@@ -9,11 +9,11 @@
 	@param elem_size — size of one element
 */
 Vec *new_vec(size init, size elem_size) {
-	Vec *v = malloc(sizeof(Vec));
+	Vec *v = (Vec*)malloc(sizeof(Vec));
 	if(v) {
 		v->max = init;
 		v->current = 0;
-		v->data = calloc(v->max, sizeof(elem_size));
+		v->data = (void**)calloc(v->max, sizeof(elem_size));
 		return v;
 	}
 
@@ -33,7 +33,7 @@ Vec *init_vec(void** data, size len) {
 void vec_push(Vec *v, void* item) {
 	if (v->current + 1 > v->max) {
 		v->max *= 2;
-		v->data = realloc(v->data, sizeof(void*) * v->max);
+		v->data = (void**)realloc(v->data, sizeof(void*) * v->max);
 	}
 
 	v->data[v->current] = item;
@@ -53,11 +53,21 @@ void vec_pop(Vec *v){
 	return;
 }
 
+String *str_new(size init) {
+	String *str = (String*)malloc(sizeof(String));
+
+	str->len = init;
+	str->c_ptr = (char*)malloc(sizeof(char) * str->len);
+
+	if(str) return str;
+	else return NULL;
+}
+
 String *str_from(const char *s) {
-	String *new = malloc(sizeof(struct String));
-	new->len = new->cap = strlen(s);
-	new->c_ptr = malloc(sizeof(char) * new->len);
-	if (memcpy(new->c_ptr, s, new->len)) return new;
+	String *str = (String*)malloc(sizeof(struct String));
+	str->len = str->cap = strlen(s);
+	str->c_ptr = (char*)malloc(sizeof(char) * str->len);
+	if (memcpy(str->c_ptr, s, str->len)) return str;
 	else printf("Error: Could not copy memory for new string"), exit(-1);
 }
 
@@ -66,7 +76,7 @@ void str_grow(String* s, size len) {
 
 	while ( s->len + len > s->cap )
 		s->cap *= 2;
-	s->c_ptr = realloc(s->c_ptr, sizeof(char) * s->cap);
+	s->c_ptr = (char*)realloc(s->c_ptr, sizeof(char) * s->cap);
 }
 
 void str_append(String* o, char* s) {
@@ -75,5 +85,12 @@ void str_append(String* o, char* s) {
 
 	memcpy(o->c_ptr + o->len, s, len);
 	o->len += len;
+}
+
+StringBuilder * sb_new(const char * src) {
+	StringBuilder *sb = (StringBuilder*)malloc(sizeof(*sb));
+	sb->string = *str_from(src);
+	sb->next = NULL;
+	return sb;
 }
 

@@ -2,6 +2,35 @@
 This is the language spec for river.
 for now this is more of a sketchpad for features, but it'll get leaner and cleaner with each commit!
 
+
+design patterns:
+
+> ':' attributes
+> '=' assigns
+> '@' is a built-in procedure
+> '#' annotates
+
+# Identifiers and Numbers
+
+```
+
+    identifier -> (['a'..'z'] | ['A'..'Z'] | '_')* ;
+
+    number -> <sign> ( <integer> | <float> ) <exponent>? ;
+
+    sign -> '+' | '-' ;
+
+    integer -> 
+          <hex_literal>
+        | <octal_literal>
+        | <binary_literal> ;
+
+    float -> \d+ ( '.' \d* )? <[fFdD]> ;
+
+    exponent -> ('e'|'E') <sign>? <integer> ;
+
+```
+
 # Comments
 ```c 
 
@@ -62,6 +91,12 @@ for now this is more of a sketchpad for features, but it'll get leaner and clean
 
 # Variable Definition & Declaration
 
+```
+    var_def -> "let" "mut"? <ID> ( ":" <type> )? ( "=" <expr> ) ";" .
+    
+```
+
+
 ```c
 
 // The let keyword inferences the type of a variable by whatever the first value is that the 
@@ -70,37 +105,38 @@ for now this is more of a sketchpad for features, but it'll get leaner and clean
 let x = 45;
 x = "str"; // illegal
 
-// Variables are immutable by default
+// let-introduced values are immutable by default
 // And also private to their scope
 
-// to declare a mutable variable add the mut keyword before the variable name:
-let mut x = 0;
+// to declare a mutable variable use the var keyword:
+var x = 0;
 x = 10; // legal
 
-let mut x, mut y, mut z;
+var x, y, z;
 
 // you can declare variables without initializing them.
 // However, when declaring a variable, you must provide it's type
 // i.e using let is illegal
 let y, z, w; // illegal
-int y, z, w; // legal
+let y, z, w: int; // legal
 
 // You can assign multiple variables at once:
-int x = 20, y = 50, z = 40;
+let x, y, z = 10, 20, 30;
 // Even if the types are separate:
-let x = "X", y = 230, z = false; // perfectly valid, though do note the use of the 'let' keyword 
+let x, y, z = "X", 230, false;
+
 
 // variables are non-nullable by default
 // to have a nullable variable, it must be explicitly marked as such
 // by appending a '?' to the variable name
 // Unlike pointers, nullability is a datatype
-str? name = get_name();
+let name: string? = get_name();
 
-int x = 10;
-^int y = &x;
+let x: int = 10;
+let y: ^int = &x;
 
 // pointer dereferencing
-int q = @c, 
+let q = @c, 
     w = @v,
     e = @b;
 
@@ -145,35 +181,46 @@ int q = @c,
 
 # Functions 
 
+```
+
+    function_def -> "fun" <ID> ( "(" <params_list> ")" )? ( ":" <type> )? "=" <expr> ";" .
+    
+```
+
+
 ```c
 
 // Code blocks, including functions, support implicit returns
 // the last expression within a block is returned
-int sub ( int x, int y ) => {
-    x + y // returns x + y
+fun sub ( x: int, y: int ) -> int = {
+    x - y // returns x + y
 } 
 
 // the above function can also be written as:
-int sub (int x, int y) => x - y;
+fun sub ( x, y: int ) -> int = x - y;
+
+fun sub[T: type where T is subtractive](x, y: T) -> T = x - y;
+
+fun div(num, div: int) -> int where div > 0 = num / div;
 
 // functions without parameters can be omit the parenthesis
-int do_stuff => {
+fun do_stuff = {
     // do something
 }
 
-int add 10; // error! expected '=>' or '=', got Int_Literal!
+fun add 10; // error! expected '=>' or '=', got Int_Literal!
                // help: try adding a '=>' before the number '10'
                //     | add '=>' 10;
                //     |~~~~~~^^~~~~~
 
 // function types can be declared as such:
 // this is a function that has a parameter of type int and returns a value of type bool
-type func = fn(int) => bool;
+type func = fun(int): bool;
 
 // Functions support default parameter values
 // If an argument is not passed for a particular parameter,
-// the default value is used instead.
-Colour Colour_from_rgba( int r, int g, int b, int a = 255 ) => {
+// the default value is used instead
+fun Colour_from_rgba( r, g, b: int, a: int = 255 ): Colour = {
     Colour {r, g, b, a}
 }
 
@@ -183,9 +230,9 @@ Colour_from_rgba(125, 125, 125, 125); // param 'a' => 125;
 
 // Function arguments can be named when calling functions
 // Take the following function for example:
-Rectangle draw_rect_pro (int x, int y, int width, int height, float rotation, Colour col) => { /*...*/ }
+fun draw_rect_pro ( x, y, width, height: int, rotation: int, col: Colour ) -> Rectangle = { /*...*/ }
 // You can call the function by naming the individual arguments
-Rectangle rect = draw_rect_pro(
+let rect = draw_rect_pro(
     x = 20,
     y = 30,
     width = 240,
@@ -200,37 +247,36 @@ draw_rect_pro(
     col = (10,10,10,255)); // perfectly valid
 
 // functions can have multiple return values by utilizing tuples
-(File, str) read_file(str path) => {
+let read_file(string path) -> File, string = {
     // ... file reading logic ...
 
-    return (file, extension);
+    return file, extension;
 }
 
 
-let (file, ext) = read_file("SPEC.md");
+let file, ext = read_file("SPEC.md");
 if ext == ".md" {
     parse_markdown(file);
 }
 
 // In the case of functions that return nullable values, you can unwrap
 // the value using the '?' operator:
-str name = get_name()?; // => if get_name() returns null then the program panics;
+let name = get_name()?; // => if get_name() returns null then the program panics;
 
 // for one liners without params the parenthesis can be omitted 
-char consume => scanner.char += 1;
-char peek => scanner.token[scanner.char + 1];
+fun consume = scanner.char += 1; // note, how do you decide whether or not this function returns a value, without a hint? the rhs of this function is an assignment expression, what does that evaluate to?
+fun peek = scanner.token[scanner.char + 1];
 
 // functions are first class in river, so you can pass them around as values
 // TODO: workshop the function callback syntax a bit more
-u32 example_func( float val, fn void func => (float, int) ) =>
-{
+fun example_func( float val, fn func(float, int) ) -> u32 = {
     func(val, 20); // => calls the passed-in function
 }
 
 // functions can return other functions
-(bool => (int)) func () => {
+fun func() -> fun(bool) -> int = {
     // functions can be defined inline as closures
-    return fn bool _ (u32 x) {
+    return fun(bool x) -> int {
         if x {
             true
         } else {
@@ -240,7 +286,7 @@ u32 example_func( float val, fn void func => (float, int) ) =>
 }
 
 // though it's nicer to just give the return functions a type alias
-type callback = (bool => (int, float));
+type callback = fun(int, float) -> bool;
 
 
 // function contracts
@@ -364,20 +410,15 @@ switch expr {
 ```c
 
 // You can wrap up several datatypes into a big datatype called a struct, just like in C 
-struct Vector3 {
+type Vector3 = struct {
     f32 x, y, z;
 };
 
 // Unlike in C, you don't need to typedef structs to avoid the struct keyword in declarations
 // Also unlike in C, struct fields cannot be anonymous
-Vector3 v = {.x = 10.f, .y = 10.f, .z = 12.f};
+Vector3 v = Vector3 {.x = 10.f, .y = 10.f, .z = 12.f};
 
-// However, it's good practice to mark structs with an "_s" when declaring them
-struct Vector3_s {
-    u32 x, y, z;
-};
-
-struct Vector4 {
+type Vector4 = struct {
     // Fields are non-nullable by default
     f32 x, y, z;
     // However, fields can be nullable
@@ -386,13 +427,13 @@ struct Vector4 {
     f32 w?;
 };
 
-struct User {
+type User = struct {
     // Struct fields can have default values
     str username = "Admin";
     u16 pin = 0000;
 };
 
-User admin;
+let admin: User;
 printf("user.name = %s", admin.username); // => "user.name = Admin"
 admin.name = "Administrator";
 printf("user.name = %s, user.pin = %i", admin.username, admin.pin) // => "user.name = Administrator, user.pin = 0000"; 
@@ -400,14 +441,23 @@ printf("user.name = %s, user.pin = %i", admin.username, admin.pin) // => "user.n
 // NOTE: Do structs really need methods?
 // what if instead of "true" methods there was Uniform function call syntax instead?
 
-int add(int x, int y) {
-    return x + y;
+fun add(x, y: int) -> int = {
+    x + y
 }
 
 let x = 10;
 let y = 30;
 let z = x.add(y); // => 40
 let w = z.add(y).add(x); // => 80. equivalent to add(z, add(y, x));
+
+
+// generic structs
+
+type DynArray = struct<$T: type> {
+    id, max: size;
+    data: ^T;
+};
+
 
 ```
 

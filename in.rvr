@@ -3,25 +3,4 @@
 // Parse the following text and make it return a .c file
 // With the equivalent code
 
-int bleh = 10;
-string q = "str";
-long y = 232;
-Vector3 pos = 34;
-
-let something = "smth";
-
-struct thingy {
-	int x;
-	int w, y = "Hello there", z = 'z';
-	byte q = 10, t, d;
-}
-
-
-int func => 10 + 5 / 2;
-int func => 10 + 12 / 2;
-
-int main => 10;
-
-const int ten = 11;
-
-int x = 23;
+fun main -> int = 10 + 12 / 2 * 6;
