@@ -4,7 +4,7 @@
 // Forward declarations because C is stupid about these
 #include "utils.h"
 
-typedef enum TokenType {
+typedef enum TokenTag {
 	T_NONE = 0,
 	// Single Character tokens
 	T_EQUAL,
@@ -63,7 +63,7 @@ typedef enum TokenType {
 	T_EOF,
 
 	MAX_TKNS,
-} TokenType;
+} TokenTag;
 
 static const int NUM_KEY_WORDS = T_EOF - T_TRUE;
 
@@ -145,18 +145,13 @@ typedef struct Token {
 	ilong ival; 				// storage for int literals
 	long double fval; 	// storage for float
 	TokCat cat; 				// the token category
-	TokenType type; 
+	TokenTag type; 
 } Token;
 
 CREATE_VEC_TYPE(Token, Token)
 
 void print_token_array(String *src, VecToken tkn);
 VecToken* tokenize( String *src );
-TokCat tok_to_cat( TokenType token);
-
-static inline const char* token_to_str(TokenType type) {
-	return (char*) token_strings[type];
-}
 
 // useful for termination
 static inline Token token_eof(void) {
@@ -173,7 +168,28 @@ static inline Token token_none(void) {
 	};
 } 
 
-static inline const char* tokcat_to_str(TokCat cat) {
+static inline TokCat tok_to_cat(TokenTag token) {
+	if ( IN_RANGE_INC(token, T_EQUAL, T_HAT) ) {
+		return TC_SYMBOL;
+	}
+	if ( IN_RANGE_INC(token, T_DIV_EQ, T_SHR) ) {
+		return TC_OPERATOR;
+	}
+	if ( IN_RANGE_INC(token, T_INTEGER_LITERAL, T_NULL) )  {
+		return TC_LITERAL;
+	}
+	if ( IN_RANGE_INC(token, T_RETURN, T_LET) ) {
+		return TC_KEYWORD;
+	}	
+	if ( token == T_IDENTIFIER ) return TC_ID;
+	return TC_NONE;
+}
+
+static inline const char* tok_to_str(TokenTag type) {
+	return (char*) token_strings[type];
+}
+
+static inline const char* cat_to_str(TokCat cat) {
 	switch(cat) {
 		case TC_KEYWORD: return "Keyword"; break;
 		case TC_ID: return "Identifier"; break;
@@ -184,7 +200,7 @@ static inline const char* tokcat_to_str(TokCat cat) {
 	}
 }
 
-static inline char token_to_char(TokenType token) {
+static inline char tok_to_char(TokenTag token) {
 	if (token <= T_HAT && token >= T_EQUAL) {
 		char tokens[(T_HAT - T_EQUAL) + 1] = {
 			'=', '(', ')', '{', '}', '[', ']', ',', '.', '+', '-', '*', '/', '%', ';', '!',

@@ -22,11 +22,11 @@ void codegen(FILE* file, Node *tree) {
  		break;
  		case N_BIN_EXPR:
  		  codegen(file, tree->lhs);
- 		  fprintf(file, "%s", token_to_str(tree->op));
+ 		  fprintf(file, "%s", tok_to_str(tree->op));
  		  codegen(file, tree->rhs);
  		break;
  		case N_UN_EXPR:
- 		  fprintf(file, "%s", token_to_str(tree->op));
+ 		  fprintf(file, "%s", tok_to_str(tree->op));
       codegen(file, tree->rhs);
  		break;
     case N_LIT:

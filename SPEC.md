@@ -16,19 +16,43 @@ design patterns:
 
     identifier -> (['a'..'z'] | ['A'..'Z'] | '_')* ;
 
-    number -> <sign> ( <integer> | <float> ) <exponent>? ;
+    number -> ( <integer> | <float> ) <exponent>? ;
 
-    sign -> '+' | '-' ;
+    exponent -> ('e'|'E') <[-+]>? <integer>;
 
-    integer -> 
-          <hex_literal>
-        | <octal_literal>
-        | <binary_literal> ;
+    integer ->
+        \d*
+    		| <hex_literal>
+    		| <octal_literal>
+    		| <binary_literal> ;
 
-    float -> \d+ ( '.' \d* )? <[fFdD]> ;
+    float -> \d* ( '.' \d+ )? <[fFdD]> ;
 
-    exponent -> ('e'|'E') <sign>? <integer> ;
+    hex_literal -> '0x' [1..9]* | ['a'..'f']* | ['A'..'F'] ;
+    octal_literal -> '0c' [1..7]* ;
+    binary_literal -> '0b' <[01]>* ;
 
+    1
+    32
+    134'43e+10
+    134_43E+10
+    13'234'32
+    24_242_24
+    -23
+    0xbadcafe
+    0xBADCAFE
+    0xBad_Cafe
+    0c777
+    0c11_23
+    0c32'24'24
+    0b101010101
+    0b1010'1010
+    0b1001_1010
+    123.234
+    12.23_24
+    .05
+    123'234.23'234
+    142_234.244_242
 ```
 
 # Comments

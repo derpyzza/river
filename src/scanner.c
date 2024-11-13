@@ -63,24 +63,7 @@ static inline void _advance_by(int by) {
 	scanner.cur += by;
 }
 
-TokCat tok_to_cat(TokenType token) {
-	if ( IN_RANGE_INC(token, T_EQUAL, T_HAT) ) {
-		return TC_SYMBOL;
-	}
-	if ( IN_RANGE_INC(token, T_DIV_EQ, T_SHR) ) {
-		return TC_OPERATOR;
-	}
-	if ( IN_RANGE_INC(token, T_INTEGER_LITERAL, T_NULL) )  {
-		return TC_LITERAL;
-	}
-	if ( IN_RANGE_INC(token, T_RETURN, T_LET) ) {
-		return TC_KEYWORD;
-	}	
-	if ( token == T_IDENTIFIER ) return TC_ID;
-	return TC_NONE;
-}
-
-static void _push_tok (VecToken *tkn, TokenType type) {
+static void _push_tok (VecToken *tkn, TokenTag type) {
 	String span;
 	span.c_ptr = scanner.tok_start;
 	span.len = scanner.cur - scanner.tok_start + 1;
@@ -90,6 +73,25 @@ static void _push_tok (VecToken *tkn, TokenType type) {
 	  	.type = type	
 	  });
 }
+
+/*
+	number -> ( <integer> | <float> ) <exponent>? ;
+
+	exponent -> ('e'|'E') <[-+]>? <integer>;
+
+	integer ->
+		\d* 
+		| \d+ <[_']>? \d+ 
+		| <hex_literal>
+		| <octal_literal>
+		| <binary_literal> ;
+
+	float -> \d* ( '.' \d+ )? <[fFdD]> ;
+
+	hex_literal -> '0x' [1..9]* | ['a'..'f']* | ['A'..'F'] ;
+	octal_literal -> '0c' [1..7]* ;
+	binary_literal -> '0b' <[01]>* ;
+*/
 
 static void _scan_num(VecToken *tkn) {
 
@@ -133,7 +135,7 @@ static void _scan_word(VecToken *tkn) {
 		int id = i + T_TRUE;
 		if ( substr.len == strlen(token_strings[id]) 
 		     && !memcmp(substr.c_ptr, token_strings[id], substr.len)) {
-			TokenType token = (TokenType) id;
+			TokenTag token = (TokenTag) id;
 			_push_tok ( tkn, token );
 			flag = 1;
 		}
@@ -405,7 +407,7 @@ void print_token_array(String *src, VecToken tkn) {
 					(int)current.span.len,
 					current.span.c_ptr,
 					current.type,
-					token_to_str(current.type)
+					tok_to_str(current.type)
 				);
 			break;
 		}

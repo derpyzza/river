@@ -138,19 +138,19 @@ void report_error(ParseError *error) {
 			parser.source->path,
 			(int)parser.tokens->data[error->got].line,
 			parser.tokens->data[error->got].chr_index,
-			token_to_str((TokenType)error->type),
+			tok_to_str((TokenTag)error->type),
 			(int)parser.tokens->data[error->got].span.len,
 			parser.tokens->data[error->got].span.c_ptr,
-			token_to_str(parser.tokens->data[error->got].type));
+			tok_to_str(parser.tokens->data[error->got].type));
 	} else {
 		printf("%s:%i:%i: ERROR Unexpected token; expected <%s>, got '%.*s' (%s)\n",
 			parser.source->path,
 			(int)parser.tokens->data[error->got].line,
 			parser.tokens->data[error->got].chr_index,
-			tokcat_to_str((TokCat)error->type),
+			cat_to_str((TokCat)error->type),
 			(int)parser.tokens->data[error->got].span.len,
 			parser.tokens->data[error->got].span.c_ptr,
-			token_to_str(parser.tokens->data[error->got].type));
+			tok_to_str(parser.tokens->data[error->got].type));
 	}
 }
 
@@ -180,7 +180,7 @@ int match_range(int start, int end)
 	return 0;
 }
 
-int match( TokenType expected) {
+int match( TokenTag expected) {
 	if (peek().type == expected) {
 		consume();
 		return 1;
@@ -235,7 +235,7 @@ struct Node *parse_tokens( VecToken *tokens, File *src )
 
 static struct Node *top_level(void) {
 
-	printf("first token we encounter is: %s\n", token_to_str(current_tok().type));
+	printf("first token we encounter is: %s\n", tok_to_str(current_tok().type));
 	if(match(T_FUN)) return fn_def();
 
 	// skip unknown characters for now *shrug*
@@ -422,7 +422,7 @@ static struct Node *top_level(void) {
 // 	return node;
 // }
 
-String * cur_tok_span() {
+String * cur_tok_span(void) {
 	return &parser.tokens->data[parser.current].span;
 }
 

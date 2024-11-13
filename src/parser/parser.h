@@ -13,7 +13,7 @@ typedef struct ParseError {
 	const char * debug_file;
 } ParseError;
 
-CREATE_VEC_TYPE(ParseError, ParseErrors);
+CREATE_VEC_TYPE(ParseError, ParseErrors)
 
 // typedef struct Var {
 // 	int is_assign;
@@ -159,16 +159,15 @@ typedef struct RType {
 // most data is stored as just an index to an item in the token stream's literal array, 
 // rather than storing pointers or copies of the required values.
 // I'm storing the literal arrays anyway, might as well squeeze as much use out of them as possible!
-typedef struct VecNode VecNode;
 typedef struct Node Node;
 struct Node {
-	TokenType op;
+	TokenTag op;
 	String *type; 	// static type hint
 	String *name; 	// name bound to this object
 	String *value; 	// literal value
 
 	NodeTag tag;
-	VecNode* children;
+	struct VecNode* children;
 	// for import or method paths
 	Path path;
 
@@ -184,7 +183,7 @@ struct Node {
 		*inc;		// increment expression, for `for` loops
 };
 
-CREATE_VEC_TYPE(Node*, Node);
+CREATE_VEC_TYPE(Node*, Node)
 
 Node *parse_tokens( VecToken *tokens, File *src ); 
 Node *new_node( NodeTag tag );
@@ -215,7 +214,7 @@ int check_next(int tok);
 int check_next_cat(int cat);
 int check_next_n(int offset, int expected);
 // match: if next token is as expected, consumes the token and returns true
-int match(TokenType type);
+int match(TokenTag type);
 int match_range(int start, int end);
 int match_type_token(void);
 
