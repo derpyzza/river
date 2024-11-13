@@ -5,7 +5,4 @@ in.*
 bin/
 .vscode/
 
-inheritance.md
-scratch.md
-
 vgcore.*

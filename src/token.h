@@ -1,10 +1,8 @@
 #pragma once
 
-
-// Forward declarations because C is stupid about these
 #include "utils.h"
 
-typedef enum TokenTag {
+typedef enum TokenType {
 	T_NONE = 0,
 	// Single Character tokens
 	T_EQUAL,
@@ -19,6 +17,7 @@ typedef enum TokenTag {
 	T_QUESTION, T_COLON,
 	T_AMP, T_PIPE, T_ATSIGN,
 	T_TILDE, T_DOLLAR, T_HASH, T_HAT,
+	T_SINGLE_OP_END,
 
 	// combo operators
 	T_DIV_EQ,
@@ -41,6 +40,7 @@ typedef enum TokenTag {
 	T_LOG_OR,
 	T_SHL,
 	T_SHR,
+	T_COMBO_OP_END,
 
 	T_IDENTIFIER,
 	T_INTEGER_LITERAL,
@@ -49,8 +49,25 @@ typedef enum TokenTag {
 	T_STRING_LITERAL,
 	// literals
 	T_TRUE, T_FALSE, T_NULL,
+	T_LITERAL_END,
 
-		// misc keywords
+	// == keywords ==
+
+	// built in types
+	// int types
+	T_UBYTE, T_USHORT, T_UINT, T_ULONG,
+	T_BYTE, T_SHORT, T_INT, T_LONG, // uint, int ( word size integers )
+	// floats
+	T_FLOAT, T_DOUBLE, // f80
+	// size
+	T_USIZE, T_SIZE,
+	// alphanumeric
+	T_CHAR, T_STRING,
+	//misc
+	T_VOID, T_BOOL,
+
+
+	// misc keywords
 	T_RETURN, 
 	T_IF, T_ELSE, T_THEN, T_DO, T_WHILE, T_FOR, T_IN,
 	T_GOTO, T_LABEL, T_BREAK, T_CONTINUE, T_DEFER,
@@ -59,11 +76,12 @@ typedef enum TokenTag {
 	T_MATCH, T_CASE, T_SIZEOF, T_TYPEOF,
 	T_MACRO, T_YIELD, T_EXPECT, T_ASSERT,
 	T_FUN, T_STATIC, T_CONST, T_MUT, T_UNDEF, T_PUB, T_LET,
+	T_KEYWORD_END,
 
 	T_EOF,
 
 	MAX_TKNS,
-} TokenTag;
+} TokenType;
 
 static const int NUM_KEY_WORDS = T_EOF - T_TRUE;
 
@@ -81,7 +99,8 @@ static const char* token_strings[MAX_TKNS] = {
 	"<", ">",
 	"?", ":",
 	"&", "|", "@",
-	"~", "$", "#", "^",
+	"~", "^",
+	"sing-op-end",
 
 	// combo operators
 	"/=",
@@ -104,6 +123,7 @@ static const char* token_strings[MAX_TKNS] = {
 	"||",
 	"<<",
 	">>",
+	"combo-op-end",
 
 	"identifier",
 	// literals
@@ -112,7 +132,23 @@ static const char* token_strings[MAX_TKNS] = {
 	"char literal",
 	"string literal",
 	"true", "false", "null",
-	
+	"literal-end",
+
+	// ==keywords==
+	// types
+	// int
+	"ubyte", "ushort", "uint", "ulong",
+	"byte", "short", "int", "long",
+	// float
+	"float", "double",
+	// size
+	"usize", "size",
+	// alphanumeric
+	"char",  "string",
+	// other
+	"void", "bool", 
+
+
 	// keywords
 	"return", 
 	"if", "else", "then", "do", "while", "for", "in",
@@ -122,7 +158,8 @@ static const char* token_strings[MAX_TKNS] = {
 	"switch", "case", "sizeof", "typeof",
 	"macro", "yield", "expect", "assert",
 	// variable decl
-	"fun", "static", "const", "mut", "undef", "pub", "let",
+	"fun", "static", "const", "mut", "pub", "let",
+	"keywords end",
 
 	"EOF",
 };
@@ -138,20 +175,29 @@ typedef enum TokCat {
 	TC_MAX
 } TokCat;
 
+typedef struct Span {
+	usize start, end;
+} Span;
+
 typedef struct Token {
 	usize line;
 	int chr_index; 			// the starting character index
-	String span;
+	Span span;
 	ilong ival; 				// storage for int literals
 	long double fval; 	// storage for float
 	TokCat cat; 				// the token category
-	TokenTag type; 
+	TokenType type; 
 } Token;
 
-CREATE_VEC_TYPE(Token, Token)
+// Dynamic array of tokens;
+typedef struct TokenArray {
+	size max;
+	size current;
+	Token* tokens;
+} TokenArray;
 
-void print_token_array(String *src, VecToken tkn);
-VecToken* tokenize( String *src );
+void print_token_array(String *src, TokenArray tkn);
+TokCat tok_to_cat( TokenType token);
 
 // useful for termination
 static inline Token token_eof(void) {
@@ -168,28 +214,12 @@ static inline Token token_none(void) {
 	};
 } 
 
-static inline TokCat tok_to_cat(TokenTag token) {
-	if ( IN_RANGE_INC(token, T_EQUAL, T_HAT) ) {
-		return TC_SYMBOL;
-	}
-	if ( IN_RANGE_INC(token, T_DIV_EQ, T_SHR) ) {
-		return TC_OPERATOR;
-	}
-	if ( IN_RANGE_INC(token, T_INTEGER_LITERAL, T_NULL) )  {
-		return TC_LITERAL;
-	}
-	if ( IN_RANGE_INC(token, T_RETURN, T_LET) ) {
-		return TC_KEYWORD;
-	}	
-	if ( token == T_IDENTIFIER ) return TC_ID;
-	return TC_NONE;
-}
 
-static inline const char* tok_to_str(TokenTag type) {
+static inline const char* token_to_str(TokenType type) {
 	return (char*) token_strings[type];
 }
 
-static inline const char* cat_to_str(TokCat cat) {
+static inline const char* tokcat_to_str(TokCat cat) {
 	switch(cat) {
 		case TC_KEYWORD: return "Keyword"; break;
 		case TC_ID: return "Identifier"; break;
@@ -200,7 +230,7 @@ static inline const char* cat_to_str(TokCat cat) {
 	}
 }
 
-static inline char tok_to_char(TokenTag token) {
+static inline char token_to_char(TokenType token) {
 	if (token <= T_HAT && token >= T_EQUAL) {
 		char tokens[(T_HAT - T_EQUAL) + 1] = {
 			'=', '(', ')', '{', '}', '[', ']', ',', '.', '+', '-', '*', '/', '%', ';', '!',

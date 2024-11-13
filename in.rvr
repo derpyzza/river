@@ -3,25 +3,14 @@
 // Parse the following text and make it return a .c file
 // With the equivalent code
 
-int bleh = 10;
-string q = "str";
-long y = 232;
-Vector3 pos = 34;
+// fun add (x, y: int) = x + y;
 
-let something = "smth";
+// fun io.OpenFile(path: string) -> ( file: File, err: Error ) {
+// 	// ...
+// }
 
-struct thingy {
-	int x;
-	int w, y = "Hello there", z = 'z';
-	byte q = 10, t, d;
-}
+// let f, _ = io.OpenFile("in.rvr");
 
+// let x = add 10, 23 + 435;
 
-int func => 10 + 5 / 2;
-int func => 10 + 12 / 2;
-
-int main => 10;
-
-const int ten = 11;
-
-int x = 23;
+fun main -> int = -12 + 14 / 2 * 6;

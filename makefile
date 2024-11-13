@@ -6,7 +6,7 @@ TESTS = tests
 
 EXEC = $(BIN)/$(PROGNAME)
 
-CFLAGS := -Wall -Werror -pedantic -Wswitch -g -ggdb3 --std=c99
+CFLAGS := -Wall -pedantic -Wswitch -g -ggdb3 --std=c99
 LDFLAGS :=
 
 SRC_FILES := $(wildcard $(SRC)/**.c) $(wildcard $(SRC)/**/**.c) $(wildcard $(SRC)/**/**/**.c)
@@ -14,7 +14,7 @@ OBJ_FILES := $(patsubst $(SRC)/%.c, $(BIN)/%.o, $(SRC_FILES))
 
 all: $(EXEC)
 
-$(BIN)/%.o: $(SRC)/%.c 
+$(BIN)/%.o: $(SRC)/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $^ -c $(CFLAGS) -o $@
 

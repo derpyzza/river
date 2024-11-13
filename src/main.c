@@ -6,10 +6,10 @@
 #include "utils.h"
 #include "scanner.h"
 #include "parser/parser.h"
-// #include "codegen.h"
+#include "codegen.h"
 
 struct File *read_file(char* path) {
-	File *out = malloc(sizeof(File));
+	File *out = (File*)malloc(sizeof(File));
 	out->path = path;
 	out->is_valid = False;
 
@@ -22,7 +22,7 @@ struct File *read_file(char* path) {
 	out->data.len = ftell(in); 
 	rewind(in); 
 
-	out->data.c_ptr = malloc(out->data.len + 1);
+	out->data.c_ptr = (char*)malloc(out->data.len + 1);
 	if (out->data.c_ptr == NULL) {
 		printf("Error, could not allocate enough memory for file %s\n", path);
 		fclose(in);
@@ -49,26 +49,26 @@ typedef struct FilePath {
 
 struct FilePath split_path(char* path) {
 	size len = strlen(path);
-	char* name = malloc(sizeof(name) * len);
+	char* name = (char*)malloc(sizeof(char) * len);
 	int id = 0;
 	char* c = path;
 	while(*c != '.') {
-		*name++ = *c++;
+		name[id] = *c;
 		id++;
+		c++;
 	}
 	name[id] = '\0';
 
 	printf("size is %li\n", (len - id) * sizeof(char) + 1);
-	char* ext = malloc((len - id) * sizeof(char) + 1);
+	char* ext = (char*)malloc((len - id) * sizeof(char) + 1);
 	if(ext != NULL) 
 		strcpy(ext, c);
 	else printf("Error: Could not malloc ext file\n"), exit(-1);
 	return (FilePath){ .path = name, .ext = ext };
 }
 
-
 int
-main(int argc, char** argv) {
+main(int argc, char** argv) {	
 	printf("Welcome to the river compiler!\n");
 
 	// REPL MODE
@@ -76,7 +76,7 @@ main(int argc, char** argv) {
 		printf("No input files\n");
 		while(True) {
 			// arbitrarily sized buffer for now
-			char* buf = malloc(2048);
+			char* buf = (char*)malloc(2048);
 			fputs("rvrcc>> ", stdout);
 			fflush(stdout);
 			if(!fgets(buf, 2048, stdin)){
@@ -94,8 +94,8 @@ main(int argc, char** argv) {
 
 			// printf("bufsize: %li\n", strlen(buf));
 			// This is ugly, should change this.
-			String source = (String) {.len = strlen(buf), .c_ptr = buf};
-			TokenArray* tkn = tokenize(&source);
+			String source = (String) {.len = (int)strlen(buf), .c_ptr = buf};
+			VecToken* tkn = tokenize(&source);
 			print_token_array(&source, *tkn);
 
 			// node_s *node = parse_tokens(tkn, source);
@@ -110,7 +110,9 @@ main(int argc, char** argv) {
 	for (int i = 1; i < argc; i++) {
 
 		char* raw_path = argv[i];
+		printf("raw_path: %s\n", raw_path);
 		FilePath path = split_path(raw_path);
+		printf("path: '%s', '%s'\n", path.path, path.ext);
 
 		if (strcmp(path.ext, ".rvr")) {
 			printf("Error: invalid filetype, expected \".rvr\", got \"%s\" instead.\n", path.ext);
@@ -125,14 +127,14 @@ main(int argc, char** argv) {
 			exit(1);
 		}
 
-		// FILE* out_file = fopen(strcat(path.path, ".c"), "wb");
-		// if (out_file == NULL) {
-		// 	printf("Error: Couldn't create output file %s.c\n", path.path);
-		// 	fclose(out_file);
-		// 	continue;
-		// }
+		FILE* out_file = fopen(strcat(path.path, ".c"), "wb");
+		if (out_file == NULL) {
+			printf("Error: Couldn't create output file %s.c\n", path.path);
+			fclose(out_file);
+			continue;
+		}
 
-		TokenArray* tkn = tokenize(&source->data);
+		VecToken* tkn = tokenize(&source->data);
 		print_token_array(&source->data, *tkn);
 
 		struct Node *node = parse_tokens(tkn, source);
@@ -141,10 +143,9 @@ main(int argc, char** argv) {
 			print_ast(node, 0);
 		}
 		else printf("file had errors, compilation terminated\n");
-		// printf("\n");
-		// fprintf(out_file, "%s", codegen(node));
-		// fprintf(out_file, "\n");
-		// fclose(out_file);
+		printf("\n");
+		codegen(out_file, node->children->data[0]);
+		fclose(out_file);
 		free(tkn);
 	}
 	return 0;
