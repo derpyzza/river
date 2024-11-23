@@ -142,8 +142,6 @@ typedef struct Token {
 	usize line;
 	int chr_index; 			// the starting character index
 	String span;
-	ilong ival; 				// storage for int literals
-	long double fval; 	// storage for float
 	TokCat cat; 				// the token category
 	TokenTag type; 
 } Token;

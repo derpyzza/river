@@ -13,13 +13,7 @@ rule -> production | ( production | production );
 the `|` character means `or`, and rules can be grouped via parenthesis for clarity.
 rules are terminated with the `;` character.
 
-Constants are in uppercase:
-TYPE -> a type
-ID -> identifier
-INTEGER -> an integer literal
-etc.
-
-keywords are wrapped in quotes: `"if"`, `"for"`, `"import"`;
+tokens are marked with the `%` character, terminals are wrapped in quotes `"import"`.
 
 production rules can be followed up with any of the following operators:
 ```
@@ -29,7 +23,7 @@ production rules can be followed up with any of the following operators:
 ```
 
 ```
-program -> item* EOF;
+program -> item* %eof;
 
 item -> import_decl
       | const_decl;
@@ -40,25 +34,25 @@ item -> import_decl
       | enum_decl
       | union_decl;
 
-TYPE -> BUILTIN_TYPES | ID;
+import_decl -> "import" %id ( "." %id )*? ( "as" %id )? ";" ;
 
-import_decl -> "import" ID(.ID)*? ("as" ID)? ";";
+func_decl -> "pub"? "fun" %id ( "(" <params_list> ")" )? ( "->" %id )? "=" <expr>;
 
-func_decl -> "pub"? TYPE ID ( "(" params_list ")" )? "=>" expr;
+params_list -> <param_item>? ( "," <param_item> )*;
+param_item -> %id ( ":" %id )? ( "=" %lit )?
 
-params_list -> param_item? ( "," param_item )*;
-param_item -> TYPE ID ( "=" LIT )?
+global_var -> %id <var_assign> ( "," <var_assign> )*;
+var_assign -> %id '=' %lit;
 
-global_var -> TYPE var_assign ( "," var_assign )*;
-var_assign -> ID '=' LIT;
+const_decl -> "const" %id "=" <expr>;
 
-const_decl -> "const" ID "=" expr;
+type_def = "type" %id "=" <expr> ";" ;
 
-struct_decl -> "struct" ID "{" (struct_field ";")+ "}";
-struct_field -> TYPE struct_item ("," struct_item)*
-struct_item -> ID ("=" LIT)?
+struct_decl -> "struct" %id "{" ( <struct_field> ";" )+ "}";
+struct_field -> struct_item ("," struct_item)* ":" %id ;
+struct_item -> %id ("=" %lit)?
 
-var_decl -> (TYPE | "let") "mut"? ID ( ";" | "=" LITERAL ";"); 
+var_decl -> "let" "mut"? %id ( ":" %id )? ( ";" | "=" LITERAL ";"); 
 
 statement -> expr ";";
 
@@ -94,4 +88,5 @@ primary
       | "false" 
       | TUPLE_LIT 
       | STRUCT_LIT;
+
 ```

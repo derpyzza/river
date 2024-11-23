@@ -3,14 +3,7 @@
 // Parse the following text and make it return a .c file
 // With the equivalent code
 
-// fun add (x, y: int) = x + y;
-
-// fun io.OpenFile(path: string) -> ( file: File, err: Error ) {
-// 	// ...
-// }
-
-// let f, _ = io.OpenFile("in.rvr");
-
-// let x = add 10, 23 + 435;
-
-fun main -> int = -12 + 14 / 2 * 6;
+fun main -> int = {
+	12 + -12 + 14 / 2 * 6;
+	42 + 53;
+};

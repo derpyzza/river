@@ -10,6 +10,13 @@
 void codegen(FILE* file, Node *tree) {
   NULL_PTR_PANIC(tree);
  	switch(tree->tag) {
+      case N_BLOCK:
+        fprintf(file, "{\n");
+        for (int i = 0; i < tree->children->current; i++) {
+          codegen(file, tree->children->data[i]);
+        }
+        fprintf(file, "\n}\n");
+      break;
  		case N_FUNC_DEF:
  			fprintf(file, "%.*s %.*s () {\n\treturn ",
  			  tree->type->len,

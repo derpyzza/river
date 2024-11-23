@@ -19,6 +19,32 @@ The goal is to be able to seamlessly use both C and river in the same codebase, 
 
 Outputs to a human readable C99.
 
+River offers the following feature-set over plain-C:
+- Generics
+- Namespaces
+- Visibility control ( defaults to private )
+- Mutability control ( defaults to immutable )
+- Default function arguments / struct fields
+- Function overloading
+- Distinct and Aliased type definitions
+- Multiple function return values
+- Method call syntax
+- Type inferencing and a stronger type system
+- Algebraic data types
+- Pattern matching
+- A proper module system
+- Expression-oriented syntax
+- First class testing framework
+- Nicer array types
+- An easier to parse syntax ( for machines and humans alike )
+
+And gets rid of:
+- The pre-processor
+- Pointers decaying into arrays
+- Implicit type conversions
+- Decrement/Increment operators ( ++ / -- )
+- Implicitly nullable pointers
+
 # Quick start
 This repository only contains the river compiler for now.
 The river compiler doesn't depend on any external dependancies directly, though you will need
@@ -67,18 +93,14 @@ double y = 23.0d; // floating point numbers evaluate to double by default
 ```c rvr
 let x = (23, 59, "String");
 
-(int, float) x = (23, 34.0);
-
-int a;
-float b;
-
 // a gets set to x.0, b gets set to x.1
-(a, b) = x;
+let a, b = x;
 ```
 ## String Formatting
 ## Generics
 ## Algebraic Data Types
 ## Comptime code execution 
+
 ## Defers
 The `defer` keyword just executes the given statement at the end of the current scope.
 
@@ -87,7 +109,7 @@ The `defer` keyword just executes the given statement at the end of the current 
 struct object {...};
 
 int main() => {
-    object x = new_object();
+    let x = new_object();
     defer delete_object;
 
     /*
@@ -99,63 +121,28 @@ int main() => {
 
 ```
 
-## For in / for each expressions
-```c 
-
-for x in array {
-
-}
-
-```
-
 ## Default values
 
 ```c 
 
 struct object {
-    int param1, 
-        param2 = 30;
+    param1: int,
+    param2: int = 30,
 }
 
-void function_definition ( int x, int y = 20, bool has_something = true ) {
+fun function_definition ( x: int, y: int = 20, has_something: bool = true ) = {
     // define function over here
-}
+};
 
 ```
 
 ## Pattern matching & Destructuring
 ```c 
+
 switch user.rank {
-    case "Employee" => {},
-    case "Admin" => {},
+    "Employee" => {},
+    "Admin" => {},
     _ => {}
 };
-```
-
-## Implicit Returns 
-Expressions at the end of a block of code are implicitly returned.
-
-```c 
-
-int c () {
-    int x = 0;
-    x   // returns x
-}
-
-```
-
-## Chaining methods 
-
-a().b() means, function b takes whatever function a outputs as it's first argument;
-
-```c 
-
-let x = x()
-        .y()
-        .c()
-        .t(4);
-// C 
-
-Type x = x(y(c(t(4))));
 
 ```

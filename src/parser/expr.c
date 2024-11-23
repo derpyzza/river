@@ -6,6 +6,7 @@
 
 static Node *term(void);
 static Node *factor(void);
+static Node *block(void);
 // static struct Node *unary(void);
 static Node *primary(void);
 
@@ -28,6 +29,20 @@ static const char* unop_to_string( UnOpType type);
 // }
 
 Node *parse_expr(void) {
+
+	if (match(T_BRACE_OPEN)) {
+		printf("matched block!\n");
+		Node *block = new_node(N_BLOCK);
+		while (!match(T_BRACE_CLOSE)) {
+			Node *child = parse_expr();
+			match(T_SEMI);
+
+			if (child) {
+				vec_push_Node(block->children, child);
+			}
+		}
+		return block;
+	}
 
 	struct Node *expr = term();
 

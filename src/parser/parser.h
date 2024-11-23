@@ -42,8 +42,6 @@ typedef enum NodeTag {
 	N_BIN_EXPR,
 	N_UN_EXPR,
 	N_LIT,
-	N_BEXPR,
-	N_UNEXPR,
 	N_STMT,
 	N_BLOCK,
 	N_FUNC_DEF,

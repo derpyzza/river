@@ -10,18 +10,19 @@ design patterns:
 > '@' is a built-in procedure
 > '#' annotates
 
+
 # Identifiers and Numbers
 
 ```
 
-    identifier -> (['a'..'z'] | ['A'..'Z'] | '_')* ;
+    %id -> (['a'..'z'] | ['A'..'Z'] | '_')* ;
 
     number -> ( <integer> | <float> ) <exponent>? ;
 
-    exponent -> ('e'|'E') <[-+]>? <integer>;
+    exponent -> ('e'|'E') [-+]? <integer>;
 
     integer ->
-        \d*
+        \d* ( <[uUiI]> \d* )?
     		| <hex_literal>
     		| <octal_literal>
     		| <binary_literal> ;
@@ -42,6 +43,7 @@ design patterns:
     0xbadcafe
     0xBADCAFE
     0xBad_Cafe
+    0xBad.Cafe
     0c777
     0c11_23
     0c32'24'24
@@ -53,6 +55,15 @@ design patterns:
     .05
     123'234.23'234
     142_234.244_242
+    123u8      // explicit u8 literal
+    123u16     // explicit u16 literal
+    123u32     // explicit u32 literal
+    123u64     // explicit u64 literal
+    123u12     // u12 ( arbitrarily sized integer ) literal
+    123i8      // explicit i8 literal
+    123i16     // explicit i16 literal
+    123i32     // explicit i32 literal
+    123i64     // explicit i64 literal
 ```
 
 # Comments
@@ -73,87 +84,58 @@ design patterns:
 ```
 
 # Data types and literals
-```c 
+River comes with several builtin basic data types
+The builtin types are as follows:
 
-// River comes with several builtin basic data types
-// The builtin types are as follows:
-/*
- * void     - has only one value, void, used for expressions that return nothing
- * bool     - boolean type / true | false
- * ubyte    - Unsigned 8 bit integer
- * ushort   - Unsigned 16 bit integer
- * uint     - Unsigned 32 bit integer
- * ulong    - Unsigned 64 bit integer
- * byte     - Signed 8 bit integer
- * short    - Signed 16 bit integer
- * int      - Signed 32 bit integer
- * long     - Signed 64 bit integer
- * float    - Floating point number
- * double   - Double precision floating point number
- * usize    - Unsigned pointer sized integer
- * size     - Signed pointer sized integer
- * anyptr   - A pointer type that can be cast down to any pointer type. equivalent to C's void*
- * char     - A Single utf-8 code point i.e represents a single utf-8 character,
-              and is therefore four bytes and not a byte like in C.
- * string   - A statically sized utf-8 string literal
-*/
+- void:     has only one value, void, used for expressions that return nothing
+- bool:     boolean type, true | false
+- uint:     unsigned cpu word sized integer ( 32 bits on 64 bit platforms )
+- u8:       Unsigned 8 bit integer
+- u16:      Unsigned 16 bit integer
+- u32:      Unsigned 32 bit integer
+- u64:      Unsigned 64 bit integer
+- i8:       Signed 8 bit integer
+- i16:      Signed 16 bit integer
+- i32:      Signed 32 bit integer
+- i64:      Signed 64 bit integer
+- f32:      Floating point number
+- f64:      Double precision floating point number
+- usize:    Unsigned pointer sized integer
+- size:     Signed pointer sized integer
+- anyptr:   A pointer type that can be cast down to any pointer type. equivalent to C's void*
+- string:   Distinct type of static array of u8s
 
-// River has the following literal types:
-/*
- *  null        - memory address 0x0. only applicable to pointers. compiles down to (void*)0;
- *  numbers     - signed / unsigned integers, floating point numbers. 
- *  string      - "string"
- *  true        - just the value true. compiles down to the expression (0==0)
- *  false       - just the value false. compiles down to (0!=0);
- *  nil         - Just the value nil
- */
+River has the following literal types:
 
-    123        // integer
-    123.223    // floating point. defaults to double
-    // Note: all these letters can be in upper or lower case
-    123.44f    // float
-    232.24d    // double
-    123u       // unsigned int ( u32 )
-    123i       // signed int ( i32 )
-    123u8      // explicit u8 literal
-    123u16     // explicit u16 literal
-    123u32     // explicit u32 literal
-    123u64     // explicit u64 literal
-    123i8      // explicit i8 literal
-    123i16     // explicit i16 literal
-    123i32     // explicit i32 literal
-    123i64     // explicit i64 literal
-    12_232     // same as 12232, underscores help with readability
-    12'232     // same as with underscores, whichever you prefer
-    0xBEEF     // hex
-    0b11010100 // binary
-    0c127      // octal
-```
+- null:     memory address 0x0. only applicable to pointers. compiles down to (void*)0;
+- numbers:  signed/unsigned integers, floating point numbers,  
+- string:   "string"
+- true:     just the value true. compiles down to the expression (0==0)
+- false:    just the value false. compiles down to (0!=0);
+- nil:      just the value nil
+ 
 
 # Variable Definition & Declaration
 
 ```
-    var_def -> "let" "mut"? <ID> ( ":" <type> )? ( "=" <expr> ) ";" .
+    var_def -> "let" "mut"? %id ( ":" %id )? ( "=" <expr> ) ";" .
     
 ```
 
+```rs
 
-```c
-
-// The let keyword inferences the type of a variable by whatever the first value is that the 
-// variable is assigned to.
-// Here it takes on the value of an int.
-x := 45;
+// variables are declared with the 'let' keyword
+let x: int = 45;
 x = "str"; // illegal
 
 // let-introduced values are immutable by default
 // And also private to their scope
 
-// to declare a mutable variable use the var keyword:
-var x = 0;
+// to declare a mutable variable use the mut keyword:
+let mut x = 0;
 x = 10; // legal
 
-var x, y, z;
+let mut x, mut y, mut z;
 
 // you can declare variables without initializing them.
 // However, when declaring a variable, you must provide it's type
@@ -234,7 +216,7 @@ name: [size]type = value;
 // the last expression within a block is returned
 fun sub ( x: int, y: int ) -> int = {
     x - y // returns x + y
-} 
+};
 
 // the above function can also be written as:
 fun sub ( x, y: int ) -> int = x - y;
@@ -255,7 +237,11 @@ fun add 10; // error! expected '=>' or '=', got Int_Literal!
 
 // function types can be declared as such:
 // this is a function that has a parameter of type int and returns a value of type bool
-type func = fun(int): bool;
+type func = fun(int) -> bool;
+
+fun do_something() -> foo, (bar | null) = {
+    
+}
 
 // Functions support default parameter values
 // If an argument is not passed for a particular parameter,

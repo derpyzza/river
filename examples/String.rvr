@@ -1,24 +1,26 @@
-import std::io::{ println };
+import std.io.{ println };
 
-fun strcopy(a, b: ^char) {
-	^char og = a;
-	while @a != '\0' {
-		@b = @a;
+fun strcopy(a, b: ^char) = {
+
+	let og: ^char = a;
+
+	while ^a != '\0' {
+		^b = ^a;
 
 		b += 1;
 		a += 1;
 	}
 
-	@b = '\0';
+	^b = '\0';
 	a = og;
-}
+};
 
 
-fun main {
+fun main = {
 	let a = "Hello";
 	let b: [6]char;
 
 	strcopy(a, b);
 
 	println("a: {}, b: {}", a, b); // => a: "Hello", b: "Hello"
-}
+};

@@ -54,6 +54,10 @@ Token current_tok(void) {
 	return parser.tokens->data[parser.current]; 
 }
 
+String * cur_tok_span(void) {
+	return &parser.tokens->data[parser.current].span;
+}
+
 Token *token_at(size id) {
 	if (id >= parser.tokens->current ) {
 		return NULL;
@@ -222,7 +226,8 @@ struct Node *parse_tokens( VecToken *tokens, File *src )
 			}
 			else vec_push_Node(node->children, item);
 			// print_ast(*node);
-		} else printf("Null item :(\n");
+		} 
+		// else printf("Null item :(\n");
 
 	}
 
@@ -235,7 +240,7 @@ struct Node *parse_tokens( VecToken *tokens, File *src )
 
 static struct Node *top_level(void) {
 
-	printf("first token we encounter is: %s\n", tok_to_str(current_tok().type));
+	// printf("first token we encounter is: %s\n", tok_to_str(current_tok().type));
 	if(match(T_FUN)) return fn_def();
 
 	// skip unknown characters for now *shrug*
@@ -244,6 +249,54 @@ static struct Node *top_level(void) {
 	// printf("unknown node type: %s\n", token_to_str(current_tok().type));
 	consume();
 	return NULL;
+}
+
+// function_def -> "fun" <ID> ( "(" <params_list> ")" )? ( "->" <type> )? "=" <expr> ";" .
+static Node *fn_def(void) {
+	printf("fn def matched!\n");
+	Node* fn = new_node(N_FUNC_DEF);
+	// we are guaranteed to atleast have the following tokens if we've entered this function:
+	// a type token, an identifier, and either a '(' or a '=>'
+	// so we don't need to match the first two, we can just directly consume them and store
+	// their data;
+ 
+	// match identifier
+	if( match(T_IDENTIFIER) )
+		fn->name = cur_tok_span();
+	else printf("error, missing identifier");
+
+	// parse params
+	if(match(T_PAREN_OPEN)) {
+		while(!match(T_PAREN_CLOSE)) {
+			consume();
+		}
+		// error
+	}
+
+	
+	if (match(T_ARROW)) {
+		// match type
+		if (match(T_IDENTIFIER)) {
+			printf("Matched identifier: %.*s\n", cur_tok_span()->len, cur_tok_span()->c_ptr);
+			fn->type = cur_tok_span();
+		}
+		else 
+		 printf("ERROR: expected return type\n"), exit(-1);
+	}
+
+	if(match(T_EQUAL)) {
+		fn->body = parse_expr();
+	}
+	else {
+		// TODO: support proper "OR" type errors;
+		PANIC(T_EQUAL, P_TOK, T_SEMI, P_TOK);
+	}
+
+	if(!match(T_SEMI)) {
+		PANIC(T_SEMI, P_TOK, TC_KEYWORD, P_CAT);
+	}
+	printf("returning fn!\n");
+	return fn;
 }
 
 
@@ -421,58 +474,6 @@ static struct Node *top_level(void) {
 // 	}
 // 	return node;
 // }
-
-String * cur_tok_span(void) {
-	return &parser.tokens->data[parser.current].span;
-}
-
-// function_def -> "fun" <ID> ( "(" <params_list> ")" )? ( "->" <type> )? "=" <expr> ";" .
-static Node *fn_def(void) {
-	printf("fn def matched!\n");
-	Node* fn = new_node(N_FUNC_DEF);
-	// we are guaranteed to atleast have the following tokens if we've entered this function:
-	// a type token, an identifier, and either a '(' or a '=>'
-	// so we don't need to match the first two, we can just directly consume them and store
-	// their data;
- 
-	// match identifier
-	if( match(T_IDENTIFIER) )
-		fn->name = cur_tok_span();
-	else printf("error, missing identifier");
-
-	// parse params
-	if(match(T_PAREN_OPEN)) {
-		while(!match(T_PAREN_CLOSE)) {
-			consume();
-		}
-		// error
-	}
-
-	
-	if (match(T_ARROW)) {
-		// match type
-		if (match(T_IDENTIFIER)) {
-			printf("Matched identifier: %.*s\n", cur_tok_span()->len, cur_tok_span()->c_ptr);
-			fn->type = cur_tok_span();
-		}
-		else 
-		 printf("ERROR: expected return type\n"), exit(-1);
-	}
-
-	if(match(T_EQUAL)) {
-		fn->body = parse_expr();
-	}
-	else {
-		// TODO: support proper "OR" type errors;
-		PANIC(T_EQUAL, P_TOK, T_SEMI, P_TOK);
-	}
-
-	if(!match(T_SEMI)) {
-		PANIC(T_SEMI, P_TOK, TC_KEYWORD, P_CAT);
-	}
-	printf("returning fn!\n");
-	return fn;
-}
 
 Node *new_node(NodeTag type) {
 	struct Node* node = (Node *)malloc(sizeof(struct Node));
