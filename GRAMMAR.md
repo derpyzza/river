@@ -23,6 +23,13 @@ production rules can be followed up with any of the following operators:
 ```
 
 ```
+
+let x: ^^[2][4]^^int | ^^^[23]^file, error | ^char;
+
+type -> arr* ptr* %id
+      | %id ( ',' %id )*
+      | %id ( '|' %id )*
+
 program -> item* %eof;
 
 item -> import_decl
@@ -75,7 +82,7 @@ shift -> add ( (">>" | "<<") add)*
 
 add -> mult ( ('+'|'-') mult )*;
 mult -> unary ( ('*' | '/' | '%') unary)*;
-unary -> primary | ( '-' | '!' primary);
+unary -> primary | ( ('-' | '!') primary);
 
 primary 
       -> "(" expr ")"

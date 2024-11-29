@@ -15,41 +15,67 @@ design patterns:
 
 ```
 
-    %id -> (['a'..'z'] | ['A'..'Z'] | '_')* ;
+    // identifier
+    %iden -> [a-zA-Z_] [a-zA-Z0-9_+/\-?!%^*\']* ;
 
-    number -> ( <integer> | <float> ) <exponent>? ;
+    // number literal
+    %number -> float | integer;
 
-    exponent -> ('e'|'E') [-+]? <integer>;
+    // decimal exponent
+    dec_exp -> [eE] [-+]? integer ;
+    // binary exponent
+    bin_exp -> [pP] [-+]? integer ;
 
-    integer ->
-        \d* ( <[uUiI]> \d* )?
-    		| <hex_literal>
-    		| <octal_literal>
-    		| <binary_literal> ;
+    float -> 
+        ( 
+            \d* ( '.' \d+ )? dec_exp? [fFdD]?
+            | hex_literal* ( '.' hex_literal+ ) bin_exp? [fFdD]? 
+            | hex_literal* bin_exp? [fFdD]
+            ) 
+    ;
 
-    float -> \d* ( '.' \d+ )? <[fFdD]> ;
+    integer ->   
+        (
+            \d* ( ['_] \d+ ) dec_exp?
+            | <hex_literal>
+        		| <octal_literal>
+        		| <binary_literal>
+        )
+        ( [uUiI] ( \d* | 'z' ) )?
+    ;
 
-    hex_literal -> '0x' [1..9]* | ['a'..'f']* | ['A'..'F'] ;
-    octal_literal -> '0c' [1..7]* ;
-    binary_literal -> '0b' <[01]>* ;
+    binary_literal -> '0b' binary_digit* ( [_'] binary_digit+ )? ;
+    hex_literal -> '0x' hex_digit* ( [_'] hex_digit+ )? ;
+    octal_literal -> '0c' octal_digit* ( [_'] octal_digit+ )? ;
+
+    hex_digit -> [0-9a-fA-F] ;
+    octal_digit -> [0-7] ;
+    binary_digit -> [01] ;
 
     1
     32
     134'43e+10
     134_43E+10
+    234f
     13'234'32
     24_242_24
-    -23
+    123.134e+13
+
     0xbadcafe
     0xBADCAFE
     0xBad_Cafe
+    0xBAD'CAFE
     0xBad.Cafe
+    0xBAD.CAFEp+24
+
     0c777
     0c11_23
     0c32'24'24
+
     0b101010101
     0b1010'1010
     0b1001_1010
+
     123.234
     12.23_24
     .05
@@ -64,6 +90,10 @@ design patterns:
     123i16     // explicit i16 literal
     123i32     // explicit i32 literal
     123i64     // explicit i64 literal
+    234uz      // explicit usize literal
+    424iz      // explicit size literal
+    133f       // explicit f32 literal
+    234d       // explicit f64 literal
 ```
 
 # Comments
@@ -87,23 +117,28 @@ design patterns:
 River comes with several builtin basic data types
 The builtin types are as follows:
 
-- void:     has only one value, void, used for expressions that return nothing
+- anyptr:   A pointer type that can be cast down to any pointer type. equivalent to C's void*
 - bool:     boolean type, true | false
-- uint:     unsigned cpu word sized integer ( 32 bits on 64 bit platforms )
-- u8:       Unsigned 8 bit integer
-- u16:      Unsigned 16 bit integer
-- u32:      Unsigned 32 bit integer
-- u64:      Unsigned 64 bit integer
-- i8:       Signed 8 bit integer
-- i16:      Signed 16 bit integer
-- i32:      Signed 32 bit integer
-- i64:      Signed 64 bit integer
+- char:     alias of u8
 - f32:      Floating point number
 - f64:      Double precision floating point number
-- usize:    Unsigned pointer sized integer
+- f80:      10-Byte floating point number
+- int:      signed cpu word sized integer
+- iN:       signed N bit integer where n is non-negative : eg u7 is a 7-bit integer
+- i8:       signed 8 bit integer
+- i16:      signed 16 bit integer
+- i32:      signed 32 bit integer
+- i64:      signed 64 bit integer
+- uint:     unsigned cpu word sized integer
+- uN:       unsigned N bit integer where n is non-negative : eg u7 is a 7-bit integer
+- u8:       unsigned 8 bit integer
+- u16:      unsigned 16 bit integer
+- u32:      unsigned 32 bit integer
+- u64:      unsigned 64 bit integer
 - size:     Signed pointer sized integer
-- anyptr:   A pointer type that can be cast down to any pointer type. equivalent to C's void*
+- usize:    Unsigned pointer sized integer
 - string:   Distinct type of static array of u8s
+- void:     has only one value, void, used for expressions that return nothing
 
 River has the following literal types:
 
@@ -112,13 +147,41 @@ River has the following literal types:
 - string:   "string"
 - true:     just the value true. compiles down to the expression (0==0)
 - false:    just the value false. compiles down to (0!=0);
-- nil:      just the value nil
+
+## Reserved Keyword list 
+
+// type stuff
+anyptr bool char f32 f64 f80
+usize size string null undef 
+uint int
+u8 u16 u32 u64 
+i8 i16 i32 i64
+true false
+void
+
+// declaration stuff
+struct enum union fun let const mut type alias
+
+// control flow stuff
+if else for while break continue goto return defer label
+switch
+
+// 
+sizeof typeof alignof
+
+new delete macro
+
+impl interface import as from with is
+extern // ffi
  
 
 # Variable Definition & Declaration
 
 ```
-    var_def -> "let" "mut"? %id ( ":" %id )? ( "=" <expr> ) ";" .
+    var_def -> 
+          ( "let" | "var" ) %id ( ":" %id )? "=" expr ";"
+        | ( "let" | "var" ) %id ( ',' %id )* ( ":" %id )? "=" expr ( "," expr )* ";"
+    ;
     
 ```
 
@@ -127,6 +190,24 @@ River has the following literal types:
 // variables are declared with the 'let' keyword
 let x: int = 45;
 x = "str"; // illegal
+
+let f = fopen("path/to/file").unwrap();
+
+let x, y = 10, 20;
+
+let x, y: int, z: string = 10, 23, "34";
+
+var x, y, z = 12, 2, false;
+
+let x, y, z, w, e, t = 13, 45, 35, .. _;
+
+let q: [5]u8 = [0, .. 1];
+
+let q, w, e, r: int = 12, 23, 35, 4;
+
+let x, y, z;
+
+f: file = fopen("path/to/file").unwrap();
 
 // let-introduced values are immutable by default
 // And also private to their scope
@@ -151,9 +232,9 @@ let x, y, z = "X", 230, false;
 
 // variables are non-nullable by default
 // to have a nullable variable, it must be explicitly marked as such
-// by appending a '?' to the variable name
+// by prepending a '?' to the variable name
 // nullability is defined as a datatype
-let name: string? = get_name();
+let name: ?string = get_name();
 
 let x = 10;
 let y: ^int = &x; // & is the address of operator, pointer types are expressed by adding a caret before the type name
@@ -182,7 +263,7 @@ let ptr: ^^^^^^^^int ; // pointer to pointer to pointer to ... 8 times to an int
 // however, they are both defined before the type:
 
 name: [size]type = value;
-[6]int arr = [1, 2, 3, 4, 5, 6]; // array of six integers
+arr: [6]int = [1, 2, 3, 4, 5, 6]; // array of six integers
 
 // array types must always contain the size
 
@@ -190,9 +271,9 @@ name: [size]type = value;
 
 // arrays can be pointed to too:
 
-^[6]int arr; // pointer to an array of 6 ints
-[6]^int arr; // array of 6 pointers to ints
-^[6]^int arr; // pointer to array of 6 pointers to ints
+arr: ^[6]int; // pointer to an array of 6 ints
+arr: [6]^int; // array of 6 pointers to ints
+arr: ^[6]^int; // pointer to array of 6 pointers to ints
 
 // like with regular pointers, pointers to arrays can have up to 8 levels of indirection:
 ^^^^^^^^[6]int arr; // pointer to pointer to pointer to ... 8 times to an array of 6 ints;
@@ -205,8 +286,8 @@ name: [size]type = value;
 
 ```
 
-    function_def -> "fun" <ID> ( "(" <params_list> ")" )? ( ":" <type> )? "=" <expr> ";" .
-    
+    function_def -> "fun" %ID ( "[" generic_list "]" )? ( "(" params_list ")" )? ( "->" %ID )? "=" expr ";" .   
+
 ```
 
 
@@ -224,6 +305,8 @@ fun sub ( x, y: int ) -> int = x - y;
 fun sub[T: type where T is subtractive](x, y: T) -> T = x - y;
 
 fun div(num, div: int) -> int where div > 0 = num / div;
+
+fun fclose(^File fp) where fp != null = { ... };
 
 // functions without parameters can be omit the parenthesis
 fun do_stuff = {
@@ -539,6 +622,26 @@ enum Literal {
     char(char)
 }
 
+type Literal = union {
+    Int(long),
+    Float(double),
+    String(std::String),
+    char(char)
+};
+
+// i should have both normal unions but also ad-hoc inline unions like
+// int | string, file | Error, etc.
+type Vec3 = bare union {
+    raw: f32[3];
+    _: struct {
+        x, y, z: f32;  
+    };
+}
+
+let v: Vec3 = Vec3(10, 20, 30);
+v.x += 10;
+print(v); // => {20, 20, 30}
+
 
 ```
 
@@ -549,9 +652,19 @@ enum Literal {
 ```c
 
 // You can define your own types by aliasing other types
-alias u32 = int;
+alias Integer = int;
+let x: Integer = 10; // base type: int
 
-u32 x = 10; // base type: int
+// aliased types are interchangable with their base types without the need for an explicit cast
+
+let y: int = x; // valid
+
+// You can also define distinct types with the use of the 'type' keyword:
+type Celcius = double;
+
+let temp: Celcius = 35.0;
+let f: double = temp; // illegal, cast via `as double`
+let f: double = temp as double; // ok 👍
 
 // Types can be composed of multiple base types
 // this type can represent both u32 or f32 values
@@ -574,6 +687,8 @@ curry bbq_curry = "BBQ";
 //  | {"Katsu", "Vegetable", "Chicken"}
 
 curry butter_chicken = "Chicken"; // => works just fine
+
+type age = 0 < int < 130;
 
 ```
 
@@ -810,25 +925,5 @@ u32 val = 10;
  ^ ~ & && ||
 . , ? : ; ' " = ( ) { } [ ]
 @ .. ... -> =>
-
-## Keyword list 
-
-// type stuff
-uint int void usize size string bool null unset
-u8 u16 u32 u64 i8 i16 i32 i64 f32 f64 f80 anyptr
-
-// declaration stuff
-struct enum union fun let const mut
-
-// control flow stuff
-if else for while break continue goto return defer label
-
-// 
-sizeof typeof alignof
-
-new delete macro
-
-impl interface import as from with is
-extern // ffi
 
 # Grammar specification
