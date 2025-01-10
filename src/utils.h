@@ -2,9 +2,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-
-#define True ((0==0))
-#define False ((0!=0))
+#include <stdbool.h>
 
 #define IN_RANGE_INC(v, min, max) ((min <= v) && (v <= max))
 #define IN_RANGE_EX(v, min, max)  ((min < v) && (v < max))
@@ -18,17 +16,10 @@ typedef uintptr_t usize;
 // unsigned int type
 typedef uint32_t uint;
 typedef uint64_t ulong;
-typedef uint32_t bool;
 // kinda ugly, i'd much rather just use long
 // but the problem is when i want a number bigger than int:
 // on my machine, sizeof long == int, which means i have to type long long int
 // which is stupid.
-
-// i don't *really* like the concept of sized types too much in the context of normal programs
-// ideally you should just use the default int type unless you
-// REALLY need to use some different type ( i.e in an embedded context, or perhaps you're developing a virtual machine )
-// short ( or u/i16 ) specifically is generally pretty useless for normal applications,
-// and i don't see myself needing a short for this app so it's being left out.
 typedef int64_t ilong;
 
 // i'm defining this jic but idk if i'm gonna end up using this

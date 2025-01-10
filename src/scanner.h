@@ -54,11 +54,11 @@ typedef enum TokenTag {
 	T_RETURN, 
 	T_IF, T_ELSE, T_THEN, T_DO, T_WHILE, T_FOR, T_IN,
 	T_GOTO, T_LABEL, T_BREAK, T_CONTINUE, T_DEFER,
-	T_STRUCT, T_TYPE, T_ENUM, T_UNION,
+	T_STRUCT, T_ALIAS, T_TYPE, T_ENUM, T_UNION,
 	T_IMPORT, T_AS,
 	T_MATCH, T_CASE, T_SIZEOF, T_TYPEOF,
 	T_MACRO, T_YIELD, T_EXPECT, T_ASSERT,
-	T_FUN, T_STATIC, T_CONST, T_MUT, T_UNDEF, T_PUB, T_LET,
+	T_FUN, T_STATIC, T_CONST, T_UNDEF, T_PUB, T_LET,
 
 	T_EOF,
 
@@ -117,12 +117,12 @@ static const char* token_strings[MAX_TKNS] = {
 	"return", 
 	"if", "else", "then", "do", "while", "for", "in",
 	"goto", "label", "break", "continue", "defer", 
-	"struct", "type", "enum", "union",
+	"struct", "alias", "type", "enum", "union",
 	"import", "as",
 	"switch", "case", "sizeof", "typeof",
 	"macro", "yield", "expect", "assert",
 	// variable decl
-	"fun", "static", "const", "mut", "undef", "pub", "let",
+	"fun", "static", "const", "undef", "pub", "let",
 
 	"EOF",
 };

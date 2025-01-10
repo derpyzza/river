@@ -11,7 +11,7 @@
 struct File *read_file(char* path) {
 	File *out = (File*)malloc(sizeof(File));
 	out->path = path;
-	out->is_valid = False;
+	out->is_valid = false;
 
 	FILE *in = fopen(path, "rb");
 	if (in == NULL) {
@@ -38,7 +38,7 @@ struct File *read_file(char* path) {
 
 	fclose(in);
 	// everything went fine
-	out->is_valid = True;
+	out->is_valid = true;
 	return out;
 }
 
@@ -74,7 +74,7 @@ main(int argc, char** argv) {
 	// REPL MODE
 	if (argc < 2) {
 		printf("No input files\n");
-		while(True) {
+		while(true) {
 			// arbitrarily sized buffer for now
 			char* buf = (char*)malloc(2048);
 			fputs("rvrcc>> ", stdout);

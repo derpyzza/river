@@ -295,9 +295,9 @@ arr: ^[6]^int; // pointer to array of 6 pointers to ints
 
 // Code blocks, including functions, support implicit returns
 // the last expression within a block is returned
-fun sub ( x: int, y: int ) -> int = {
+fun sub ( x: int, y: int ) -> int {
     x - y // returns x + y
-};
+}
 
 // the above function can also be written as:
 fun sub ( x, y: int ) -> int = x - y;
@@ -411,6 +411,23 @@ int div(int x, int y) => {
     ensure z != 0; // for some reason. just as an example
     return z;
 }
+
+// methods
+
+type Vec2 = struct {
+    x, y: int;
+};
+
+fun Vec2:add(this, rhs: Vec2) -> Vec2 = { ... };
+fun Vec2:neg(self) = { ... };
+
+let x = Vec2(10, 10);
+let y = x.neg();  // mutates x
+let z = x:add(y): // does not mutate x
+let w = Vec2:add(z, y);
+
+
+
 ```
 
 # Control flow
@@ -540,6 +557,13 @@ type User = struct {
     // Struct fields can have default values
     str username = "Admin";
     u16 pin = 0000;
+};
+
+type Core = struct {
+  window: struct {};
+  input: struct {};
+  _: union {};
+  shader: shader | u32;
 };
 
 let admin: User;
