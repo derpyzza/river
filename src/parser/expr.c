@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "parser-internal.h"
 #include "expr.h"
 #include "../scanner.h"
 
