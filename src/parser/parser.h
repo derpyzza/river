@@ -15,6 +15,37 @@ typedef struct ParseError {
 
 CREATE_VEC_TYPE(ParseError, ParseErrors)
 
+typedef struct Datatype Datatype;
+typedef union DatatypeUnion DatatypeUnion;
+typedef enum DatatypeTag DatatypeTag;
+
+CREATE_VEC_TYPE(Datatype*, Datatype);
+
+enum DatatypeTag {
+	DATATYPE_IDENTIFIER,
+	DATATYPE_POINTER,
+	DATATYPE_ARRAY,
+	DATATYPE_TUPLE,
+};
+
+union DatatypeUnion {
+	String * dt_iden;
+	struct Pointer {
+		Datatype * to;
+	} *dt_ptr;
+	struct Array {
+		Datatype * of;
+		size size;
+	} * dt_arr;
+	VecDatatype* dt_tuple;
+};
+
+struct Datatype {
+	DatatypeTag tag;	
+	DatatypeUnion* type;
+};
+	
+
 // typedef struct Var {
 // 	int is_assign;
 // 	struct Substr *name;
@@ -36,6 +67,7 @@ typedef struct Path {
 
 typedef enum NodeTag {
 	N_NONE,
+	N_TODO,
 	N_NODE_LIST, // hack
 	N_PROG,
 	N_EXPR,

@@ -11,22 +11,11 @@
 printf("NULL POINTER DEREFERENCE EXCEPTION AT %s, %i\n", __FILE__, __LINE__),	\
 exit(-1);
 
+typedef unsigned int uint;
 typedef intptr_t size;
 typedef uintptr_t usize;
-// unsigned int type
-typedef uint32_t uint;
 typedef uint64_t ulong;
-// kinda ugly, i'd much rather just use long
-// but the problem is when i want a number bigger than int:
-// on my machine, sizeof long == int, which means i have to type long long int
-// which is stupid.
 typedef int64_t ilong;
-
-// i'm defining this jic but idk if i'm gonna end up using this
-typedef struct Result {
-	int err;
-	void *ok;
-} Result;
 
 typedef struct String {
 	int len; // not size, because the string format expects an int as the length
@@ -34,6 +23,9 @@ typedef struct String {
 	char* c_ptr;
 } String;
 
+String *str_new(size init);
+String *str_from(const char* s);
+void str_append(String* o, char* s);
 
 // linked list of strings
 typedef struct StringBuilder {
@@ -49,11 +41,25 @@ typedef struct File {
 	String data;
 } File;
 
+typedef struct FilePath {
+	char* path;
+	char* ext;
+} FilePath;
+
+File *read_file(char* path);
+FilePath split_path(char* path);
+
 typedef struct Vec {
 	size max;
 	size current;
 	void** data;
 } Vec;
+
+Vec *new_vec(size init, size elem_size);
+Vec *init_vec(void** data, size len);
+void vec_push(Vec *v, void* item);
+void vec_pushi(Vec *v, int i);
+void vec_pop(Vec *v);
 
 // evil preprocessor macro hack
 // declares a type-safe dynamic array, along with all the functions required to push data into and pull data from it.
@@ -92,14 +98,3 @@ typedef struct Vec {
 	static inline T *vec_pop_##I (Vec##I* v) {													\
 		return (T *)&v->data[(--v->current)];															\
 	}
-	
-
-Vec *new_vec(size init, size elem_size);
-Vec *init_vec(void** data, size len);
-void vec_push(Vec *v, void* item);
-void vec_pushi(Vec *v, int i);
-void vec_pop(Vec *v);
-
-String *str_new(size init);
-String *str_from(const char* s);
-void str_append(String* o, char* s);

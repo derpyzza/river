@@ -13,6 +13,7 @@ void print_ast( Node *node, int level ) {
 		switch(cur->tag) {
 			default: printf("Unknown or not implemented yet!\n"); break;
 			case N_NONE: printf("None!\n"); break;
+			case N_TODO: printf("todo!!!\n"); break;
 			case N_VAR: {
 				printf("<var> name: %.*s, type: <TYPE>, rhs: ",
 					cur->name->len,

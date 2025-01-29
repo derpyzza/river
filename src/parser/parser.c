@@ -20,8 +20,9 @@ static struct Node *import_def(void);
 
 #define PANIC(e, et, u, ut) panic(e, et, u, ut, __FILE__, __LINE__)
 
-struct Node *parse_tokens( VecToken *tokens, File *src ) 
-{ 
+Node *parse_tokens( VecToken *tokens, File *src )  { 
+
+	// Initialize parser state, parser struct found in src/parser/parser-internal.h
 	init_parser(src, tokens);
 
 	// malloc a big chunk of memory at the start and just use that
@@ -56,9 +57,9 @@ struct Node *parse_tokens( VecToken *tokens, File *src )
 }
 
 
-static Node* var_def(void) { return NULL; }
-static Node* type_def(bool is_alias) { return NULL; }
-static Node* import_def(void) { return NULL; }
+static Node* var_def(void) { return new_node(N_TODO); }
+static Node* import_def(void) { return new_node(N_TODO); }
+static Node* type_def(bool is_alias) { return new_node(N_TODO); }
 
 static Node *top_level(void) {
 	if(match(T_FUN)) return fn_def();
@@ -75,15 +76,54 @@ static Node *top_level(void) {
 	return NULL;
 }
 
+Datatype * new_datatype(DatatypeTag tag) {
+	Datatype * new = malloc(sizeof(Datatype));
+	new->tag = tag;
+	new->type = malloc(sizeof(DatatypeUnion));
+}
+
+
+/* 
+type tokens: 
+  ( "^"* ("[" <int> "]")+ | ("[" "]")* ) "^"* IDEN ("," type)* ;
+
+datatype -> primary_type ( "," primary_tab )* ;
+primary_type ->
+
+*/
+
+Datatype* parse_datatype_primary() {
+	if(match(T_IDENTIFIER)) {
+		// check if tuple
+		if (check_next(T_COMMA)) {
+			Datatype* tuple = new_datatype(DATATYPE_TUPLE);
+			
+		}
+	}
+}
+
+Datatype* parse_datatype(void) {
+	if(match(T_HAT)) 0;
+	if(match(T_BRACKET_OPEN)) 0;
+	if(match(T_IDENTIFIER)) 0;
+}
+
+void match_params() {
+	
+}
+
 // function_def -> "fun" <ID> ( "(" <params_list> ")" )? ( "->" <type> )? "=" <expr> ";" .
 // "fun" <ID> ( "::" <ID> )? ( "[" <generic> "]" )? ( "(" <params_list>? ")" )? ( "->" <type> )? ( "=" <expr> ";" | <block> )
 static Node *fn_def(void) {
 	Node* fn = new_node(N_FUNC_DEF); 
 
 	// match identifier
-	if( match(T_IDENTIFIER) )
+	if( match_type_token() ) {
 		fn->name = cur_tok_span();
-	else printf("error, missing identifier");
+	} else {
+		printf("error, missing type");
+		PANIC(T_TYPE, P_CAT, T_SEMI, P_TOK);
+	}
 
 	// parse params
 	if(match(T_PAREN_OPEN)) {
@@ -96,7 +136,7 @@ static Node *fn_def(void) {
 	
 	if (match(T_ARROW)) {
 		// match type
-		if (match(T_IDENTIFIER)) {
+		if (match_type_token()) {
 			fn->type = cur_tok_span();
 		}
 		else 
@@ -111,7 +151,7 @@ static Node *fn_def(void) {
 		PANIC(T_EQUAL, P_TOK, T_SEMI, P_TOK);
 	}
 
-	if(!match(T_SEMI)) {
+	if( fn->body->tag != N_BLOCK && !match(T_SEMI)) {
 		PANIC(T_SEMI, P_TOK, TC_KEYWORD, P_CAT);
 	}
 	printf("returning fn!\n");

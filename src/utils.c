@@ -94,3 +94,58 @@ StringBuilder * sb_new(const char * src) {
 	return sb;
 }
 
+
+File *read_file(char* path) {
+	File *out = (File*)malloc(sizeof(File));
+	out->path = path;
+	out->is_valid = false;
+
+	FILE *in = fopen(path, "rb");
+	if (in == NULL) {
+		printf("Error, could not read file %s\n", path);
+		return out;
+	}
+	fseek(in, 0, SEEK_END); 
+	out->data.len = ftell(in); 
+	rewind(in); 
+
+	out->data.c_ptr = (char*)malloc(out->data.len + 1);
+	if (out->data.c_ptr == NULL) {
+		printf("Error, could not allocate enough memory for file %s\n", path);
+		fclose(in);
+		return out;
+	}
+
+	size bufsread = fread(out->data.c_ptr, 1, out->data.len, in);
+	if ( bufsread < out->data.len ) {
+		printf("Error, could not read enough bytes from file %s\n", path);
+		fclose(in);
+		return out;
+	}
+
+	fclose(in);
+	// everything went fine
+	out->is_valid = true;
+	return out;
+}
+
+FilePath split_path(char* path) {
+	size len = strlen(path);
+	char* name = (char*)malloc(sizeof(char) * len);
+	int id = 0;
+	char* c = path;
+	while(*c != '.') {
+		name[id] = *c;
+		id++;
+		c++;
+	}
+	name[id] = '\0';
+
+	printf("size is %li\n", (len - id) * sizeof(char) + 1);
+	char* ext = (char*)malloc((len - id) * sizeof(char) + 1);
+	if(ext != NULL) 
+		strcpy(ext, c);
+	else printf("Error: Could not malloc ext file\n"), exit(-1);
+	return (FilePath){ .path = name, .ext = ext };
+}
+

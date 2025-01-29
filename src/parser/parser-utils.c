@@ -153,21 +153,3 @@ int match( TokenTag expected) {
 	}
 	return 0;
 }
-
-
-/* 
-type tokens: 
-  ( "^"* "[" "]"+ | "[" "]"* ) "^"* IDEN ("," type)* ;
-
-*/
-int match_type_token(void) {
-  TokenTag p = peek().type;
-  switch(p) {
-    case T_HAT: break;
-    case T_BRACKET_OPEN: break;
-    case T_IDENTIFIER: break;
-    default:
-      return false;
-    break;
-  }
-}
