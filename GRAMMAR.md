@@ -48,6 +48,11 @@ func_decl -> "pub"? "fun" %id ( "(" <params_list> ")" )? ( "->" %id )? "=" <expr
 params_list -> <param_item>? ( "," <param_item> )*;
 param_item -> %id ( ":" %id )? ( "=" %lit )?
 
+data_type -> <primary_type> ( "," <primary_type> | "|" <primary_type> )* ;
+primary_type -> <type_header> %id ;
+type_header -> "^"* type_arr* ;
+type_arr -> ("[" %number? "]")* "^"* ;
+
 global_var -> %id <var_assign> ( "," <var_assign> )*;
 var_assign -> %id '=' %lit;
 

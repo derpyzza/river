@@ -92,7 +92,10 @@ primary_type ->
 
 */
 
-Datatype* parse_datatype_primary() {
+Datatype* parse_datatype_array(void) {}
+Datatype* parse_datatype_header(void) {}
+
+Datatype* parse_datatype_primary(void) {
 	if(match(T_IDENTIFIER)) {
 		// check if tuple
 		if (check_next(T_COMMA)) {
@@ -103,9 +106,12 @@ Datatype* parse_datatype_primary() {
 }
 
 Datatype* parse_datatype(void) {
-	if(match(T_HAT)) 0;
-	if(match(T_BRACKET_OPEN)) 0;
-	if(match(T_IDENTIFIER)) 0;
+	Datatype* out = parse_datatype_primary();
+	if(match(T_COMMA)) {
+		out->type->dt_tuple = parse_datatype_primary();
+	} else if (match(T_PIPE)) {
+		out->type->dt_union = parse_datatype_primary();
+	}
 }
 
 void match_params() {

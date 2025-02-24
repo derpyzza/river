@@ -262,67 +262,117 @@ let ptr: ^^^^^^^^int ; // pointer to pointer to pointer to ... 8 times to an int
 // unlike in C, pointers and arrays are distinct types
 // however, they are both defined before the type:
 
-name: [size]type = value;
-arr: [6]int = [1, 2, 3, 4, 5, 6]; // array of six integers
+let name: [size]type = value;
+let arr: [6]int = [1, 2, 3, 4, 5, 6]; // array of six integers
 
 // array types must always contain the size
-
-[]type name = value; // => ERROR, missing array size
+let name: []type = value; // => ERROR, missing array size
 
 // arrays can be pointed to too:
 
-arr: ^[6]int; // pointer to an array of 6 ints
-arr: [6]^int; // array of 6 pointers to ints
-arr: ^[6]^int; // pointer to array of 6 pointers to ints
+let arr: ^[6]int; // pointer to an array of 6 ints
+let arr: [6]^int; // array of 6 pointers to ints
+let arr: ^[6]^int; // pointer to array of 6 pointers to ints
 
 // like with regular pointers, pointers to arrays can have up to 8 levels of indirection:
-^^^^^^^^[6]int arr; // pointer to pointer to pointer to ... 8 times to an array of 6 ints;
+let arr: ^^^^^^^^[6]int; // pointer to pointer to pointer to ... 8 times to an array of 6 ints;
 
-^^^^^^^^[6]^^^^^^^^int arr; // pointer to pointer t ... 8 times an array of 6 pointers to pointers to ... 8 times to an int;
+let arr: ^^^^^^^^[6]^^^^^^^^int ; // pointer to pointer t ... 8 times an array of 6 pointers to pointers to ... 8 times to an int;
     
+```
+
+# structs 
+
+```c
+
+// You can wrap up several datatypes into a big datatype called a struct, just like in C 
+type Vector3 = struct {
+    x, y, z: f32;
+};
+
+// Unlike in C, you don't need to typedef structs to avoid the struct keyword in declarations
+let v: Vector3 = { 10.f, 10.f, 12.f };
+
+// structs are provided with an automatic constructor to aid in initializing them:
+let v = Vector3(10, 20, 30);
+
+type User = struct {
+    // Struct fields can have default values
+    str username = "Admin";
+    u16 pin = 0000;
+};
+
+let admin: User;
+printf("user.name = %s", admin.username); // => "user.name = Admin"
+admin.name = "Administrator";
+printf("user.name = %s, user.pin = %i", admin.username, admin.pin) // => "user.name = Administrator, user.pin = 0000"; 
+
+// structs can also have functions in them
+type Vec4 = struct {
+    x, y, z, w: f32;
+
+    // Note: Self refers to the parent type.
+    fun print(t: Self) = io.printf("Vec4[{}, {}, {}, {}]", t.x, t.y, t.z, t.w);
+}
+
+let v1 = Vec4(30, 40, 50, 1);
+v1.print(); // => Vec4[30, 40, 50, 1]
+
+// alternatively, struct functions may also be defined outside of struct bodies in this way
+fun Vec4::print(t: Self) = io.printf("Vec4[{}, {}, {}, {}]", t.x, t.y, t.z, t.w);
+
+foo.bar();
+foo:bar();
+
+// generic structs
+
+type Buf[T] = struct {
+    id, max: size;
+    data: ^T;
+
+    fun Buf[T]() -> Self {
+        
+    }
+};
+
+let intarr = Buf[int]();
+
 ```
 
 # Functions 
 
 ```
-
     function_def -> "fun" %ID ( "[" generic_list "]" )? ( "(" params_list ")" )? ( "->" %ID )? "=" expr ";" .   
-
 ```
-
 
 ```c
 
 // Code blocks, including functions, support implicit returns
 // the last expression within a block is returned
-fun sub ( x: int, y: int ) -> int {
-    x - y // returns x + y
+fun sub ( x: int, y: int ): int {
+    return x - y; // returns x + y
 }
 
 // the above function can also be written as:
-fun sub ( x, y: int ) -> int = x - y;
+fun sub ( x, y: int ): int = x - y;
 
-fun sub[T: type where T is subtractive](x, y: T) -> T = x - y;
-
-fun div(num, div: int) -> int where div > 0 = num / div;
-
-fun fclose(^File fp) where fp != null = { ... };
+fun sub[T: Subtractive](x, y: T): T = x - y;
 
 // functions without parameters can be omit the parenthesis
-fun do_stuff = {
+fun do_stuff {
     // do something
 }
 
-fun add 10; // error! expected '=>' or '=', got Int_Literal!
-               // help: try adding a '=>' before the number '10'
+fun add 10; // error! expected '=' or '{', got Int_Literal!
+               // help: try adding a '=' before the number '10'
                //     | add '=>' 10;
                //     |~~~~~~^^~~~~~
 
 // function types can be declared as such:
 // this is a function that has a parameter of type int and returns a value of type bool
-type func = fun(int) -> bool;
+type func = fun(int): bool;
 
-fun do_something() -> foo, (bar | null) = {
+fun do_something(): foo, (bar | null) = {
     
 }
 
@@ -529,76 +579,11 @@ switch expr {
 
 ```
 
-
-
-# structs 
-
-```c
-
-// You can wrap up several datatypes into a big datatype called a struct, just like in C 
-type Vector3 = struct {
-    f32 x, y, z;
-};
-
-// Unlike in C, you don't need to typedef structs to avoid the struct keyword in declarations
-// Also unlike in C, struct fields cannot be anonymous
-Vector3 v = Vector3 {.x = 10.f, .y = 10.f, .z = 12.f};
-
-type Vector4 = struct {
-    // Fields are non-nullable by default
-    f32 x, y, z;
-    // However, fields can be nullable
-    // appending a ? to a variable name makes it nullable
-    // Like pointers, nullability is a property of a variable, not a datatype
-    f32 w?;
-};
-
-type User = struct {
-    // Struct fields can have default values
-    str username = "Admin";
-    u16 pin = 0000;
-};
-
-type Core = struct {
-  window: struct {};
-  input: struct {};
-  _: union {};
-  shader: shader | u32;
-};
-
-let admin: User;
-printf("user.name = %s", admin.username); // => "user.name = Admin"
-admin.name = "Administrator";
-printf("user.name = %s, user.pin = %i", admin.username, admin.pin) // => "user.name = Administrator, user.pin = 0000"; 
-
-// NOTE: Do structs really need methods?
-// what if instead of "true" methods there was Uniform function call syntax instead?
-
-fun add(x, y: int) -> int = {
-    x + y
-}
-
-let x = 10;
-let y = 30;
-let z = x.add(y); // => 40
-let w = z.add(y).add(x); // => 80. equivalent to add(z, add(y, x));
-
-
-// generic structs
-
-type DynArray = struct<$T: type> {
-    id, max: size;
-    data: ^T;
-};
-
-
-```
-
 # Tuples
 ```c 
 
 // tuples are like structs, except they don't have named parameters
-(int, string) tup = (23, "John");
+let tup: (int, string) = (23, "John");
 tup.0; // 23
 tup.1; // "helli"
 
@@ -698,22 +683,6 @@ number x = 10; // valid
 number y = 52.32; // also valid
 number z = 42.4d; // not valid, as it is a double value
 
-// Types can also be made up of literals
-// This way, a type can represent legal values and guard against illegal ones
-type curry -> "Katsu" 
-            | "Vegetable" 
-            | "Chicken";
-
-// ( BBQ curry?! )
-curry bbq_curry = "BBQ"; 
-// => Error: Invalid value "BBQ style" for type <curry>
-//  | type union <curry> only supports the following values:
-//  | {"Katsu", "Vegetable", "Chicken"}
-
-curry butter_chicken = "Chicken"; // => works just fine
-
-type age = 0 < int < 130;
-
 ```
 
 ## File imports 
@@ -746,31 +715,6 @@ main() {
 }
 
 
-
-```
-
-
-
-# Namespaces
-```c
-
-// the namespace keyword declares a new namespace
-namespace Vector3 {
-    Vector3_s add(Vector3_s x, Vector3_s y);
-    Vector3_s sub(Vector3_s x, Vector3_s y);
-}
-
-// using a function from a namespace
-Vector3:add();
-// or
-// declaring a scoped namespace
-{
-    using namespace:Vector3;
-
-    add(x, y); // Vector3::add();
-    sub(y, x); // Vector3::sub();
-}
-add(x, y); // => Error: call to undefined function <add>
 
 ```
 

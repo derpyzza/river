@@ -17,16 +17,39 @@ CREATE_VEC_TYPE(ParseError, ParseErrors)
 
 typedef struct Datatype Datatype;
 typedef union DatatypeUnion DatatypeUnion;
-typedef enum DatatypeTag DatatypeTag;
 
 CREATE_VEC_TYPE(Datatype*, Datatype);
 
-enum DatatypeTag {
+enum BasicDataTypeTag {
+	BDT_INT,
+	BDT_UINT,
+	BDT_UINT8,
+	BDT_UINT16,
+	BDT_UINT32,
+	BDT_UINT64,
+	BDT_INT8,
+	BDT_INT16,
+	BDT_INT32,
+	BDT_INT64,
+	BDT_FLOAT32,
+	BDT_FLOAT64,
+	BDT_BOOL,
+	BDT_STRING,
+	BDT_SIZE,
+	BDT_USIZE,
+	BDT_VOID,
+	BDT_ANYPTR,
+};
+
+typedef enum DatatypeTag {
 	DATATYPE_IDENTIFIER,
 	DATATYPE_POINTER,
 	DATATYPE_ARRAY,
 	DATATYPE_TUPLE,
-};
+	DATATYPE_UNION
+} DatatypeTag;
+
+#define MAX_PTR_DEPTH 8
 
 union DatatypeUnion {
 	String * dt_iden;
@@ -34,10 +57,11 @@ union DatatypeUnion {
 		Datatype * to;
 	} *dt_ptr;
 	struct Array {
+		int size;
 		Datatype * of;
-		size size;
 	} * dt_arr;
 	VecDatatype* dt_tuple;
+	VecDatatype* dt_union;
 };
 
 struct Datatype {

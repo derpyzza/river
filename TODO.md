@@ -1,3 +1,33 @@
+
+
+
+language features:
+    - Basic Features:
+        - variables
+        - functions
+        - default function arguments
+        - if/else expressions
+        - while expressions
+        - repeat until expressions
+        - type defs / aliases
+        - structs
+        - enums
+        - unions
+    - 'Advanced Features':
+        - operator overloading
+        - function overloading
+        - Type Inference
+        - Comptime macros/metaprogramming ( see nim/lisp/rust style macros )
+        - Generics
+        - Interfaces
+
+
+note:
+    make the river compiler ( or at the very least, just the parser and codegenerator ) available within river code as a library, 
+    so that parsing and generating river code from river code is ezpz
+    imagine being able to generate a bunch of boilerplate structs and functions and whatnot using a river program :O
+    no more need for python!
+
 required tooling:
     compiler [ in progress ]
     repl 

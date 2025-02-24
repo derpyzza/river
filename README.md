@@ -22,29 +22,26 @@ Outputs to a human readable C99.
 River offers the following feature-set over plain-C:
 - An easier to parse syntax ( for machines and humans alike )
 - Type inferencing and a stronger type system
+- Arbitrary compile-time code-execution / stronger macros
+- Expression-oriented syntax
+- Default function arguments / struct fields
+- Localized Namespaces ( that is, there are more namespaces than just "global" and "local" )
 - Interfaces
 - Generics
-- Localized Namespaces ( that is, there are more namespaces than just "global" and "local" )
-- Visibility control ( defaults to private )
-- Mutability control ( defaults to immutable )
-- Default function arguments / struct fields
 - Function overloading ( functions are identified by their signatures, not just their names )
 - Limited operator overloading ( limited to basic arithmetic, comparisons and subscripting )
 - Distinct and Aliased type definitions ( or nominal vs structural types )
-- Multiple function return values
 - Method call syntax
 - Algebraic data types ( discriminated unions, mostly )
 - Pattern matching
 - A proper module system
-- Expression-oriented syntax
 - Nicer array types
-- First class testing framework
 
 And gets rid of:
 - The pre-processor
 - Pointers decaying into arrays
 - Implicit type conversions
-- Decrement/Increment operators ( ++ / -- )
+- Prefix decrement/increment operators ( ++ / -- )
 - Implicitly nullable pointers
 
 # Quick start
@@ -67,12 +64,6 @@ From there you can use the river compiler to compile river programs by simply ru
 $ rcc in.rvr
 ```
 
-# Language Goals and Motivations
-# Ecosystem Features
-## Testing Framework
-## Documentation Generation
-## Package management
-
 # Language Features
 
 ## Automatic type inference
@@ -85,7 +76,7 @@ let y = 20.0; // or 20.0, 20f; all = 20.0
 
 // Equals
 let x: int = 23;
-let y: double = 23.0; // floating point numbers evaluate to double by default
+let y: f32 = 23.0;
 
 ```
 
@@ -122,20 +113,10 @@ let x = 1, 2, 3;
 let x, y = 1, 2, 3; // => error, too many values
 let x, y = 1, 2; // fine
 ```
-## Interfaces
-
-## Generics
-
-```c
-
-fun add[T: type where T is Addable](x, y: T) -> T = x + y;
-
-    
-```
 
 ## Algebraic Data Types
 
-```rs
+```cs
 
 type Value = enum {
     Int: int,
@@ -144,89 +125,20 @@ type Value = enum {
     Ptr: ^Value  
 };
 
-fun print_value(v: Value) -> string = {
-    var s: string;
-    switch v {
-        Int => s.format("int: {}", v);
-        Float => s.format("float: {}", v);
-        String => s.format("string: {}", v);
-        Ptr => s.format("ptr to: {}", print_value(v));
+fun print_value(v: Value) -> string {
+    let s: string;
+    match v {
+        Int => s.format("int: {}", v),
+        Float => s.format("float: {}", v),
+        String => s.format("string: {}", v),
+        Ptr => s.format("ptr to: {}", print_value(v)),
     }
     
-    s
-};
+    return s;
+}
 
-fun add_value(v, y: Value) -> ?Value =
-    if v is int and y is int 
-    then
-        Some(v + y)
-    else None
-;
-
+fun add_value(v, y: Value) -> ?Value = if (v int and y is int) Some(v + y) else None;
 ```
-
-## Operator overloading
-
-limits on operator overloading:
-- Must not allocate
-- Must not error
-- Must not return null
-- Must follow a very specific function signature
-
-```c
-
-type Vec2 = struct {
-    x, y: f32;
-};
-
-
-operator add (a, b: Vec2) -> Vec2 = Vec2.{a.x + b.x, a.y + b.y};
-operator sub (a, b: Vec2) -> Vec2 = Vec2.{a.x - b.x, a.y - b.y};
-operator mul (a, b: Vec2) -> Vec2 = Vec2.{a.x * b.x, a.y * b.y};
-operator div (a, b: Vec2) -> Vec2 = Vec2.{a.x / b.x, a.y / b.y};
-// unary negation
-operator neg (v: Vec2) -> Vec2 = Vec2.{-v.x, -v.y};
-
-operator eq (a, b: Vec2) -> bool = a.x == b.x && a.y == b.y;
-operator neq (a, b: Vec2) -> bool = a.x != b.x || a.y != b.y;
-
-// other operations include:
-// gt        : greater than `>`
-// lt        : less than `<`
-// gteq      : greater than or equal to `>=`
-// lteq      : less than or equal to `<=`
-// get_item  : for loop iterations `in`
-// get_index : subscript set `[]`
-// set_index : subscript get `[]`  
-// add_assign: +=
-// sub_assign: -=
-// mul_assign: *=
-// div_assign: /=
-// mod_assign: %=
-
-// function signatures
-operator eq (a, b: T) -> bool;
-operator neq (a, b: T) -> bool;
-operator gteq (a, b: T) -> bool;
-operator lteq (a, b: T) -> bool;
-operator lt (a, b: T) -> bool;
-operator gt (a, b: T) -> bool;
-operator eq (a, b: T) -> bool;
-operator add (a, b: T) -> T;
-operator sub (a, b: T) -> T;
-operator mul (a, b: T) -> T;
-operator div (a, b: T) -> T;
-operator neg (v: T) -> T;
-operator get_item (a: []T) -> T;
-operator get_index (a: []T) -> T;
-operator set_index (a: []T) -> T;
-operator add_assign(a: ^T, b: T);
-operator sub_assign(a: ^T, b: T);
-operator mul_assign(a: ^T, b: T);
-operator div_assign(a: ^T, b: T);
-    
-```
-
 
 ## Defers
 The `defer` keyword just executes the given statement at the end of the current scope.
@@ -235,7 +147,7 @@ The `defer` keyword just executes the given statement at the end of the current 
 
 struct object {...};
 
-int main() => {
+fun main() {
     let x = new_object();
     defer delete_object;
 
@@ -255,6 +167,77 @@ switch user.rank {
     "Employee" => {},
     "Admin" => {},
     _ => {}
+}
+
+```
+
+
+## Operator overloading
+
+limits on operator overloading:
+- Must not allocate
+- Must not error
+- Must not return null
+- Must follow a very specific function signature
+
+```c
+
+type Vec2 = struct {
+    x, y: f32;
 };
 
+
+op add (a, b: Vec2) -> Vec2 = Vec2.{a.x + b.x, a.y + b.y};
+op sub (a, b: Vec2) -> Vec2 = Vec2.{a.x - b.x, a.y - b.y};
+op mul (a, b: Vec2) -> Vec2 = Vec2.{a.x * b.x, a.y * b.y};
+op div (a, b: Vec2) -> Vec2 = Vec2.{a.x / b.x, a.y / b.y};
+op neg (v: Vec2) -> Vec2 = Vec2.{-v.x, -v.y};
+op eq (a, b: Vec2) -> bool = a.x == b.x && a.y == b.y;
+op neq (a, b: Vec2) -> bool = a.x != b.x || a.y != b.y;
+
+// other operations include:
+// gt        : greater than `>`
+// lt        : less than `<`
+// gteq      : greater than or equal to `>=`
+// lteq      : less than or equal to `<=`
+// get_item  : for loop iterations `in`
+// get_index : subscript set `[]`
+// set_index : subscript get `[]`  
+// add_assign: +=
+// sub_assign: -=
+// mul_assign: *=
+// div_assign: /=
+// mod_assign: %=
+
+// function signatures
+op eq (a, b: T) -> bool;
+op neq (a, b: T) -> bool;
+op gteq (a, b: T) -> bool;
+op lteq (a, b: T) -> bool;
+op lt (a, b: T) -> bool;
+op gt (a, b: T) -> bool;
+op eq (a, b: T) -> bool;
+op add (a, b: T) -> T;
+op sub (a, b: T) -> T;
+op mul (a, b: T) -> T;
+op div (a, b: T) -> T;
+op neg (v: T) -> T;
+op get_item (a: []T) -> T;
+op get_index (a: []T) -> T;
+op set_index (a: []T) -> T;
+op add_assign(a: ^T, b: T);
+op sub_assign(a: ^T, b: T);
+op mul_assign(a: ^T, b: T);
+op div_assign(a: ^T, b: T);
+    
+```
+## Interfaces
+
+## Generics
+
+```c
+
+fun add[T: type where T is Addable](x, y: T) -> T = x + y;
+
+    
 ```
