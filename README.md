@@ -22,20 +22,20 @@ Outputs to a human readable C99.
 River offers the following feature-set over plain-C:
 - An easier to parse syntax ( for machines and humans alike )
 - Type inferencing and a stronger type system
-- Arbitrary compile-time code-execution / stronger macros
+- Arbitrary compile-time code execution / stronger macros
 - Expression-oriented syntax
 - Default function arguments / struct fields
+- Function overloading ( functions are identified by their signatures, not just their names )
+- Limited operator overloading ( limited to basic arithmetic, comparisons and subscripting )
+- Algebraic data types ( discriminated unions, mostly )
+- Method call syntax
+- Nicer array and string types
+- Pattern matching
 - Localized Namespaces ( that is, there are more namespaces than just "global" and "local" )
 - Interfaces
 - Generics
-- Function overloading ( functions are identified by their signatures, not just their names )
-- Limited operator overloading ( limited to basic arithmetic, comparisons and subscripting )
 - Distinct and Aliased type definitions ( or nominal vs structural types )
-- Method call syntax
-- Algebraic data types ( discriminated unions, mostly )
-- Pattern matching
 - A proper module system
-- Nicer array types
 
 And gets rid of:
 - The pre-processor
@@ -68,7 +68,7 @@ $ rcc in.rvr
 
 ## Automatic type inference
 
-```c 
+```rs 
 
 // This
 let x = 23; // implicitly int
@@ -82,14 +82,15 @@ let y: f32 = 23.0;
 
 ## Default values
 
-```c 
+```go 
 
 type object = struct {
-    param1: int,
-    param2: int = 30,
+    param1: int;
+    param2: int = 30;
 };
 
-fun function_definition ( x: int, y: int = 20, has_something: bool = true ) = {
+
+fun function_definition ( x, y: int = 20, has_something: bool = true ) = {
     // define function over here
 };
 
@@ -116,7 +117,7 @@ let x, y = 1, 2; // fine
 
 ## Algebraic Data Types
 
-```cs
+```rs
 
 type Value = enum {
     Int: int,

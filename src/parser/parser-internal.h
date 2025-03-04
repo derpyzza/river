@@ -6,9 +6,9 @@
 struct Parser {
 	size current;
 	bool had_error;
-	File *source; // current file being parsed
-	VecParseErrors *errors;
-	VecToken *tokens;
+	dstr *source; // current file being parsed
+	dbuf_ParseErrors *errors;
+	dbuf_token *tokens;
 };
 
 enum PanicType {
@@ -32,7 +32,7 @@ Token prev(void);
 Token prev_n(int offset);
 Token *token_at(size id);
 
-String* cur_tok_span(void);
+dstr* cur_tok_span(void);
 
 // prints an "Unexpected token error"
 
@@ -45,9 +45,9 @@ int check_next_n(int offset, int expected);
 // match: if next token is as expected, consumes the token and returns true
 int match(TokenTag type);
 int match_range(int start, int end);
-int match_type_token(void);
+// int match_type_token(void);
 
-void init_parser(File *src, VecToken* tokens);
+void init_parser(dstr *src, dbuf_token* tokens);
 
 void panic(int expected, int is_expected_tok, int until, int is_until_tok, const char * file, const int line);
 

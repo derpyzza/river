@@ -3,10 +3,14 @@
 #include <string.h>
 #include <strings.h>
 
-#include "utils.h"
+#include <libderp/derp.h>
+#include <libderp/dbuf.h>
+
 #include "scanner.h"
 #include "parser/parser.h"
 #include "codegen.h"
+
+#define REPL_BUF_SIZE 2048
 
 int
 main(int argc, char** argv) {	
@@ -14,29 +18,27 @@ main(int argc, char** argv) {
 
 	// REPL MODE
 	if (argc < 2) {
-		printf("No input files\n");
+		printf("No input files, starting repl\n");
+		char buf[REPL_BUF_SIZE];
 		while(true) {
-			// arbitrarily sized buffer for now
-			char* buf = (char*)malloc(2048);
 			fputs("rvrcc>> ", stdout);
 			fflush(stdout);
-			if(!fgets(buf, 2048, stdin)){
+			if(!fgets(buf, REPL_BUF_SIZE, stdin)){
 				printf("ERROR: couldn't read string\n");
 				exit(1);
 			};
 
 		  if ((strlen(buf) > 0) && (buf[strlen (buf) - 1] == '\n'))
-        buf[strlen (buf) - 1] = '\0';
+	        buf[strlen (buf) - 1] = '\0';
 
-			if(!strcmp(buf, "quit")) {
+			if(!strcmp(buf, "quit\n")) {
 				printf("k, bye then\n");
 				exit(0);
 			}
 
-			// printf("bufsize: %li\n", strlen(buf));
 			// This is ugly, should change this.
-			String source = (String) {.len = (int)strlen(buf), .c_ptr = buf};
-			VecToken* tkn = tokenize(&source);
+			dstr source = {.len = strlen(buf), .cptr = buf};
+			dbuf_token* tkn = tokenize(&source);
 			print_token_array(&source, *tkn);
 
 			// node_s *node = parse_tokens(tkn, source);
@@ -49,10 +51,9 @@ main(int argc, char** argv) {
 
 	// Compile all the files given in turn
 	for (int i = 1; i < argc; i++) {
-
 		char* raw_path = argv[i];
 		printf("raw_path: %s\n", raw_path);
-		FilePath path = split_path(raw_path);
+		dfilepath path = split_path(raw_path);
 		printf("path: '%s', '%s'\n", path.path, path.ext);
 
 		if (strcmp(path.ext, ".rvr")) {
@@ -62,8 +63,8 @@ main(int argc, char** argv) {
 
 		printf("Compiling file %s...\n", raw_path);
 
-		File* source = read_file(raw_path);
-		if (!source->is_valid) {
+		dstr* source = dfile_read(raw_path);
+		if (source == NULL) {
 			printf("ERROR, invalid source file: %s\n", raw_path);
 			exit(1);
 		}
@@ -75,8 +76,8 @@ main(int argc, char** argv) {
 			continue;
 		}
 
-		VecToken* tkn = tokenize(&source->data);
-		print_token_array(&source->data, *tkn);
+		dbuf_token* tkn = tokenize(source);
+		print_token_array(source, *tkn);
 
 		struct Node *node = parse_tokens(tkn, source);
 		if(node != NULL) {
@@ -88,6 +89,7 @@ main(int argc, char** argv) {
 		codegen(out_file, node->children->data[0]);
 		fclose(out_file);
 		free(tkn);
+		free(node);
 	}
 	return 0;
 }

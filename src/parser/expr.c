@@ -15,8 +15,8 @@ static Node *new_un_expr(TokenTag type, struct Node *rhs);
 static Node *new_bin_expr(TokenTag type, struct Node *rhs, struct Node *lhs);
 
 
-static UnOpType token_to_unop(TokenTag type);
-static BinOpType token_to_binop(TokenTag type);
+static UnOpType token_to_unop(int type);
+static BinOpType token_to_binop(int type);
 
 static const char* binop_to_string(BinOpType type);
 static const char* unop_to_string( UnOpType type);
@@ -31,15 +31,15 @@ static const char* unop_to_string( UnOpType type);
 
 Node *parse_expr(void) {
 
-	if (match(T_BRACE_OPEN)) {
+	if (match('{')) {
 		printf("matched block!\n");
 		Node *block = new_node(N_BLOCK);
-		while (!match(T_BRACE_CLOSE)) {
+		while (!match('}')) {
 			Node *child = parse_expr();
-			match(T_SEMI);
+			match(';');
 
 			if (child) {
-				vec_push_Node(block->children, child);
+				dbuf_push_Node(block->children, child);
 			}
 		}
 		return block;
@@ -47,7 +47,7 @@ Node *parse_expr(void) {
 
 	struct Node *expr = term();
 
-	while (match(T_PLUS) || match(T_MINUS)) {
+	while (match('+') || match('-')) {
 		TokenTag op = current_tok().type;
 		struct Node *rhs = term();
 		expr = new_bin_expr(op, expr, rhs);
@@ -58,7 +58,7 @@ Node *parse_expr(void) {
 static Node *term(void) {
 	struct Node *expr = factor();
 
-	while (match(T_STAR) || match(T_SLASH)) {
+	while (match('*') || match('/')) {
 		TokenTag op = current_tok().type;
 		struct Node *rhs = factor();
 		expr = new_bin_expr(op, expr, rhs);
@@ -67,7 +67,7 @@ static Node *term(void) {
 }
 
 static Node *factor(void) {
-	if (match(T_BANG) || match(T_MINUS)) {
+	if (match('!') || match('-')) {
 		TokenTag op = current_tok().type;
 		struct Node *right = factor();
 		struct Node *expr = new_un_expr(op, right);
@@ -77,9 +77,9 @@ static Node *factor(void) {
 }
 
 static Node *primary(void) {
-	if (match(T_INTEGER_LITERAL)){
+	if (match(T_LIT_INT)){
 		struct Node *node = new_node(N_LIT);
-		node->value = cur_tok_span();
+		node->value = *cur_tok_span();
 		return node;
 	}
 
@@ -89,9 +89,9 @@ static Node *primary(void) {
 	// 	return node;
 	// }
 	//
-	if (match(T_STRING_LITERAL)){
+	if (match(T_LIT_STR)){
 		struct Node *node = new_node(N_LIT);
-		node->value = cur_tok_span();
+		node->value = *cur_tok_span();
 		return node;
 	}
 	//
@@ -126,26 +126,26 @@ static Node *new_un_expr( TokenTag type, Node *rhs) {
 	return expr;
 }
 
-static UnOpType token_to_unop(TokenTag type) {
+static UnOpType token_to_unop(int type) {
 	switch (type) {
-		case T_MINUS: return UN_MINUS; break;
-		case T_AMP: return UN_ADDR; break;
-		case T_BANG: return UN_BANG; break;
-		case T_STAR: return UN_DEREF; break;
+		case '-': return UN_MINUS; break;
+		case '+': return UN_ADDR; break;
+		case '!': return UN_BANG; break;
+		case '*': return UN_DEREF; break;
 		default: return UN_NONE; break;
 	}
 }
 
-static BinOpType token_to_binop(TokenTag type) {
+static BinOpType token_to_binop(int type) {
 	switch(type) {
-		case T_PLUS: return BIN_ADD; break;
-		case T_MINUS: return BIN_SUB; break;
-		case T_STAR: return BIN_MULT; break;
-		case T_SLASH: return BIN_DIV; break;
-		case T_MODULUS: return BIN_MOD; break;
-		case T_AMP: return BIN_BAND; break;
-		case T_PIPE: return BIN_BOR; break;
-		case T_HAT: return BIN_BXOR; break;
+		case '+': return BIN_ADD; break;
+		case '-': return BIN_SUB; break;
+		case '*': return BIN_MULT; break;
+		case '/': return BIN_DIV; break;
+		case '%': return BIN_MOD; break;
+		case '&': return BIN_BAND; break;
+		case '|': return BIN_BOR; break;
+		case '^': return BIN_BXOR; break;
 		default: return BIN_NONE; break;
 	}
 }
@@ -194,8 +194,8 @@ void print_expr( Node *expr ) {
 		case N_LIT:
 		{
 			printf(" %.*s ", 
-			  expr->value->len,
-			  expr->value->c_ptr
+			  expr->value.len,
+			  expr->value.cptr
 	     );
 			break;
 		}

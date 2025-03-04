@@ -1,0 +1,7 @@
+-Wall
+-Wpedantic
+-L./libs/libderp/ -lderp
+-Iinclude 
+-Ilibs/libderp/
+-Ilibs/
+-Isrc

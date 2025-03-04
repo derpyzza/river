@@ -16,8 +16,8 @@ void print_ast( Node *node, int level ) {
 			case N_TODO: printf("todo!!!\n"); break;
 			case N_VAR: {
 				printf("<var> name: %.*s, type: <TYPE>, rhs: ",
-					cur->name->len,
-					cur->name->c_ptr
+					cur->name.len,
+					cur->name.cptr
 				);
 				print_expr(cur->rhs);
 				printf("; \n");
@@ -26,26 +26,26 @@ void print_ast( Node *node, int level ) {
 			case N_STRUCT_FIELD: {
 				if (cur->rhs) {
 					printf("<field> name: %.*s, type: %.*s, default value: ",
-						cur->name->len,
-						cur->name->c_ptr,
-						cur->type->len,
-						cur->type->c_ptr
+						cur->name.len,
+						cur->name.cptr,
+						cur->type.len,
+						cur->type.cptr
 					);
 					print_expr(cur->rhs);
 					printf("; \n");
 				} else 
 					printf("<field> name: %.*s, type: %.*s;\n",
-						cur->name->len,
-						cur->name->c_ptr,
-						cur->type->len,
-						cur->type->c_ptr
+						cur->name.len,
+						cur->name.cptr,
+						cur->type.len,
+						cur->type.cptr
 					);
 				break;
 			} 				
 			case N_STRUCT_DEF: {
 				printf("\n\t<STRUCT DEF>\n\t\tname: %.*s, body:\n", 
-					cur->name->len,
-					cur->name->c_ptr
+					cur->name.len,
+					cur->name.cptr
 				);
 				print_ast(cur, 1);
 				printf("\n");
@@ -54,10 +54,10 @@ void print_ast( Node *node, int level ) {
 			}
 			case N_FUNC_DEF: {
 				printf("<fn def> name: %.*s, return: %.*s, body: ",
-					cur->name->len,
-					cur->name->c_ptr,
-					cur->type->len,
-					cur->type->c_ptr
+					cur->name.len,
+					cur->name.cptr,
+					cur->type.len,
+					cur->type.cptr
 				);
 				print_expr(cur->body);
 				printf("; \n");
@@ -66,10 +66,10 @@ void print_ast( Node *node, int level ) {
 			}
 			case N_CONST: {
 					printf("<const> name: %.*s, type: %*.s, body:",
-						cur->name->len,
-						cur->name->c_ptr,
-						cur->type->len,
-						cur->type->c_ptr
+						cur->name.len,
+						cur->name.cptr,
+						cur->type.len,
+						cur->type.cptr
 					);
 				print_expr(cur->rhs);
 				printf(" ;\n");
@@ -77,17 +77,16 @@ void print_ast( Node *node, int level ) {
 				break;
 			}
 			case N_IMPORT: {
-				String root = cur->path.root;
+				dstr root = cur->path.root;
 				printf("<imp def> path: %.*s, root: %.*s", 
 						(int)cur->path.full.len,
-						cur->path.full.c_ptr,
+						cur->path.full.cptr,
 						(int)root.len, 
-						root.c_ptr
+						root.cptr
 						);
-				if (cur->name) 
 					printf(", alias: %.*s",
-						cur->name->len,
-						cur->name->c_ptr
+						cur->name.len,
+						cur->name.cptr
 					);
 				printf("\n");
 				break;

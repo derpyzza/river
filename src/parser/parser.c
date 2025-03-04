@@ -7,7 +7,6 @@
 #include "parser-internal.h"
 
 #include "expr.h"
-#include "../utils.h"
 #include "../scanner.h"
 
 
@@ -20,7 +19,11 @@ static struct Node *import_def(void);
 
 #define PANIC(e, et, u, ut) panic(e, et, u, ut, __FILE__, __LINE__)
 
-Node *parse_tokens( VecToken *tokens, File *src )  { 
+bool match_type_token(void) {
+	return false;
+}
+
+Node *parse_tokens( dbuf_token *tokens, dstr *src )  { 
 
 	// Initialize parser state, parser struct found in src/parser/parser-internal.h
 	init_parser(src, tokens);
@@ -36,17 +39,17 @@ Node *parse_tokens( VecToken *tokens, File *src )  {
 	// struct Node* nodeList = malloc(sizeof(struct Node) * parser.tokens->current_token); 
 
 	struct Node *node = new_node(N_PROG);
-	node->children = new_vec_Node(8);
+	node->children = dbuf_new_Node(8);
 
 	while(!match(T_EOF)) {
 		struct Node* item = top_level();
 		if(item != NULL) {
 			if(item->tag == N_NODE_LIST) {
 				for(int i = 0; i < item->children->current; i++) {
-					vec_push_Node(node->children, item->children->data[i]);
+					dbuf_push_Node(node->children, item->children->data[i]);
 				}
 			}
-			else vec_push_Node(node->children, item);
+			else dbuf_push_Node(node->children, item);
 		} 
 	}
 
@@ -96,20 +99,19 @@ Datatype* parse_datatype_array(void) {}
 Datatype* parse_datatype_header(void) {}
 
 Datatype* parse_datatype_primary(void) {
-	if(match(T_IDENTIFIER)) {
+	if(match(T_IDEN)) {
 		// check if tuple
-		if (check_next(T_COMMA)) {
+		if (check_next(',')) {
 			Datatype* tuple = new_datatype(DATATYPE_TUPLE);
-			
 		}
 	}
 }
 
 Datatype* parse_datatype(void) {
 	Datatype* out = parse_datatype_primary();
-	if(match(T_COMMA)) {
+	if(match(',')) {
 		out->type->dt_tuple = parse_datatype_primary();
-	} else if (match(T_PIPE)) {
+	} else if (match('|')) {
 		out->type->dt_union = parse_datatype_primary();
 	}
 }
@@ -125,15 +127,15 @@ static Node *fn_def(void) {
 
 	// match identifier
 	if( match_type_token() ) {
-		fn->name = cur_tok_span();
+		fn->name = *cur_tok_span();
 	} else {
 		printf("error, missing type");
-		PANIC(T_TYPE, P_CAT, T_SEMI, P_TOK);
+		PANIC(T_TYPE, P_CAT, ';', P_TOK);
 	}
 
 	// parse params
-	if(match(T_PAREN_OPEN)) {
-		while(!match(T_PAREN_CLOSE)) {
+	if(match('(')) {
+		while(!match(')')) {
 			consume();
 		}
 		// error
@@ -143,22 +145,22 @@ static Node *fn_def(void) {
 	if (match(T_ARROW)) {
 		// match type
 		if (match_type_token()) {
-			fn->type = cur_tok_span();
+			fn->type = *cur_tok_span();
 		}
 		else 
 		 printf("ERROR: expected return type\n"), exit(-1);
 	}
 
-	if(match(T_EQUAL)) {
+	if(match('=')) {
 		fn->body = parse_expr();
 	}
 	else {
 		// TODO: support proper "OR" type errors;
-		PANIC(T_EQUAL, P_TOK, T_SEMI, P_TOK);
+		PANIC('=', P_TOK, ';', P_TOK);
 	}
 
-	if( fn->body->tag != N_BLOCK && !match(T_SEMI)) {
-		PANIC(T_SEMI, P_TOK, TC_KEYWORD, P_CAT);
+	if( fn->body->tag != N_BLOCK && !match(';')) {
+		PANIC(';', P_TOK, TC_KEYWORD, P_CAT);
 	}
 	printf("returning fn!\n");
 	return fn;
@@ -350,8 +352,8 @@ Node *new_node(NodeTag type) {
 
 	node->type
 		= node->name 
-		= node->value
-		= NULL;
+		= node->value = (dstr) {0};
+		// = NULL;
 
 	node->op = T_NONE;
 
@@ -368,7 +370,7 @@ Node *new_node(NodeTag type) {
 		case N_NODE_LIST:
 		case N_STRUCT_DEF:
 		case N_BLOCK:
-			node->children = new_vec_Node(8);
+			node->children = dbuf_new_Node(8);
 	}
 	return node;
 }

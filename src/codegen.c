@@ -1,4 +1,3 @@
-#include "utils.h"
 #include "codegen.h"
 #include "parser/parser.h"
 #include "scanner.h"
@@ -8,7 +7,7 @@
 // static char* gen_expr(Node *expr);
 
 void codegen(FILE* file, Node *tree) {
-  NULL_PTR_PANIC(tree);
+  // NULL_PTR_PANIC(tree);
  	switch(tree->tag) {
       case N_BLOCK:
         fprintf(file, "{\n");
@@ -19,10 +18,10 @@ void codegen(FILE* file, Node *tree) {
       break;
  		case N_FUNC_DEF:
  			fprintf(file, "%.*s %.*s () {\n\treturn ",
- 			  tree->type->len,
- 			  tree->type->c_ptr,
- 			  tree->name->len,
- 			  tree->name->c_ptr
+ 			  (int)tree->type.len,
+ 			  tree->type.cptr,
+ 			  (int)tree->name.len,
+ 			  tree->name.cptr
  			);
       codegen(file, tree->body);
       fprintf(file, ";\n}\n");
@@ -37,7 +36,7 @@ void codegen(FILE* file, Node *tree) {
       codegen(file, tree->rhs);
  		break;
     case N_LIT:
-      fprintf(file, "%.*s", tree->value->len, tree->value->c_ptr);
+      fprintf(file, "%.*s", (int)tree->value.len, tree->value.cptr);
     break;
  		default:
  		  fprintf(file, "// DERP\n");

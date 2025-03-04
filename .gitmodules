@@ -1,0 +1,3 @@
+[submodule "libs/libderp"]
+	path = libs/libderp
+	url = https://github.com/derpyzza/libderp.git

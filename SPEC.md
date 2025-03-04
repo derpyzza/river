@@ -16,7 +16,7 @@ design patterns:
 ```
 
     // identifier
-    %iden -> [a-zA-Z_] [a-zA-Z0-9_+/\-?!%^*\']* ;
+    %iden -> [a-zA-Z_] [a-zA-Z0-9_-?!%]* ;
 
     // number literal
     %number -> float | integer;
@@ -37,7 +37,7 @@ design patterns:
     integer ->   
         (
             \d* ( ['_] \d+ ) dec_exp?
-            | <hex_literal>
+            | <hex_literal> bin_exp?
         		| <octal_literal>
         		| <binary_literal>
         )

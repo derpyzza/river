@@ -1,5 +1,4 @@
 #include "scanner.h"
-#include "utils.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -7,12 +6,24 @@
 // internal scanner state
 struct Scanner {
 	int line;
-	String *src;
-	// TokenArray *tkn;
+	dstr *src;
+	dbuf_token *tkns;
 	char *file_start;
 	char *cur;
 	char *tok_start; // start of the current lexeme
 };
+
+const char* tok_to_str(int t) {
+	switch((TokenTag)t) {
+		#define TKN(t, s) case t: return s; break;
+		#define MRK(t)
+			TKNS
+		#undef TKN
+		case T_NONE: return "<none>"; break;
+		case TKNS_MAX: case TKNS_START:
+		case T_KEYWORD_END: case T_KEYWORD_START: return "<undefined token>"; break;
+	}
+}
 
 static struct Scanner scanner;
 
@@ -43,7 +54,7 @@ static inline char _peek_by(int by) {
 	return *(c+by);
 }
 
-static inline char _cur(void) {
+static inline u8 _cur(void) {
 	return *scanner.cur;
 }
 
@@ -63,14 +74,14 @@ static inline void _advance_by(int by) {
 	scanner.cur += by;
 }
 
-static void _push_tok (VecToken *tkn, TokenTag type) {
-	String span;
-	span.c_ptr = scanner.tok_start;
+static void _push_tok (int type) {
+	dstr span;
+	span.cptr = scanner.tok_start;
 	span.len = scanner.cur - scanner.tok_start + 1;
-	vec_push_Token(tkn,
+	dbuf_push_token(scanner.tkns,
 	  (Token){
 	  	.span = span,
-	  	.type = type	
+	  	.type = type
 	  });
 }
 
@@ -93,7 +104,7 @@ static void _push_tok (VecToken *tkn, TokenTag type) {
 	binary_literal -> '0b' <[01]>* ;
 */
 
-static void _scan_num(VecToken *tkn) {
+static void _scan_num(dbuf_token *tkn) {
 
 	while(_is_digit(_peek())) {
 		_advance();
@@ -107,16 +118,16 @@ static void _scan_num(VecToken *tkn) {
 			while(_is_digit(_cur())) {
 				_advance();
 			}
-			_push_tok(tkn, T_FLOATING_LITERAL);
+			_push_tok(T_LIT_FLOAT);
 			return;
 		}
 	}
 
 	// int len = c-start-_start;
-	_push_tok(tkn, T_INTEGER_LITERAL);
+	_push_tok(T_LIT_INT);
 }
 
-static void _scan_word(VecToken *tkn) {
+static void _scan_word(dbuf_token *tkn) {
 	char* str_ptr = scanner.cur;
 	// the first letter of an identifier MUST be an alphabetical character, but every subsequent character can be alphanumeric.
 	// so _1234 is a valid identifier but 12t is not for example.
@@ -124,7 +135,7 @@ static void _scan_word(VecToken *tkn) {
 		_advance();
 	}
 	int str_len = scanner.cur-scanner.tok_start + 1;
-	String substr = (String){ .len = str_len, .c_ptr = str_ptr };
+	dstr substr = dstr(str_len, str_ptr);
 
 	// This flag is here because i couldn't figure out the
 	// proper control flow needed to make sure that keyword
@@ -133,15 +144,16 @@ static void _scan_word(VecToken *tkn) {
 	int flag = 0;
 	for(int i = 0; i < NUM_KEY_WORDS; i++) {
 		int id = i + T_TRUE;
-		if ( substr.len == strlen(token_strings[id]) 
-		     && !memcmp(substr.c_ptr, token_strings[id], substr.len)) {
+		const char * str = tok_to_str(id);
+		if ( substr.len == strlen(str)
+		     && !memcmp(substr.cptr, str, substr.len)) {
 			TokenTag token = (TokenTag) id;
-			_push_tok ( tkn, token );
+			_push_tok ( token );
 			flag = 1;
 		}
 	}
 
-	if (!flag) _push_tok ( tkn, T_IDENTIFIER );
+	if (!flag) _push_tok ( T_IDEN );
 }
 
 // void _init_scanner(TokenArray* tkn, String *src) {
@@ -149,19 +161,20 @@ static void _scan_word(VecToken *tkn) {
 // }
 
 // convert input string into list of tokens
-VecToken* tokenize( String *src ) {
-	VecToken *tkn = new_vec_Token(512);
+dbuf_token* tokenize( dstr *src ) {
+	dbuf_token *tkn = dbuf_new_token(512);
 	// _init_scanner(tkn, src);
 
 	scanner.src = src;
+	scanner.tkns = tkn;
 
 	// pointers to the start of the string
 	// and the current character
-	scanner.file_start = (char*) src->c_ptr;
+	scanner.file_start = (char*) src->cptr;
 	size len = src->len;
 	scanner.line = 1;
 	char* line_start = scanner.file_start;
-	scanner.cur = src->c_ptr;
+	scanner.cur = src->cptr;
 
 	// printf("Scanning %s for tokens ...\n", src.path);
 	for ( ; scanner.cur - scanner.file_start < len; _advance() ) {
@@ -178,99 +191,85 @@ VecToken* tokenize( String *src ) {
 			}
 		} else {
 			switch ( _cur() ) {
-
-				case '(': _push_tok(tkn, T_PAREN_OPEN); break;
-
-				case ')': _push_tok(tkn, T_PAREN_CLOSE); break;
-
-				case '{': _push_tok(tkn, T_BRACE_OPEN); break;
-
-				case '}': _push_tok(tkn, T_BRACE_CLOSE); break;
-
-				case '[': _push_tok(tkn, T_BRACKET_OPEN); break;
-
-				case ']': _push_tok(tkn, T_BRACKET_CLOSE); break;
-
-				case ';': _push_tok(tkn, T_SEMI); break;
-
-				case ',': _push_tok(tkn, T_COMMA); break;
-
-				case '?': _push_tok(tkn, T_QUESTION); break;
-
-				case ':': _push_tok(tkn, T_COLON); break;
-
-				case '~': _push_tok(tkn, T_TILDE); break;
-
-				case '^': _push_tok(tkn, T_HAT); break;
-
+				case '(': 
+				case ')': 
+				case '{': 
+				case '}': 
+				case '[': 
+				case ']': 
+				case ';': 
+				case ',': 
+				case '?': 
+				case ':': 
+				case '#': 
+				case '@': 
+				case '^':
+					_push_tok(_cur());
+				break;
 				case '&':
 					if (_peek() == '=') {
 						_advance();
-						_push_tok(tkn, T_AND_EQ);
+						_push_tok(T_AND_EQ);
 					} else if (_peek() == '&') {
 						_advance();
-						_push_tok(tkn, T_LOG_AND);
+						_push_tok(T_LAND);
 					}
-					else _push_tok(tkn, T_AMP);
+					else _push_tok(_cur());
 				break;
-
 				case '|':
 					if (_peek() == '=') {
 						_advance();
-						_push_tok(tkn, T_OR_EQ);
+						_push_tok(T_OR_EQ);
 					} else if (_peek() == '|') {
 						_advance();
-						_push_tok(tkn, T_LOG_OR);
+						_push_tok(T_LOR);
 					}
-					else _push_tok(tkn, T_PIPE);
+					else _push_tok(_cur());
 				break;
-
 				case '.':
 					if (_peek() == '.') {
 						_advance();
-						_push_tok(tkn, T_DOT_DOT);
+						_push_tok(T_DOT_DOT);
 					}
-					else _push_tok(tkn, T_DOT);
+					else _push_tok(_cur());
 				break;
-
 				case '*':
 					if ( _peek() == '=') {
 						_advance();
-						_push_tok(tkn, T_MULT_EQ);
+						_push_tok(T_MUL_EQ);
 					}
-					else _push_tok(tkn, T_STAR);
+					else _push_tok(_cur());
 				break;
-
 				case '+':
 					if (_peek() == '=') {
 						_advance();
-						_push_tok(tkn, T_ADD_EQ);
+						_push_tok(T_ADD_EQ);
 					} 
 					// else if (_peek(c) == '+') {
-					// _push_tok(tkn, T_INC,  (String){.len = 2, .c_ptr = c},c - line_start);
+					// _push_tok(_INC,  (String){.len = 2, .c_ptr = c},c - line_start);
 					// 	_advance();
 					// }
-					else _push_tok(tkn, T_PLUS);
+					else _push_tok(_cur());
 				break;
 				case '-':
 					if (_peek() == '=') {
 						_advance();
-						_push_tok(tkn, T_SUB_EQ);
+						_push_tok(T_SUB_EQ);
 					} 
 					// else if (_peek(c) == '-') {
-					// _push_tok(tkn, T_DEC,  (String){.len = 2, .c_ptr = c},c - line_start);
+					// _push_tok(_DEC,  (String){.len = 2, .c_ptr = c},c - line_start);
 					// 	_advance();
 					// }
 					else if (_peek() == '>') {
 						_advance();
-						_push_tok(tkn, T_ARROW);
+						_push_tok(T_ARROW);
 					}
-					else _push_tok(tkn, T_MINUS);
+					else _push_tok(_cur());
 				break;
 				case '/':
 					if (_peek() == '=') { 
 						_advance();
-						_push_tok(tkn, T_DIV_EQ);
+						_push_tok(T_DIV_EQ);
 					} 
 					// COMMENT
 					else if  (_peek() == '/') {
@@ -279,62 +278,68 @@ VecToken* tokenize( String *src ) {
 						}
 						line_start = scanner.cur;
 					}
-					else _push_tok(tkn, T_SLASH);
+					else _push_tok(_cur());
 				break;
 				case '%':
 					if (_peek() == '=') {
 						_advance();
-						_push_tok(tkn, T_MOD_EQ);
+						_push_tok(T_MOD_EQ);
 					}
-					else _push_tok(tkn, T_MODULUS);
+					else _push_tok(_cur());
 				break;
 				case '!':
 					if (_peek() == '=') {
 						_advance();
-						_push_tok(tkn, T_NOT_EQ);
+						_push_tok(T_NOT_EQ);
 					}
-					else _push_tok(tkn, T_BANG);
+					else _push_tok(_cur());
 				break;
 				case '=':
 					if (_peek() == '=')
 					{
 						_advance();
-						_push_tok(tkn, T_EQ_EQ);
+						_push_tok(T_EQ_EQ);
 					} 
 					else if (_peek() == '>') {
 						_advance();
-						_push_tok(tkn, T_FAT_ARROW);
+						_push_tok(T_FAT_ARROW);
 					}
-					else _push_tok(tkn, T_EQUAL);
+					else _push_tok(_cur());
 				break;
 				case '<':
 					if (_peek() == '=') {
 						_advance();
-						_push_tok(tkn, T_LESS_THAN_EQ);
+						_push_tok(T_LT_EQ);
 					}
 					else if (_peek() == '<' ) {
 						_advance();
-						_push_tok(tkn, T_SHL);
+						if(_peek() == '=') {
+							_advance();
+							_push_tok(T_SHL_EQ);
+						} else _push_tok(T_SHL);
 					}
-					else _push_tok(tkn, T_LESS_THAN);
+					else _push_tok(_cur());
 				break;
 				case '>':
 					if (_peek() == '=') {
 						_advance();
-						_push_tok(tkn, T_GREATER_THAN_EQ);
+						_push_tok(T_GT_EQ);
 					}
 					else if (_peek() == '>' ) {
 						_advance();
-						_push_tok(tkn, T_SHR);
+						if(_peek() == '=') {
+							_advance();
+							_push_tok(T_SHR_EQ);
+						} else _push_tok(T_SHR);
 					}
-					else _push_tok(tkn, T_GREATER_THAN);
+					else _push_tok(_cur());
 				break;
 				// STRING HANDLING
 				case '"':
 				{
 					if(_peek() == '"') {
 						_advance_by(2);
-						_push_tok ( tkn, T_STRING_LITERAL );
+						_push_tok ( T_LIT_STR );
 					}
 					while( _peek() != '"' && ((scanner.cur - scanner.file_start) != len) ) {
 						if ( _peek() == '\n' ) {
@@ -353,7 +358,7 @@ VecToken* tokenize( String *src ) {
 					_advance();
 
 					// stores the entire string, quotes included
-					_push_tok (tkn, T_STRING_LITERAL);
+					_push_tok(T_LIT_STR);
 					break;
 				}
 				case '\'': {
@@ -363,7 +368,7 @@ VecToken* tokenize( String *src ) {
 						_advance();
 						continue;
 					} else _advance();
-					_push_tok ( tkn, T_CHAR_LITERAL );
+					_push_tok ( T_LIT_CHAR );
 					break;
 				}
 				default:
@@ -373,11 +378,11 @@ VecToken* tokenize( String *src ) {
 		}
 	}
 
-	_push_tok(tkn, T_EOF);
+	_push_tok(T_EOF);
 	return tkn;
 }
 
-void print_token_array(String *src, VecToken tkn) {
+void print_token_array( dstr *src, dbuf_token tkn) {
 	printf("===DUMPING TS===\n");
 	// printf("File: %s\n", src.path);
 	printf("[TI:CI] token[TN]: tkn, value: val\n"
@@ -385,32 +390,41 @@ void print_token_array(String *src, VecToken tkn) {
 	for (int i = 0; i < tkn.current; i++ ) {
 		Token current = tkn.data[i];
 		switch(current.type) {
-			case T_INTEGER_LITERAL:
-			case T_FLOATING_LITERAL:
-			case T_CHAR_LITERAL:
-			case T_STRING_LITERAL:
+			case T_LIT_INT:
+			case T_LIT_FLOAT:
+			case T_LIT_CHAR:
+			case T_LIT_STR:
 				printf("[%02i:%02li] source: \"%.*s\" token[%02i]: %s, value: %.*s\n", 
 					i, 
-					current.span.c_ptr - src->c_ptr,
+					current.span.cptr - src->cptr,
 					(int)current.span.len,
-					current.span.c_ptr,
+					current.span.cptr,
 					current.type,
-					token_strings[current.type], 
+					tok_to_str(current.type), 
 					(int)current.span.len,
-					current.span.c_ptr
+					current.span.cptr
 					);
 			break;
 			default:
-				printf("[%02i:%02li] source: \"%.*s\" token[%02i]: %s\n", 
+			if(current.type < TKNS_START) {
+				printf("[%02i:%02li] source: \"%.*s\" token[%02i]: %c\n", 
 					i,
-					current.span.c_ptr - src->c_ptr,
+					current.span.cptr - src->cptr,
 					(int)current.span.len,
-					current.span.c_ptr,
+					current.span.cptr,
+					current.type,
+					current.type
+				);	
+			} else { printf("[%02i:%02li] source: \"%.*s\" token[%02i]: %s\n", 
+					i,
+					current.span.cptr - src->cptr,
+					(int)current.span.len,
+					current.span.cptr,
 					current.type,
 					tok_to_str(current.type)
-				);
+				); }
 			break;
 		}
 	}
-	printf("Total used tokens: %ld, Unused tokens: %ld\n", tkn.current, tkn.max - tkn.current);
+	printf("Total used tokens: %ld, Unused tokens: %ld\n", tkn.current, tkn.cap - tkn.current);
 }

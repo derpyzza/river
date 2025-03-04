@@ -3,7 +3,7 @@
 
 #include "../diagnostics.h"
 
-void init_parser(File *source, VecToken *tokens) {
+void init_parser( dstr *source, dbuf_token *tokens) {
 	parser.source = source;
 	parser.tokens = tokens;
 	parser.current = -1;
@@ -23,7 +23,7 @@ Token current_tok(void) {
 	return parser.tokens->data[parser.current]; 
 }
 
-String * cur_tok_span(void) {
+dstr * cur_tok_span(void) {
 	return &parser.tokens->data[parser.current].span;
 }
 
@@ -36,7 +36,7 @@ Token *token_at(size id) {
 
 struct Token peek_n(int offset) {
 	if (parser.current + offset > parser.tokens->current ) {
-		return token_eof();
+		return TOKEN_EOF;
 	}
 	return parser.tokens->data[parser.current + offset];
 }
@@ -47,7 +47,7 @@ struct Token peek(void) {
 
 struct Token prev_n(int offset) {
 	if (parser.current + offset < 0 ) {
-		return token_none();
+		return TOKEN_NONE;
 	}
 	return parser.tokens->data[parser.current - offset];
 }
@@ -73,7 +73,7 @@ int check_next_cat ( int cat ) {
 void error_unexpected( int got, int expected, bool is_tok, const char * file, const int line ) {
 	if (!parser.had_error) {
 		parser.had_error = 1;
-		parser.errors = new_vec_ParseErrors(8);
+		parser.errors = dbuf_new_ParseErrors(8);
 	}
 	struct ParseError *err = (ParseError*)malloc(sizeof(struct ParseError));
 	err->type = expected;
@@ -81,7 +81,7 @@ void error_unexpected( int got, int expected, bool is_tok, const char * file, co
 	err->debug_file = file;
 	err->debug_line = line;
 	err->is_tok = is_tok;
-	vec_push_ParseErrors(parser.errors, *err);
+	dbuf_push_ParseErrors(parser.errors, *err);
 }
 
 void panic(int expected, int is_expected_tok, int until, int is_until_tok, const char * file, const int line) {
@@ -100,22 +100,24 @@ void report_error(ParseError *error) {
 				error->debug_line);
 
 	if ( error->is_tok ) {
-		printf("%s:%i:%i: ERROR Unexpected token; expected '%s', got '%.*s' (%s)\n",
-			parser.source->path,
+		printf("%i:%i: ERROR Unexpected token; expected '%s', got '%.*s' (%s)\n",
+		// printf("%s:%i:%i: ERROR Unexpected token; expected '%s', got '%.*s' (%s)\n",
+			// parser.source->path,
 			(int)parser.tokens->data[error->got].line,
 			parser.tokens->data[error->got].chr_index,
 			tok_to_str((TokenTag)error->type),
 			(int)parser.tokens->data[error->got].span.len,
-			parser.tokens->data[error->got].span.c_ptr,
+			parser.tokens->data[error->got].span.cptr,
 			tok_to_str(parser.tokens->data[error->got].type));
 	} else {
-		printf("%s:%i:%i: ERROR Unexpected token; expected <%s>, got '%.*s' (%s)\n",
-			parser.source->path,
+		printf("%i:%i: ERROR Unexpected token; expected <%s>, got '%.*s' (%s)\n",
+		// printf("%s:%i:%i: ERROR Unexpected token; expected <%s>, got '%.*s' (%s)\n",
+			// parser.source->path,
 			(int)parser.tokens->data[error->got].line,
 			parser.tokens->data[error->got].chr_index,
 			cat_to_str((TokCat)error->type),
 			(int)parser.tokens->data[error->got].span.len,
-			parser.tokens->data[error->got].span.c_ptr,
+			parser.tokens->data[error->got].span.cptr,
 			tok_to_str(parser.tokens->data[error->got].type));
 	}
 }

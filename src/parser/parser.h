@@ -13,12 +13,12 @@ typedef struct ParseError {
 	const char * debug_file;
 } ParseError;
 
-CREATE_VEC_TYPE(ParseError, ParseErrors)
+dbuf_decl(ParseError, ParseErrors)
 
 typedef struct Datatype Datatype;
 typedef union DatatypeUnion DatatypeUnion;
 
-CREATE_VEC_TYPE(Datatype*, Datatype);
+dbuf_decl(Datatype*, Datatype)
 
 enum BasicDataTypeTag {
 	BDT_INT,
@@ -52,7 +52,7 @@ typedef enum DatatypeTag {
 #define MAX_PTR_DEPTH 8
 
 union DatatypeUnion {
-	String * dt_iden;
+	dstr * dt_iden;
 	struct Pointer {
 		Datatype * to;
 	} *dt_ptr;
@@ -60,8 +60,8 @@ union DatatypeUnion {
 		int size;
 		Datatype * of;
 	} * dt_arr;
-	VecDatatype* dt_tuple;
-	VecDatatype* dt_union;
+	dbuf_Datatype* dt_tuple;
+	dbuf_Datatype* dt_union;
 };
 
 struct Datatype {
@@ -84,9 +84,9 @@ struct Datatype {
 typedef struct Path {
 	bool has_subpaths;
 	int cur_subpath;
-	String full;
-	String root;
-	String subpath[32];
+	dstr full;
+	dstr root;
+	dstr subpath[32];
 } Path;
 
 typedef enum NodeTag {
@@ -125,12 +125,12 @@ typedef enum NodeTag {
 typedef struct Node Node;
 struct Node {
 	TokenTag op;
-	String *type; 	// static type hint
-	String *name; 	// name bound to this object
-	String *value; 	// literal value
+	dstr type; 	// static type hint
+	dstr name; 	// name bound to this object
+	dstr value; 	// literal value
 
 	NodeTag tag;
-	struct VecNode* children;
+	struct dbuf_Node* children;
 	// for import or method paths
 	Path path;
 
@@ -146,9 +146,9 @@ struct Node {
 		*inc;		// increment expression, for `for` loops
 };
 
-CREATE_VEC_TYPE(Node*, Node)
+dbuf_decl(Node*, Node)
 
-Node *parse_tokens( VecToken *tokens, File *src ); 
+Node *parse_tokens( dbuf_token *tokens, dstr *src ); 
 Node *new_node( NodeTag tag );
 void print_ast( Node *node, int level );
 ParseError parse_error(int expected);
