@@ -6,7 +6,7 @@ TESTS = tests
 
 EXEC = $(BIN)/$(PROGNAME)
 
-CFLAGS := -Wall -pedantic -Wswitch -g -ggdb3 --std=c99
+CFLAGS := -Wall -pedantic -Wswitch -g -ggdb3 -DPLATFORM_POSIX
 LDFLAGS := -L libs/libderp -lderp
 INC := -Ilibs/
 

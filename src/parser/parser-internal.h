@@ -9,6 +9,7 @@ struct Parser {
 	dstr *source; // current file being parsed
 	dbuf_ParseErrors *errors;
 	dbuf_token *tokens;
+	dbuf_Node * node_tree;
 };
 
 enum PanicType {

@@ -156,14 +156,9 @@ static void _scan_word(dbuf_token *tkn) {
 	if (!flag) _push_tok ( T_IDEN );
 }
 
-// void _init_scanner(TokenArray* tkn, String *src) {
-	
-// }
-
 // convert input string into list of tokens
 dbuf_token* tokenize( dstr *src ) {
 	dbuf_token *tkn = dbuf_new_token(512);
-	// _init_scanner(tkn, src);
 
 	scanner.src = src;
 	scanner.tkns = tkn;

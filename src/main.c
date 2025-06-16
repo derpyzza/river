@@ -6,15 +6,32 @@
 #include <libderp/derp.h>
 #include <libderp/dbuf.h>
 
+#include "memory.h"
 #include "scanner.h"
 #include "parser/parser.h"
 #include "codegen.h"
 
 #define REPL_BUF_SIZE 2048
 
+const char* rvr_ext_list[2] = {".rvr", ".river"};
+
+vmem arena;
+
 int
 main(int argc, char** argv) {	
 	printf("Welcome to the river compiler!\n");
+
+	// memory_init();
+
+	// vmem_init(&arena, 256);
+	
+	// char* string = calloc_str(15);
+	// if(!string) {
+	// 	printf("Couldn't malloc string :(\n");
+	// 	exit(-1);
+	// }
+	// memcpy(string, "Hello, world!\n", sizeof(char) * 15);
+	// printf("memcpy'd string: %s", string);
 
 	// REPL MODE
 	if (argc < 2) {
@@ -69,25 +86,25 @@ main(int argc, char** argv) {
 			exit(1);
 		}
 
-		FILE* out_file = fopen(strcat(path.path, ".c"), "wb");
-		if (out_file == NULL) {
-			printf("Error: Couldn't create output file %s.c\n", path.path);
-			fclose(out_file);
-			continue;
-		}
+		// FILE* out_file = fopen(strcat(path.path, ".c"), "wb");
+		// if (out_file == NULL) {
+		// 	printf("Error: Couldn't create output file %s.c\n", path.path);
+		// 	fclose(out_file);
+		// 	continue;
+		// }
 
 		dbuf_token* tkn = tokenize(source);
 		print_token_array(source, *tkn);
 
-		struct Node *node = parse_tokens(tkn, source);
+		Node *node = parse_tokens(tkn, source);
 		if(node != NULL) {
 			printf("==== AST DUMP ====\n");
 			print_ast(node, 0);
 		}
 		else printf("file had errors, compilation terminated\n");
-		printf("\n");
-		codegen(out_file, node->children->data[0]);
-		fclose(out_file);
+		// printf("\n");
+		// codegen(out_file, node->children->data[0]);
+		// fclose(out_file);
 		free(tkn);
 		free(node);
 	}

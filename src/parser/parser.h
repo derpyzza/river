@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include "../memory.h"
 #include "../scanner.h"
 
 typedef struct ParseError {
@@ -118,22 +119,16 @@ typedef enum NodeTag {
 
 // master node struct that represents a single node of the AST.
 // just haphazardly stuffed with every possible value a node could need.
-
-// most data is stored as just an index to an item in the token stream's literal array, 
-// rather than storing pointers or copies of the required values.
-// I'm storing the literal arrays anyway, might as well squeeze as much use out of them as possible!
 typedef struct Node Node;
+dbuf_decl(Node**, NodeList) // array of pointers to nodes
 struct Node {
 	TokenTag op;
-	dstr type; 	// static type hint
-	dstr name; 	// name bound to this object
-	dstr value; 	// literal value
+	Datatype * type; // optional
+	dstr iden; 	// name bound to this object
+	dstr value; // literal value
 
 	NodeTag tag;
-	struct dbuf_Node* children;
-	// for import or method paths
-	Path path;
-
+	dbuf_NodeList* children;
 	// for expressions
 	Node *lhs, *rhs;
 
@@ -145,10 +140,9 @@ struct Node {
 		*init,	// initial expression, for `for` loops
 		*inc;		// increment expression, for `for` loops
 };
+dbuf_decl(Node, Node)
 
-dbuf_decl(Node*, Node)
-
-Node *parse_tokens( dbuf_token *tokens, dstr *src ); 
-Node *new_node( NodeTag tag );
+dbuf_Node *parse_tokens( dbuf_token *tokens, dstr *src ); 
+Node* new_node( NodeTag tag );
 void print_ast( Node *node, int level );
 ParseError parse_error(int expected);

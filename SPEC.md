@@ -85,7 +85,6 @@ design patterns:
     123u16     // explicit u16 literal
     123u32     // explicit u32 literal
     123u64     // explicit u64 literal
-    123u12     // u12 ( arbitrarily sized integer ) literal
     123i8      // explicit i8 literal
     123i16     // explicit i16 literal
     123i32     // explicit i32 literal
@@ -117,28 +116,27 @@ design patterns:
 River comes with several builtin basic data types
 The builtin types are as follows:
 
-- anyptr:   A pointer type that can be cast down to any pointer type. equivalent to C's void*
-- bool:     boolean type, true | false
-- char:     alias of u8
-- f32:      Floating point number
-- f64:      Double precision floating point number
-- f80:      10-Byte floating point number
-- int:      signed cpu word sized integer
-- iN:       signed N bit integer where n is non-negative : eg u7 is a 7-bit integer
-- i8:       signed 8 bit integer
-- i16:      signed 16 bit integer
-- i32:      signed 32 bit integer
-- i64:      signed 64 bit integer
-- uint:     unsigned cpu word sized integer
-- uN:       unsigned N bit integer where n is non-negative : eg u7 is a 7-bit integer
-- u8:       unsigned 8 bit integer
-- u16:      unsigned 16 bit integer
-- u32:      unsigned 32 bit integer
-- u64:      unsigned 64 bit integer
-- size:     Signed pointer sized integer
-- usize:    Unsigned pointer sized integer
-- string:   Distinct type of static array of u8s
-- void:     has only one value, void, used for expressions that return nothing
+| Type   | C-Type       | Description                                              |
+| ------ | ------------ | -------------------------------------------------------- |
+| anyptr | void*        | a pointer type that can be cast down to any pointer type |
+| bool   | _Bool        | boolean type                                             |
+| char   | uint8_t      | alias of u8                                              |
+| f32    | float        | floating point number : corresponds to C floats          |
+| f64    | double       | double precision floating point number                   |
+| int    | int          | signed cpu word sized integer                            |
+| i8     | int8_t       | signed 8 bit integer                                     |
+| i16    | int16_t      | signed 16 bit integer                                    |
+| i32    | int32_t      | signed 32 bit integer                                    |
+| i64    | int64_t      | signed 64 bit integer                                    |
+| uint   | unsigned int | unsigned cpu word sized integer                          |
+| u8     | uint8_t      | unsigned 8 bit integer                                   |
+| u16    | uint16_t     | unsigned 16 bit integer                                  |
+| u32    | uint32_t     | unsigned 32 bit integer                                  |
+| u64    | uint64_t     | unsigned 64 bit integer                                  |
+| size   | intptr_t     | signed pointer sized integer                             |
+| usize  | size_t       | unsigned pointer sized integer                           |
+| string | char[]       | distinct type of static array of u8s                     |
+| void   | void         | used for expressions that return nothing                 |
 
 River has the following literal types:
 
@@ -151,7 +149,8 @@ River has the following literal types:
 ## Reserved Keyword list 
 
 // type stuff
-anyptr bool char f32 f64 f80
+anyptr
+bool char f32 f64
 usize size string null undef 
 uint int
 u8 u16 u32 u64 
@@ -175,12 +174,12 @@ impl interface import as from with is
 extern // ffi
  
 
-# Variable Definition & Declaration
+# variable definition & declaration
 
 ```
     var_def -> 
-          ( "let" | "var" ) %id ( ":" %id )? "=" expr ";"
-        | ( "let" | "var" ) %id ( ',' %id )* ( ":" %id )? "=" expr ( "," expr )* ";"
+          ( "let" | "var" ) %id ( ":" type )? "=" expr ";"
+        | ( "let" | "var" ) %id ( ',' %id )* ( ":" type )? "=" expr ( "," expr )* ";"
     ;
     
 ```
@@ -188,69 +187,30 @@ extern // ffi
 ```rs
 
 // variables are declared with the 'let' keyword
-let x: int = 45;
-x = "str"; // illegal
+let x: int;
+let y, z, w: int;
 
-let f = fopen("path/to/file").unwrap();
-
-let x, y = 10, 20;
-
-let x, y: int, z: string = 10, 23, "34";
-
-var x, y, z = 12, 2, false;
-
-let x, y, z, w, e, t = 13, 45, 35, .. _;
-
-let q: [5]u8 = [0, .. 1];
-
-let q, w, e, r: int = 12, 23, 35, 4;
-
-let x, y, z;
-
-f: file = fopen("path/to/file").unwrap();
-
-// let-introduced values are immutable by default
-// And also private to their scope
-
-// to declare a mutable variable use the mut keyword:
-let mut x = 0;
-x = 10; // legal
-
-let mut x, mut y, mut z;
 
 // you can declare variables without initializing them.
-// However, when declaring a variable, you must provide it's type
-// i.e using let is illegal
+// However, when just declaring a variable, you must provide it's type
 let y, z, w; // illegal
 let y, z, w: int; // legal
 
 // You can assign multiple variables at once:
-let x, y, z = 10, 20, 30;
-// Even if the types are separate:
-let x, y, z = "X", 230, false;
+let x = 10, y = 20, z = 30;
 
+let a = 13, b = 35 : int;
 
-// variables are non-nullable by default
-// to have a nullable variable, it must be explicitly marked as such
-// by prepending a '?' to the variable name
-// nullability is defined as a datatype
-let name: ?string = get_name();
+let (x, y, z, w, e, t) = (13, 45, 35, ... = 0);
 
-let x = 10;
-let y: ^int = &x; // & is the address of operator, pointer types are expressed by adding a caret before the type name
-
-// pointer dereferencing
-let q = ^c, 
-    w = ^v,
-    e = ^b;
 ```
 
-# Pointers and arrays
+# pointers, arrays and slices
 
-```c
+```rs
+
 // pointers are defined as such:
-
-let name: ^type = value;
+let name: ^type = &variable;
 
 // pointers are marked with the caret or hat '^' operator.
 // pointers can have up to 8 levels of indirection:
@@ -259,26 +219,83 @@ let name: ^^^^^^^^type = value; // pointer to pointer to pointer to ... 8 times 
 
 let ptr: ^^^^^^^^int ; // pointer to pointer to pointer to ... 8 times to an int.
 
-// unlike in C, pointers and arrays are distinct types
-// however, they are both defined before the type:
+// arrays are defined as such:
+let name: [size] type = value;
+let arr:  [6]int = [1, 2, 3, 4, 5, 6]; // array of six integers
 
-let name: [size]type = value;
-let arr: [6]int = [1, 2, 3, 4, 5, 6]; // array of six integers
+// arrays have their length encoded into them:
+// Do note: the array length is equal to the number of elements in it, not the max index
+// i.e an array of of size N will have N elements in it but the final element will have 
+// the index [N-1], as indices begin at [0]
+arr.len; // => 6
 
 // array types must always contain the size
 let name: []type = value; // => ERROR, missing array size
+// but for array literal definitions you can simply just put a _ to infer the length:
+let arr: [_]u8 = [3, 6, 7, 2, 6]; // => Okay ✅
+
+let arr: [_]u8; // Error: Must provide a default array
+
+// you can initialize items in specific locations in an array using the following shorthand:
+let arr: [10]bool = [
+    3 = false,
+    6 = true,
+];
+
+// you can initialize an array or a portion of an array with a value using the ... operator
+let buf: [512]u8 = [... = 0x42];
+let foo: [10]u8 = [1, 4, 6, ... = 32];
+
+// similarly, you can also assign elements over ranges:
+let mem: [512]u8 = [
+    0x00..0xFF   = 0x42,
+    SPECIAL_BYTE = 223,
+    OTHER_BYTE   = 243,
+    FLAG_BYTE    = Flag.Foo | Flag.Bar;
+    0x120..0x200 = 0x00,
+]
+
+// for multi-dimentional arrays
+let map: [10][10]f32 = [...0];
+
+let map: [M_WIDTH][M_HEIGHT][M_LENGTH]int;
 
 // arrays can be pointed to too:
 
-let arr: ^[6]int; // pointer to an array of 6 ints
-let arr: [6]^int; // array of 6 pointers to ints
-let arr: ^[6]^int; // pointer to array of 6 pointers to ints
+let arr: ^[6] int ;  // pointer to an array of 6 ints
+let arr:  [6]^int ;  // array of 6 pointers to ints
+let arr: ^[6]^int ;  // pointer to array of 6 pointers to ints
+
+// Unlike in C, river's arrays are a distinct type and cannot dissolve down to pointers
+fun print_num_array ( numbers: [10]int ) = { /*...*/ }
+
+let nums: ^int;
+print_num_array(nums); // ERROR: Incompatible types; expected type int[10], got ^int instead;
+
+// slices are views into contiguous elements in memory, kinda like an array, but they point to memory rather than contain it directly
+// basically, slices are the equivalent of doing something like this in C:
+//     elems.h: 
+// struct {
+//     int n_elems;
+//     elem* elems;
+// };
+// ... elems.c
+// n_elems = 512;
+// elems = malloc(sizeof(elem) * n_elems);
+// except instead of doing all that, it's just a self-contained type with a len and a pointer part.
+// the length of slices are known at run-time, rather than at compile time like with arrays
+
+let arr: [_]u8 = [4, 6, 7, 8, 3, 7];
+let slice: [*]u8 = arr[3..5]; // => [8, 3, 7], len 3
+
+let mem: [*]u8 = mem.alloc(u8, 100);
+mem.len; // => 100
 
 // like with regular pointers, pointers to arrays can have up to 8 levels of indirection:
+// NOTE: Maybe this is like, stupid as heck???
 let arr: ^^^^^^^^[6]int; // pointer to pointer to pointer to ... 8 times to an array of 6 ints;
+let arr: ^^^^^^^^[6]^^^^^^^^int; // pointer to pointer t ... 8 times an array of 6 pointers to pointers to ... 8 times to an int;
 
-let arr: ^^^^^^^^[6]^^^^^^^^int ; // pointer to pointer t ... 8 times an array of 6 pointers to pointers to ... 8 times to an int;
-    
 ```
 
 # structs 
@@ -289,12 +306,6 @@ let arr: ^^^^^^^^[6]^^^^^^^^int ; // pointer to pointer t ... 8 times an array o
 type Vector3 = struct {
     x, y, z: f32;
 };
-
-// Unlike in C, you don't need to typedef structs to avoid the struct keyword in declarations
-let v: Vector3 = { 10.f, 10.f, 12.f };
-
-// structs are provided with an automatic constructor to aid in initializing them:
-let v = Vector3(10, 20, 30);
 
 type User = struct {
     // Struct fields can have default values
@@ -311,9 +322,17 @@ printf("user.name = %s, user.pin = %i", admin.username, admin.pin) // => "user.n
 type Vec4 = struct {
     x, y, z, w: f32;
 
+    fun Vec4(x = 0, y = 0, z = 0, w = 0: f32): Self =
+        Self {
+            x = x,
+            y = y,
+            z = z,
+            w = w  
+        };
+
     // Note: Self refers to the parent type.
     fun print(t: Self) = io.printf("Vec4[{}, {}, {}, {}]", t.x, t.y, t.z, t.w);
-}
+};
 
 let v1 = Vec4(30, 40, 50, 1);
 v1.print(); // => Vec4[30, 40, 50, 1]
@@ -330,7 +349,7 @@ type Buf[T] = struct {
     id, max: size;
     data: ^T;
 
-    fun Buf[T]() -> Self {
+    fun Buf[T](): Self {
         
     }
 };
@@ -347,10 +366,13 @@ let intarr = Buf[int]();
 
 ```c
 
-// Code blocks, including functions, support implicit returns
-// the last expression within a block is returned
-fun sub ( x: int, y: int ): int {
-    return x - y; // returns x + y
+// NOTES:
+//
+// * Function return types MUST be explicit
+// * Functions MUST return values explicitly, unless using = syntax
+
+fun sub ( x, y: int ): int {
+    return x - y; // returns x - y
 }
 
 // the above function can also be written as:
@@ -358,30 +380,25 @@ fun sub ( x, y: int ): int = x - y;
 
 fun sub[T: Subtractive](x, y: T): T = x - y;
 
-// functions without parameters can be omit the parenthesis
-fun do_stuff {
-    // do something
-}
-
-fun add 10; // error! expected '=' or '{', got Int_Literal!
-               // help: try adding a '=' before the number '10'
-               //     | add '=>' 10;
-               //     |~~~~~~^^~~~~~
+fun do_stuff() {}
 
 // function types can be declared as such:
 // this is a function that has a parameter of type int and returns a value of type bool
 type func = fun(int): bool;
 
-fun do_something(): foo, (bar | null) = {
+fun smth(i: int, callback: func): bool = !func(i);
+
+fun do_something(): (foo, bar | null) = {
     
 }
 
 // Functions support default parameter values
 // If an argument is not passed for a particular parameter,
 // the default value is used instead
-fun Colour_from_rgba( r, g, b: int, a: int = 255 ): Colour = {
-    Colour {r, g, b, a}
-}
+fun Colour_from_rgba( r, g, b: int, a: int = 255 ): Colour =
+    Colour {
+        r, g, b, a
+    };
 
 // Arguments with default parameters can be omitted
 Colour_from_rgba(125, 125, 125); // param 'a' => 255;
@@ -389,24 +406,29 @@ Colour_from_rgba(125, 125, 125, 125); // param 'a' => 125;
 
 // Function arguments can be named when calling functions
 // Take the following function for example:
-fun draw_rect_pro ( x, y, width, height: int, rotation: int, col: Colour ) -> Rectangle = { /*...*/ }
+fun draw_rect_pro ( x, y, width, height: int, rotation: int, col: Colour ): Rectangle {
+    /*...*/
+}
+
 // You can call the function by naming the individual arguments
 let rect = draw_rect_pro(
     x = 20,
     y = 30,
     width = 240,
     height = 360,
-    col = (10,10,10,255));
+    col = Color { 10,10,10,255 }
+    );
 // The advantage of named arguments is that you can rearrange the order in which you pass them:
 draw_rect_pro(
     width = 240,
     height = 360,
     x = 20,
     y = 30,
-    col = (10,10,10,255)); // perfectly valid
+    col = Color { 10,10,10,255 }
+    ); // perfectly valid
 
 // functions can have multiple return values by utilizing tuples
-let read_file(string path) -> File, string = {
+fun read_file(path: string): (File, string) {
     // ... file reading logic ...
 
     return file, extension;
@@ -423,19 +445,19 @@ if ext == ".md" {
 let name = get_name()?; // => if get_name() returns null then the program panics;
 
 // for one liners without params the parenthesis can be omitted 
-fun consume = scanner.char += 1; // note, how do you decide whether or not this function returns a value, without a hint? the rhs of this function is an assignment expression, what does that evaluate to?
+fun consume() => scanner.char += 1; // note, how do you decide whether or not this function returns a value, without a hint? the rhs of this function is an assignment expression, what does that evaluate to?
 fun peek = scanner.token[scanner.char + 1];
 
 // functions are first class in river, so you can pass them around as values
 // TODO: workshop the function callback syntax a bit more
-fun example_func( float val, fn func(float, int) ) -> u32 = {
+fun example_func( val: float , func: fun(float, int) ): u32 = {
     func(val, 20); // => calls the passed-in function
 }
 
 // functions can return other functions
-fun func() -> fun(bool) -> int = {
+fun func(): fun(bool): int = {
     // functions can be defined inline as closures
-    return fun(bool x) -> int {
+    return fun(bool x): int {
         if x {
             true
         } else {
@@ -445,22 +467,7 @@ fun func() -> fun(bool) -> int = {
 }
 
 // though it's nicer to just give the return functions a type alias
-type callback = fun(int, float) -> bool;
-
-
-// function contracts
-
-int div(int x, int y) => {
-    ensure x > 0;
-    ensure y > 0; // => panics if either of these are wrong
-
-    ensure;
-    request;
-
-    let z = x / y;
-    ensure z != 0; // for some reason. just as an example
-    return z;
-}
+type callback = fun(int, float): bool;
 
 // methods
 
@@ -486,46 +493,6 @@ let w = Vec2:add(z, y);
 
 // all the following control flow structures are expressions rather than statements
 
-let x = if bool { 10 } else if other_bool { 11 } else { 23 };
-let x = if (bool) 10 else if (other_bool) 11 else 23;
-
-if x == "string" {
-    do_something();
-}
-if ( x == "string" ) {
-    do_something();
-}
-
-// optional 'then' keyword for one-liners
-if x then y else z;
-if x then y;
-
-if x {
-
-}
-
-if x then {
-
-};
-
-if let PATTERN = EXPR {
-
-}
-
-Colour x = (255, 0, 255, 0);
-
-if let x = (255, 0, 0, 0) then printf("x is pure red") else printf("x is not pure red"); 
-
-
-string x_to_string(X x) => switch x {
-    case X_XX => "XX",
-    case X_XXX => "XXX",
-    case X_XXXX => "XXXX"
-};
-
-
-
-
 if ( expression ) {
     // do stuff
 } else if ( other_expression ) {
@@ -534,7 +501,28 @@ if ( expression ) {
     // do yet more stuff
 }
 
-while ( expression ) {
+let x = 10 if bool else 11 if other_bool else 23;
+
+
+let x = if bool { 10 } else if other_bool { 11 } else { 23 };
+let x = if (bool) 10 else if (other_bool) 11 else 23;
+
+if x == "string" {
+    do_something();
+}
+
+// optional 'then' keyword for one-liners
+if x then y else z;
+if x then y;
+
+
+string x_to_string(X x) => switch x {
+    case X_XX => "XX",
+    case X_XXX => "XXX",
+    case X_XXXX => "XXXX"
+};
+
+while expression {
     // do stuff
 }
 
@@ -545,22 +533,22 @@ do {
 if x then y else if z then w else a;
 if x then y else while z do do_something();
 
-for each x in y => do_something();
+for let x in y => do_something();
 while x => do_something();
 
-for x; y; z do do_something(); 
+for x; y; z { do_something(); }
 
 for x;y;z => do_something();
 
-for each x in range(0..=10) {
+for let x in [0..100,2] {
 
 }
 
-for each item in list {
+for item in list {
 
 }
 
-for each (id, item) in list {
+for let (id, item) := list {
 
 }
 
@@ -571,7 +559,7 @@ for let x = 0; x < 10; x++ {
 
 // switch expressions cannot be inlined, unlike if, for and while expressions;
 switch expr {
-    case => expr,
+    case = expr,
     case => {...},
     case | case | case => {...},
     _    => {...}, // default case
@@ -595,14 +583,14 @@ let (age, name) = tup;
 // as the type signature expects a tuple of type (int, string)
 // but it instead gets individual two variables, `id` and `name` instead.
 
-(int, string) get_person(int id) {
+fun get_person(id: int): (int, string)  {
     return (people[id].0, people[id].1);
 }
 
 let person = get_person(id);
 
 type Colour = (ubyte, ubyte, ubyte, ubyte);
-Colour red = (255, 0, 0, 255);
+let red: Colour = (255, 0, 0, 255);
 
 ```
 
@@ -611,11 +599,11 @@ Colour red = (255, 0, 0, 255);
 
 // similar to C's enums, except with their own namespace
 
-enum Colour {
+type Colour = enum {
     Red, Blue, Green, White, Yellow, Brown
 };
 
-enum MnMs {
+type MnMs = enum {
     Red, Blue, Green, Yellow, Brown, Orange
 };
 
@@ -624,19 +612,12 @@ let x = Colour.Red; // => compiles
 let y = MnMs.Red; // => Also compiles
 
 // enums can act as discriminated unions:
-enum Literal {
+type Literal = enum {
     Int(long),
     Float(double),
     String(std::String),
     char(char)
 }
-
-type Literal = union {
-    Int(long),
-    Float(double),
-    String(std::String),
-    char(char)
-};
 
 // i should have both normal unions but also ad-hoc inline unions like
 // int | string, file | Error, etc.
@@ -650,7 +631,6 @@ type Vec3 = bare union {
 let v: Vec3 = Vec3(10, 20, 30);
 v.x += 10;
 print(v); // => {20, 20, 30}
-
 
 ```
 
@@ -714,104 +694,6 @@ main() {
     
 }
 
-
-
-```
-
-# Interfaces 
-```cpp
-
-// Interfaces define polymorphic functions
-interface debug {
-    string to_string(T t);
-    void debug_print(T t);
-}
-
-struct Vector3_s {
-    f32 x, y, z;
-}
-
-impl debug for Vector3_s {
-    
-    string to_string(Vector3_s t) => {
-        string x = new string();
-        x.concat(`x: {f32::to_string(t.x)}, `);
-        x.concat(`y: {f32::to_string(t.y)}, `);
-        x.concat(`z: {f32::to_string(t.z)}, `);
-        x.concat(`\n`);
-        return x;
-    }
-}
-
-Vector3_s v = (Vector3_s){130, 24, 53};
-printf("%s", Vector3_s::to_string(v)); // prints "x: 130, y: 24, z: 53"
-
-interface add<T> => where T is Numeric {}
-interface cat<T> => where T is Array {}
-
-int count_entities(T entities) => where T has Entity {
-    for t in entities {
-        t.print_name();
-    }
-}
-
-```
-
-# Arrays & Slices
-
-```c
-
-// river's arrays are almost the same as C's, with some key differences
-int[4] numbers = { 10, 20, 30, 40 };
-// firstly, arrays have their length encoded into them
-// Do note: the array length is equal to the number of elements in it, not the max index
-// i.e an array of of size 4 with have four elements in it but the final element will have 
-// the index [3], as indices begin at [0]
-numbers.length // => 4
-// secondly, you can initialize arrays with default values
-int[0;10] numbers; // => array of size 10 with every element being initialized to 0
-int[5;8] numbers; // => array of size 8 with every element being initialized to 5
-
-// Unlike in C, river's arrays are a distinct type and cannot dissolve down to pointers
-int print_num_array ( int[10] numbers ) { /*...*/ }
-
-^int nums;
-print_num_array(nums); // ERROR: Incompatible types; expected type int[10], got ^int instead;
-
-// arrays can be concatenated with the '..' operator
-int[5] x = {0, 1, 2, 3, 4};
-int[10] y = {-5, -4, -3, -2, -1} .. x; // => {-5, -4, -3, -2, -1, 0, 1, 2, 3, 4}
-
-
-// A Slice is a referenced subset of another array
-str[6] animals = { "cat", "dog", "cow", "sheep", "chicken", "lion" }; 
-// Slice of all the farm animals
-str[] farm_animals = animals[2..4]; // => { "cow", "sheep", "chicken" };
-
-```
-
-# Strings
-
-```c
-
-```
-
-# Goto 
-
-```c
-
-// Gotos work the same as in C, except labels are more explicit
-// Jump labels are required to be marked with the label keyboard
-
-{
-  // jump label
-  label jumpHere:
-    // code block
-}
-
-if expr {
-    goto jumpHere;
-}
 
 
 ```
@@ -883,6 +765,10 @@ u32 val = 10;
     or perhaps
     &b |b ~b !b
     b& b| b~ b!
+    b& - band
+    b^ - bixor
+    b! - binot
+    b| - bor
 
     or maybe, unary
     & | ~ !

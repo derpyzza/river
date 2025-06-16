@@ -14,14 +14,17 @@
   TKN(T_ADD_EQ,                  "+=")          \
   TKN(T_SUB_EQ,                  "-=")          \
   TKN(T_MOD_EQ,                  "%=")          \
+  \
+  TKN(T_BAND_EQ,                 "&=")          \
+  TKN(T_BOR_EQ,                  "|=")          \
+  TKN(T_BIXOR_EQ,                "^=")          \
+  \
   TKN(T_NOT_EQ,                  "!=")          \
-  TKN(T_AND_EQ,                  "&=")          \
-  TKN(T_OR_EQ,                   "|=")          \
   TKN(T_EQ_EQ,                   "==")          \
   TKN(T_LT_EQ,                   "<=")          \
   TKN(T_GT_EQ,                   ">=")          \
-  TKN(T_SHL_EQ,                  "<<=")         \
-  TKN(T_SHR_EQ,                  ">>=")         \
+  TKN(T_SHL_EQ,                 "<<=")          \
+  TKN(T_SHR_EQ,                 ">>=")          \
 	\
   TKN(T_ARROW,                   "->")          \
   TKN(T_FAT_ARROW,               "=>")          \
@@ -30,6 +33,7 @@
   TKN(T_LAND,                    "&&")          \
   TKN(T_LOR,                     "||")          \
   TKN(T_DOT_DOT,                 "..")          \
+  TKN(T_ELLIPSE,                "...")          \
   \
   TKN(T_LIT_INT,                 "int_lit")     \
   TKN(T_LIT_STR,                 "str_lit")     \
@@ -52,6 +56,7 @@
   TKN(T_THEN,                    "then")        \
   TKN(T_TRUE,                    "true")        \
   TKN(T_TYPE,                    "type")        \
+  TKN(T_ALIAS,                   "alias")       \
   TKN(T_BREAK,                   "break")       \
   TKN(T_CONST,                   "const")       \
   TKN(T_DEFER,                   "defer")       \
@@ -74,6 +79,9 @@
   \
   TKN(T_EOF,                     "eof")
 
+
+// let flags = FOO .& BAR .& BAZ;
+// let smth: *int = &flags;
 typedef enum TokenTag {
 	T_NONE = 0,
 

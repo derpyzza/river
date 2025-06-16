@@ -3,14 +3,6 @@
 
 #include "../diagnostics.h"
 
-void init_parser( dstr *source, dbuf_token *tokens) {
-	parser.source = source;
-	parser.tokens = tokens;
-	parser.current = -1;
-	parser.had_error = false;
-	parser.errors = NULL;
-}
-
 void consume(void) { 
 	parser.current++;
 }

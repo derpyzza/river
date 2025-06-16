@@ -24,9 +24,9 @@ production rules can be followed up with any of the following operators:
 
 ```
 
-let x: ^^[2][4]^^int | ^^^[23]^file, error | ^char;
+let x: ^^[^^int ; 2 ; 4] | ^^^[^file, error ; 23] | ^char;
 
-type -> arr* ptr* %id
+type -> ptr* arr %id
       | %id ( ',' %id )*
       | %id ( '|' %id )*
 

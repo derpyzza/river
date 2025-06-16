@@ -8,40 +8,40 @@
 
 void codegen(FILE* file, Node *tree) {
   // NULL_PTR_PANIC(tree);
- 	switch(tree->tag) {
-      case N_BLOCK:
-        fprintf(file, "{\n");
-        for (int i = 0; i < tree->children->current; i++) {
-          codegen(file, tree->children->data[i]);
-        }
-        fprintf(file, "\n}\n");
-      break;
- 		case N_FUNC_DEF:
- 			fprintf(file, "%.*s %.*s () {\n\treturn ",
- 			  (int)tree->type.len,
- 			  tree->type.cptr,
- 			  (int)tree->name.len,
- 			  tree->name.cptr
- 			);
-      codegen(file, tree->body);
-      fprintf(file, ";\n}\n");
- 		break;
- 		case N_BIN_EXPR:
- 		  codegen(file, tree->lhs);
- 		  fprintf(file, "%s", tok_to_str(tree->op));
- 		  codegen(file, tree->rhs);
- 		break;
- 		case N_UN_EXPR:
- 		  fprintf(file, "%s", tok_to_str(tree->op));
-      codegen(file, tree->rhs);
- 		break;
-    case N_LIT:
-      fprintf(file, "%.*s", (int)tree->value.len, tree->value.cptr);
-    break;
- 		default:
- 		  fprintf(file, "// DERP\n");
-    break;
- 	}
+ 	// switch(tree->tag) {
+  //     case N_BLOCK:
+  //       fprintf(file, "{\n");
+  //       for (int i = 0; i < tree->children->current; i++) {
+  //         codegen(file, tree->children->data[i]);
+  //       }
+  //       fprintf(file, "\n}\n");
+  //     break;
+ 	// 	case N_FUNC_DEF:
+ 	// 		fprintf(file, "%.*s %.*s () {\n\treturn ",
+ 	// 		  (int)tree->type.len,
+ 	// 		  tree->type.cptr,
+ 	// 		  (int)tree->name.len,
+ 	// 		  tree->name.cptr
+ 	// 		);
+  //     codegen(file, tree->body);
+  //     fprintf(file, ";\n}\n");
+ 	// 	break;
+ 	// 	case N_BIN_EXPR:
+ 	// 	  codegen(file, tree->lhs);
+ 	// 	  fprintf(file, "%s", tok_to_str(tree->op));
+ 	// 	  codegen(file, tree->rhs);
+ 	// 	break;
+ 	// 	case N_UN_EXPR:
+ 	// 	  fprintf(file, "%s", tok_to_str(tree->op));
+  //     codegen(file, tree->rhs);
+ 	// 	break;
+  //   case N_LIT:
+  //     fprintf(file, "%.*s", (int)tree->value.len, tree->value.cptr);
+  //   break;
+ 	// 	default:
+ 	// 	  fprintf(file, "// DERP\n");
+  //   break;
+ 	// }
 	// fprintf(file, "\n");
  }
 

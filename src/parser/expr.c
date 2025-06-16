@@ -39,7 +39,7 @@ Node *parse_expr(void) {
 			match(';');
 
 			if (child) {
-				dbuf_push_Node(block->children, child);
+				dbuf_push_Node(block->children, *child);
 			}
 		}
 		return block;

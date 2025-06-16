@@ -3,6 +3,7 @@
 > This project is currently under construction, so most of what you see here is:
 > 1. very, very broken right now, and
 > 2. subject to change.
+> 3. probably already outdated, as the language and it's current implementation change faster and more often than the documentation for it.
 > ---
 > With that in mind however, feel free to take a look around, and drop some feedback if you'd like. 
 > However, do note that since this project is currently in it's infancy, i'm not accepting any proper contributions for now.
@@ -12,8 +13,7 @@ A Small C-inspired language that's transpiled down to human-readable C99 code.
 named river 
 cause it flows down to C ( badum tiss )
 
-River is a programming language for those who like the DIY-nature of C, but sometimes wished that they had access to the convenient higher level features from other languages ( but are too scared of C++ ).
-Simply put, river is a dialect of C with a boatload of syntax sugar and niceties piled on top, along with a side of an expressive type system and garnished with some really nice functional features to top it all off.
+River is a lightweight programming language for those who like the DIY, hands off nature of C, but wish for a more modern version with convenience features on top.
 
 The goal is to be able to seamlessly use both C and river in the same codebase, and replace C files with river as needed ( and river files with C, if you want to ).
 
@@ -22,20 +22,20 @@ Outputs to a human readable C99.
 River offers the following feature-set over plain-C:
 - An easier to parse syntax ( for machines and humans alike )
 - Type inferencing and a stronger type system
-- Arbitrary compile-time code execution / stronger macros
-- Expression-oriented syntax
 - Default function arguments / struct fields
 - Function overloading ( functions are identified by their signatures, not just their names )
 - Limited operator overloading ( limited to basic arithmetic, comparisons and subscripting )
 - Algebraic data types ( discriminated unions, mostly )
 - Method call syntax
-- Nicer array and string types
-- Pattern matching
-- Localized Namespaces ( that is, there are more namespaces than just "global" and "local" )
-- Interfaces
-- Generics
 - Distinct and Aliased type definitions ( or nominal vs structural types )
 - A proper module system
+- Stronger Namespaces
+- Nicer array and string types
+- Arbitrary compile-time code execution / stronger macros
+- Expression-oriented syntax
+- Pattern matching
+- Interfaces
+- Generics
 
 And gets rid of:
 - The pre-processor
@@ -80,6 +80,53 @@ let y: f32 = 23.0;
 
 ```
 
+## Struct methods
+```
+
+type Person = struct {
+    name: string;
+    job: string;
+
+    // constructor function ( optional )
+    fun Person(): Self {}
+
+    fun sayName() = io.print("Hi! my name is {}.", .name);
+}
+
+let derpy: Person = {};
+derpy.name = "derpyzza";
+
+derpy.sayName(); // prints 'Hi! my name is derpyzza.'
+// the above is the same as doing:
+Person::sayName(derpy);
+    
+```
+
+## Method call syntax
+```
+fun Foo(x: Bar) {...}
+
+let bar: Bar = Bar();
+bar.Foo(); // Same as calling Foo(bar);
+
+A( B( C( D ))) === D.C().B().A()
+    
+```
+
+## Array shorthands
+```
+
+type name = [4]char;
+
+let arr: [256]name = [
+    "BEST", "DEST", // regular array items, at indexes 0 and 1;
+    34 = "DIRT", // set item at index 34 to "DIRT"
+    52..64 = "BERT", // set items from index 52 to index 64 to "BERT"
+    ... = "NONE" // set every item in the array (besides the ones we set manually) to "NONE"
+    ];
+    
+```
+
 ## Default values
 
 ```go 
@@ -93,6 +140,26 @@ type object = struct {
 fun function_definition ( x, y: int = 20, has_something: bool = true ) = {
     // define function over here
 };
+```
+
+## Defers
+The `defer` keyword just executes the given statement at the end of the current scope.
+
+```c 
+
+struct object {...};
+
+fun main() {
+    let x = new_object();
+    defer delete_object();
+
+    /*
+     * do stuff ...
+     */
+
+    // calls delete here
+    // delete_object()
+}
 
 ```
 
@@ -102,17 +169,12 @@ fun function_definition ( x, y: int = 20, has_something: bool = true ) = {
 let x = (23, 59, "String");
 
 // a gets set to x.0, b gets set to x.1
-let a, b = x;
-
-// the parenthesis in a tuple are optional:
-let a, b, c = 1, 2, 3;
-// this destructures a tuple with elements ( 1, 2, 3 ) into three separate variables.
-// similarly, you can bind a tuple to a single variable and access the tuples elements individually:
-let x = 1, 2, 3;
+let (a, b) = x;
+let x = (1, 2, 3);
 
 // in the case of variable destructuring, the number of variables on the lhs must match those on the rhs:
-let x, y = 1, 2, 3; // => error, too many values
-let x, y = 1, 2; // fine
+let (x, y) = 1, 2, 3; // => error, too many values
+let (x, y) = 1, 2; // fine
 ```
 
 ## Algebraic Data Types
@@ -128,37 +190,19 @@ type Value = enum {
 
 fun print_value(v: Value) -> string {
     let s: string;
-    match v {
-        Int => s.format("int: {}", v),
-        Float => s.format("float: {}", v),
-        String => s.format("string: {}", v),
-        Ptr => s.format("ptr to: {}", print_value(v)),
+    switch v {
+        Int:    s.format("int: {}", v),
+        Float:  s.format("float: {}", v),
+        String: s.format("string: {}", v),
+        Ptr:    s.format("ptr to: {}", print_value(v)),
     }
     
     return s;
 }
 
-fun add_value(v, y: Value) -> ?Value = if (v int and y is int) Some(v + y) else None;
-```
-
-## Defers
-The `defer` keyword just executes the given statement at the end of the current scope.
-
-```c 
-
-struct object {...};
-
-fun main() {
-    let x = new_object();
-    defer delete_object;
-
-    /*
-     * do stuff ...
-     */
-
-    // calls delete here
-}
-
+fun add_value(v, y: Value) -> Optional[Value] =
+    Some(v + y) if typeof(v) == int and typeof(y) == int
+    else None;
 ```
 
 ## Pattern matching & Destructuring
@@ -172,7 +216,6 @@ switch user.rank {
 
 ```
 
-
 ## Operator overloading
 
 limits on operator overloading:
@@ -185,16 +228,22 @@ limits on operator overloading:
 
 type Vec2 = struct {
     x, y: f32;
+
+    #op(+)
+    fun add (a, b: Vec2) -> Vec2 = Vec2 {a.x + b.x, a.y + b.y};
+    #op(-)
+    fun sub (a, b: Vec2) -> Vec2 = Vec2 {a.x - b.x, a.y - b.y};
+    #op(*)
+    fun mul (a, b: Vec2) -> Vec2 = Vec2 {a.x * b.x, a.y * b.y};
+    #op(/)
+    fun div (a, b: Vec2) -> Vec2 = Vec2 {a.x / b.x, a.y / b.y};
+    #op(-, prefix)
+    fun neg (v: Vec2) -> Vec2 = Vec2 {-v.x, -v.y};
+    #op(==)
+    fun eq (a, b: Vec2) -> bool = (a.x == b.x) && (a.y == b.y);
+    #op(!=)
+    fun neq (a, b: Vec2) -> bool = (a.x != b.x) || (a.y != b.y);
 };
-
-
-op add (a, b: Vec2) -> Vec2 = Vec2.{a.x + b.x, a.y + b.y};
-op sub (a, b: Vec2) -> Vec2 = Vec2.{a.x - b.x, a.y - b.y};
-op mul (a, b: Vec2) -> Vec2 = Vec2.{a.x * b.x, a.y * b.y};
-op div (a, b: Vec2) -> Vec2 = Vec2.{a.x / b.x, a.y / b.y};
-op neg (v: Vec2) -> Vec2 = Vec2.{-v.x, -v.y};
-op eq (a, b: Vec2) -> bool = a.x == b.x && a.y == b.y;
-op neq (a, b: Vec2) -> bool = a.x != b.x || a.y != b.y;
 
 // other operations include:
 // gt        : greater than `>`
@@ -213,32 +262,46 @@ op neq (a, b: Vec2) -> bool = a.x != b.x || a.y != b.y;
 // function signatures
 op eq (a, b: T) -> bool;
 op neq (a, b: T) -> bool;
-op gteq (a, b: T) -> bool;
-op lteq (a, b: T) -> bool;
-op lt (a, b: T) -> bool;
-op gt (a, b: T) -> bool;
-op eq (a, b: T) -> bool;
-op add (a, b: T) -> T;
-op sub (a, b: T) -> T;
-op mul (a, b: T) -> T;
-op div (a, b: T) -> T;
-op neg (v: T) -> T;
-op get_item (a: []T) -> T;
-op get_index (a: []T) -> T;
-op set_index (a: []T) -> T;
-op add_assign(a: ^T, b: T);
-op sub_assign(a: ^T, b: T);
-op mul_assign(a: ^T, b: T);
-op div_assign(a: ^T, b: T);
+op >= gteq (a, b: T) -> bool;
+op <= lteq (a, b: T) -> bool;
+op < lt (a, b: T) -> bool;
+op > gt (a, b: T) -> bool;
+op + add (a, b: T) -> T;
+op - sub (a, b: T) -> T;
+op * mul (a, b: T) -> T;
+op / div (a, b: T) -> T;
+op - neg (v: T) -> T;
+op [] get_item (a: []T) -> T;
+op [] get_index (a: []T) -> T;
+op [] set_index (a: []T) -> T;
+op += add_assign(a: ^T, b: T);
+op -= sub_assign(a: ^T, b: T);
+op *= mul_assign(a: ^T, b: T);
+op /= div_assign(a: ^T, b: T);
     
 ```
-## Interfaces
 
 ## Generics
 
 ```c
 
-fun add[T: type where T is Addable](x, y: T) -> T = x + y;
+fun add<[T]>(x, y: T) -> T = x + y;
+
+add<[f32]>(0.2, 0.4); // => 0.6
+add<[int]>(3, 5) // => 8
+
+
+fun sort<[T: Comparable]> ( x: Array<(T)> ) {
+    //...//
+}
+
+sort[int]( Array[int] { 35, 13, 1, 545 } ); // => Array[int]{ 1, 13, 35, 545 }
+
+type num = struct {
+    x: int;
+};
+
+sort[num]( Array[num]{ ... } ); // ERROR, type <num> does not implement interface Comparable
 
     
 ```

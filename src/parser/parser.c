@@ -4,6 +4,8 @@
 #include <string.h>
 
 #include "parser.h"
+#include <libderp/dbuf.h>
+#include "memory.h"
 #include "parser-internal.h"
 
 #include "expr.h"
@@ -17,44 +19,46 @@ static struct Node *var_def(void);
 static struct Node *type_def(bool is_alias);
 static struct Node *import_def(void);
 
+void init_parser( dstr *source, dbuf_token *tokens) {
+	parser.node_tree = dbuf_new_Node(1024);
+	parser.source = source;
+	parser.tokens = tokens;
+	parser.current = -1;
+	parser.had_error = false;
+	parser.errors = NULL;
+}
+
 #define PANIC(e, et, u, ut) panic(e, et, u, ut, __FILE__, __LINE__)
 
 bool match_type_token(void) {
 	return false;
 }
 
-Node *parse_tokens( dbuf_token *tokens, dstr *src )  { 
+dbuf_Node *parse_tokens( dbuf_token *tokens, dstr *src )  { 
 
 	// Initialize parser state, parser struct found in src/parser/parser-internal.h
 	init_parser(src, tokens);
 
-	// malloc a big chunk of memory at the start and just use that
-	// setting the number of nodes to be equal to the number of tokens in a file is 
-	// super duper wasteful, since the number of nodes will always be a lot less than
-	// the number of tokens, as every node is made up of one or more tokens.
-	// still, it's an alright number to target, and it makes sure that we don't have to 
-	// reallocate at all. This might cause problems with big files on machines with lesser 
-	// amounts of RAM to spare, but ehhhhh.
-	// we'll burn that bridge when we get to it :)
-	// struct Node* nodeList = malloc(sizeof(struct Node) * parser.tokens->current_token); 
-
-	struct Node *node = new_node(N_PROG);
-	node->children = dbuf_new_Node(8);
+	Node * n = new_node(N_TODO);
+	dbuf_push_Node(parser.node_tree, *n);
+	print_ast(parser.node_tree, 0);
+	return 0;
 
 	while(!match(T_EOF)) {
 		struct Node* item = top_level();
 		if(item != NULL) {
-			if(item->tag == N_NODE_LIST) {
+			if(item->children) {
 				for(int i = 0; i < item->children->current; i++) {
-					dbuf_push_Node(node->children, item->children->data[i]);
+					dbuf_push_Node(parser.node_tree, **item->children->data[i]);
 				}
+			} else {
+				dbuf_push_Node(parser.node_tree, *item);
 			}
-			else dbuf_push_Node(node->children, item);
 		} 
 	}
 
 	if(check_errors() == 0) {
-		return node;
+		return parser.node_tree;
 	}
 	else return NULL;
 }
@@ -79,11 +83,11 @@ static Node *top_level(void) {
 	return NULL;
 }
 
-Datatype * new_datatype(DatatypeTag tag) {
-	Datatype * new = malloc(sizeof(Datatype));
-	new->tag = tag;
-	new->type = malloc(sizeof(DatatypeUnion));
-}
+// Datatype * new_datatype(DatatypeTag tag) {
+// 	Datatype * new = malloc(sizeof(Datatype));
+// 	new->tag = tag;
+// 	new->type = malloc(sizeof(DatatypeUnion));
+// }
 
 
 /* 
@@ -95,30 +99,30 @@ primary_type ->
 
 */
 
-Datatype* parse_datatype_array(void) {}
-Datatype* parse_datatype_header(void) {}
+// Datatype* parse_datatype_array(void) {}
+// Datatype* parse_datatype_header(void) {}
 
-Datatype* parse_datatype_primary(void) {
-	if(match(T_IDEN)) {
-		// check if tuple
-		if (check_next(',')) {
-			Datatype* tuple = new_datatype(DATATYPE_TUPLE);
-		}
-	}
-}
+// Datatype* parse_datatype_primary(void) {
+// 	if(match(T_IDEN)) {
+// 		// check if tuple
+// 		if (check_next(',')) {
+// 			Datatype* tuple = new_datatype(DATATYPE_TUPLE);
+// 		}
+// 	}
+// }
 
-Datatype* parse_datatype(void) {
-	Datatype* out = parse_datatype_primary();
-	if(match(',')) {
-		out->type->dt_tuple = parse_datatype_primary();
-	} else if (match('|')) {
-		out->type->dt_union = parse_datatype_primary();
-	}
-}
+// Datatype* parse_datatype(void) {
+// 	Datatype* out = parse_datatype_primary();
+// 	if(match(',')) {
+// 		out->type->dt_tuple = parse_datatype_primary();
+// 	} else if (match('|')) {
+// 		out->type->dt_union = parse_datatype_primary();
+// 	}
+// }
 
-void match_params() {
+// void match_params() {
 	
-}
+// }
 
 // function_def -> "fun" <ID> ( "(" <params_list> ")" )? ( "->" <type> )? "=" <expr> ";" .
 // "fun" <ID> ( "::" <ID> )? ( "[" <generic> "]" )? ( "(" <params_list>? ")" )? ( "->" <type> )? ( "=" <expr> ";" | <block> )
@@ -127,7 +131,7 @@ static Node *fn_def(void) {
 
 	// match identifier
 	if( match_type_token() ) {
-		fn->name = *cur_tok_span();
+		fn->iden = *cur_tok_span();
 	} else {
 		printf("error, missing type");
 		PANIC(T_TYPE, P_CAT, ';', P_TOK);
@@ -145,7 +149,7 @@ static Node *fn_def(void) {
 	if (match(T_ARROW)) {
 		// match type
 		if (match_type_token()) {
-			fn->type = *cur_tok_span();
+			// fn->type = *cur_tok_span();
 		}
 		else 
 		 printf("ERROR: expected return type\n"), exit(-1);
@@ -342,18 +346,12 @@ static Node *fn_def(void) {
 // 	return node;
 // }
 
-Node *new_node(NodeTag type) {
-	struct Node* node = (Node *)malloc(sizeof(struct Node));
-	if (node == NULL) {
-		printf("Error, could not malloc new node\n");
-		exit(-1);
-	}
+Node * new_node(NodeTag type) {
+	Node * node = &parser.node_tree->data[parser.node_tree->current];
 	node->tag = type;
-
-	node->type
-		= node->name 
-		= node->value = (dstr) {0};
-		// = NULL;
+	node->type = NULL;
+	node->iden = (dstr){0};
+	node->value = (dstr) {0};
 
 	node->op = T_NONE;
 
@@ -370,7 +368,7 @@ Node *new_node(NodeTag type) {
 		case N_NODE_LIST:
 		case N_STRUCT_DEF:
 		case N_BLOCK:
-			node->children = dbuf_new_Node(8);
+			node->children = dbuf_new_NodeList(8);
 	}
 	return node;
 }
