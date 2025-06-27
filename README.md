@@ -28,8 +28,8 @@ River offers the following feature-set over plain-C:
 - Algebraic data types ( discriminated unions, mostly )
 - Method call syntax
 - Distinct and Aliased type definitions ( or nominal vs structural types )
+- Defers
 - A proper module system
-- Stronger Namespaces
 - Nicer array and string types
 - Arbitrary compile-time code execution / stronger macros
 - Expression-oriented syntax
@@ -190,7 +190,7 @@ type Value = enum {
 
 fun print_value(v: Value) -> string {
     let s: string;
-    switch v {
+    switch v.$type {
         Int:    s.format("int: {}", v),
         Float:  s.format("float: {}", v),
         String: s.format("string: {}", v),
