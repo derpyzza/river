@@ -16,24 +16,6 @@ stylistic rules:
 - variables are pascalCase
 - struct fields are pascalCase
 
-glm_mat4_add(glm_mat4_mul(x, y), z);
-
-vs
-
-x.mul(y).add(z);
-
-vs
-
-x * y + z;
-
-
-
-let x = 0b1110 and 0b0011 xor ((neg 0b1001) or 0b1111);
-let x = 0b1110 & 0b0011 ^^ ((~0b1001) | 0b1111);
-let x = 0b1110 && 0b0011 ^^ ((~0b1001) || 0b1111);
-
-
-
 feature list:
 - type inference
 - default values
@@ -57,10 +39,55 @@ feature list:
 - COMPILE-TIME CODE EXECUTION???
 
 
+variable shadowing should be allowed.
+
+boxed pointers?
+- like some sort of differenciator between "owning" pointers and "viewing" pointers?
+
+maybe like, pointers vs references?
+pointers own an object and are responsible for calling free somewhere before the scope ends
+but references are not allowed to call free at all?
+
+maybe this should all be enforced in the stdlib and not in a language level?
+
+
+explicit fallthrough in switch statements
+
+version management?
+
+despite having a module system it shouldn't be *necessary*.
+i.e you should just be able to a single file library without needing to
+mess around with a module system.
+like
+json.rvr <- full library.
+like single header file libraries in C
+and you should be able to slap multiple libraries in the same directory and have them work
+like
+libs/
+|-json.rvr
+|-glm.rvr
+|-stb_image.rvr
+
+and then in main.rvr
+import libs:json;
+import libs:glm;
+import libs:stb_image;
+
+
+glm_mat4_add(glm_mat4_mul(x, y), z);
+vs
+x.mul(y).add(z);
+vs
+x * y + z;
+
 access modifiers?
-- public
-- private // default, implicit
-- readonly
+// visibility modifiers
+- private // default, implicit, private to module
+- local   // private to file
+- public  // visible to other modules
+- readonly // visible to other modules, but only writeable by current module
+- internal readonly // visible to other modules, but only writeable by current file
+// mutability modifiers
 - mutable
 - immutable // default
 
@@ -76,18 +103,6 @@ let readonly x = 2424;
 
 let x: public int = 10;
 let x: readonly int = 10;
-
-@public
-let x = 22;
-@readonly
-let x = 22;
-
-
-public {
-  let x = 22;
-  let x = 22;
-  let x = 22;
-}
 
 _idens are private
 non_underscore are public
@@ -109,6 +124,12 @@ let z: int = @y;
 #ifdef
 #ifndef
 #deprecated
+
+// struct
+// destructor function, runs at the end of the scope?
+fun destroy() {
+    
+}
 
 
 ```  
@@ -140,5 +161,71 @@ $ comptime variable and stuff?
 ?
 ~
 .* pointer dereference
+```
+
+
+## Operator overloading
+
+limits on operator overloading:
+- Must not allocate
+- Must not error
+- Must not return null
+- Must follow a very specific function signature
+
+```c
+
+type Vec2 = struct {
+    x, y: f32;
+
+    #op(+)
+    fun add (a, b: Vec2) -> Vec2 = Vec2 {a.x + b.x, a.y + b.y};
+    #op(-)
+    fun sub (a, b: Vec2) -> Vec2 = Vec2 {a.x - b.x, a.y - b.y};
+    #op(*)
+    fun mul (a, b: Vec2) -> Vec2 = Vec2 {a.x * b.x, a.y * b.y};
+    #op(/)
+    fun div (a, b: Vec2) -> Vec2 = Vec2 {a.x / b.x, a.y / b.y};
+    #op(-, prefix)
+    fun neg (v: Vec2) -> Vec2 = Vec2 {-v.x, -v.y};
+    #op(==)
+    fun eq (a, b: Vec2) -> bool = (a.x == b.x) && (a.y == b.y);
+    #op(!=)
+    fun neq (a, b: Vec2) -> bool = (a.x != b.x) || (a.y != b.y);
+};
+
+// other operations include:
+// gt        : greater than `>`
+// lt        : less than `<`
+// gteq      : greater than or equal to `>=`
+// lteq      : less than or equal to `<=`
+// get_item  : for loop iterations `in`
+// get_index : subscript set `[]`
+// set_index : subscript get `[]`  
+// add_assign: +=
+// sub_assign: -=
+// mul_assign: *=
+// div_assign: /=
+// mod_assign: %=
+
+// function signatures
+op eq (a, b: T) -> bool;
+op neq (a, b: T) -> bool;
+op >= gteq (a, b: T) -> bool;
+op <= lteq (a, b: T) -> bool;
+op < lt (a, b: T) -> bool;
+op > gt (a, b: T) -> bool;
+op + add (a, b: T) -> T;
+op - sub (a, b: T) -> T;
+op * mul (a, b: T) -> T;
+op / div (a, b: T) -> T;
+op - neg (v: T) -> T;
+op [] get_item (a: []T) -> T;
+op [] get_index (a: []T) -> T;
+op [] set_index (a: []T) -> T;
+op += add_assign(a: ^T, b: T);
+op -= sub_assign(a: ^T, b: T);
+op *= mul_assign(a: ^T, b: T);
+op /= div_assign(a: ^T, b: T);
+    
 ```
 

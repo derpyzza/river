@@ -14,7 +14,6 @@ design patterns:
 # Identifiers and Numbers
 
 ```
-
     // identifier
     %iden -> [a-zA-Z_] [a-zA-Z0-9_-?!%]* ;
 
@@ -91,8 +90,8 @@ design patterns:
     123i64     // explicit i64 literal
     234uz      // explicit usize literal
     424iz      // explicit size literal
-    133f       // explicit f32 literal
-    234d       // explicit f64 literal
+    133f32     // explicit f32 literal
+    234f64     // explicit f64 literal
 ```
 
 # Comments
@@ -148,32 +147,43 @@ River has the following literal types:
 
 ## Reserved Keyword list 
 
-null undef 
-true false
+| Keyword  | Use                                        |
+| -------- | ------------------------------------------ |
+| true     | true                                       |
+| false    | false                                      |
+| fun      | function declaraction                      |
+| return   | return values from functions               |
+| struct   | declare a struct                           |
+| enum     | declare an enum                            |
+| union    | declare a union                            |
+| let      | declare an immutable variable              |
+| var      | declare a mutable variable                 |
+| const    | declare a compile-time constant            |
+| type     | declare a new type                         |
+| alias    | alias a symbol to another                  |
+| if       | if expression                              |
+| else     | else expression                            |
+| for      | for loop                                   |
+| in       | get item from iterator                     |
+| while    | while loop                                 |
+| repeat   | repeat loop                                |
+| until    | until conditional for repeat loop          |
+| break    | break loop                                 |
+| continue | continue to next iteration of loop         |
+| defer    | execute expression at the end of the scope |
+| switch   | switch expression                          |
+| import   | import a module                            |
+| module   | declare a module                           |
+| as       | alias a module                             |
 
-fun return
-
-struct enum union
-
-let var
-
-type alias
-
-if else
-for in while do
-repeat until
-break continue goto defer label
-switch
-
+// maybe keywords
+null
+goto label
 is
-
 macro
-
 sizeof typeof alignof
-
-import
 import @C("")
-
+#include // compile time textual include like in C
 impl interface
 
 
@@ -186,6 +196,22 @@ string
 bool
 void
 char
+any ?
+typeid
+
+
+# Modules and packages
+river bundles up it's code files into logical units called modules.
+a river program can be made up of multiple modules, and a module can be made up of multiple `.rvr` files.
+
+modules can share code between each other without explicitly importing the code.
+
+a `.rvr` file must declare the module at the top of the file
+```c
+module foo; 
+```
+
+if a `.rvr` file does not have a module, it's filename will be taken as the module instead.
  
 
 # variable definition & declaration
@@ -198,12 +224,16 @@ char
     
 ```
 
-```rs
+```ts
 
 // variables are declared with the 'let' keyword
-let x: int;
-let y, z, w: int;
+let x: int = 10;
 
+// variables declared with the 'let' keyword are immutable
+// to create mutable variables, use the 'var' keyword
+
+var x: int = 10;
+x += 10; // x = 20
 
 // you can declare variables without initializing them.
 // However, when just declaring a variable, you must provide it's type
@@ -211,12 +241,9 @@ let y, z, w; // illegal
 let y, z, w: int; // legal
 
 // You can assign multiple variables at once:
-let x = 10, y = 20, z = 30;
-
-let a = 13, b = 35 : int;
+let y, z, w: int = 10, 30, 23;
 
 let (x, y, z, w, e, t) = (13, 45, 35, ... = 0);
-
 ```
 
 # pointers, arrays and slices
@@ -241,13 +268,12 @@ let arr:  [6]int = [1, 2, 3, 4, 5, 6]; // array of six integers
 // Do note: the array length is equal to the number of elements in it, not the max index
 // i.e an array of of size N will have N elements in it but the final element will have 
 // the index [N-1], as indices begin at [0]
-arr.len; // => 6
+arr.len(); // => 6
 
 // array types must always contain the size
 let name: []type = value; // => ERROR, missing array size
 // but for array literal definitions you can simply just put a _ to infer the length:
 let arr: [_]u8 = [3, 6, 7, 2, 6]; // => Okay ✅
-
 let arr: [_]u8; // Error: Must provide a default array
 
 // you can initialize items in specific locations in an array using the following shorthand:
@@ -303,7 +329,7 @@ let arr: [_]u8 = [4, 6, 7, 8, 3, 7];
 let slice: [*]u8 = arr[3..5]; // => [8, 3, 7], len 3
 
 let mem: [*]u8 = mem.alloc(u8, 100);
-mem.len; // => 100
+mem.len(); // => 100
 
 // like with regular pointers, pointers to arrays can have up to 8 levels of indirection:
 // NOTE: Maybe this is like, stupid as heck???
@@ -312,7 +338,89 @@ let arr: ********[6]********int; // pointer to pointer t ... 8 times an array of
 
 ```
 
-# structs 
+# strings
+```rs
+// the string type in river is an alias of [_]char
+let s: string = "hello world";
+s.len(); // 11
+
+let sp = s.split(6)[0]; // "hello"
+    
+```
+
+# Control flow
+
+```c
+
+if (expression) {
+    // do stuff
+} else if (other_expression) {
+    // do other stuff
+} else {
+    // do yet more stuff
+}
+// if statements in river are actually expressions, and can return values
+let x = if (expression) {
+    value
+} else (expression) {
+    value
+};
+
+let x = if (bool) 10 else if (other_bool) 11 else 23;
+
+// switch statements are also actually expressions, and can pattern match
+switch x {
+    case => ...,
+    case => {...},
+    // cases don't have implicit fallthrough and a fallthrough must be explicitly forced via use of the `fallthrough` keyword
+    case => {
+        ...
+        fallthrough
+    },
+    // cases can be chained together
+    case | case | case => {...},
+    // default catch case
+    default => {...} 
+}
+
+fun x_to_string(x: X): string =
+    switch x {
+        X_XX => "XX",
+        X_XXX => "XXX",
+        X_XXXX => "XXXX"
+        _ => "bleh"
+    };
+
+// while loops are pretty normal, they're statements too
+while (expression) { ... };
+while (expression) expression;
+
+// repeat..until statements repeat an expression until the condition is held true
+// they're kinda like an inverse do while, where do..while repeats until a condition is false, repeat..until repeats until a condition is true
+repeat {
+
+} until expression;
+
+let x = 0;
+repeat x++ until x == 10;
+
+// river has the classic C style for loops available to use
+for(init;cond;inc) {...}
+for(init;cond;inc) expression;
+
+// river also has a for-each style loop that iterates over a collection:
+for (let item in list) {
+
+}
+
+// the for-in loop uses pattern matching to destructure collections
+for (let index, value in list) {
+    do_something();
+}
+
+```
+
+# Structs 
 
 ```c
 
@@ -323,8 +431,8 @@ type Vector3 = struct {
 
 type User = struct {
     // Struct fields can have default values
-    str username = "Admin";
-    u16 pin = 0000;
+    username: string = "Admin";
+    pin: u8;
 };
 
 let admin: User;
@@ -332,62 +440,27 @@ printf("user.name = %s", admin.username); // => "user.name = Admin"
 admin.name = "Administrator";
 printf("user.name = %s, user.pin = %i", admin.username, admin.pin) // => "user.name = Administrator, user.pin = 0000"; 
 
-// structs can also have functions in them
-type Vec4 = struct {
-    x, y, z, w: f32;
-
-    Vec4(x = 0, y = 0, z = 0, w = 0: f32): Self =
-        Self {
-            x = x,
-            y = y,
-            z = z,
-            w = w  
-        };
-
-    // Note: Self refers to the parent type.
-    fun print(t: Self) = io.printf("Vec4[{}, {}, {}, {}]", t.x, t.y, t.z, t.w);
-};
-
-// alternate constructor syntax
-type Vec4 = struct(x, y, z, w = 1 : float) {
+type Vec4 = struct(x, y, z, w: float = 1) {
     x, y, z, w: float;
-
-    // destructor function, runs at the end of the scope?
-    fun destroy() {
-        
-    }
 }
 
-let v1 = Vec4(30, 40, 50, 1);
-v1.print(); // => Vec4[30, 40, 50, 1]
-
-// alternatively, struct functions may also be defined outside of struct bodies in this way
-fun Vec4::print(t: Self) = io.printf("Vec4[{}, {}, {}, {}]", t.x, t.y, t.z, t.w);
-
-foo.bar();
-foo:bar();
-
-// generic structs
-
-type Buf<T> = struct {
-    id, max: size;
-    data: ^T;
-
-    fun constructor(): Self {
-        
-    }
+// struct field tags
+// you may tag struct fields with a string which attaches meta info to the struct
+type GameObject = struct {
+    pos: Vec3 `json:"pos"`;
+    transform: Mat4 `json:"transf"`;
+    active: bool // untagged
 };
 
-let intarr = Buf<int>();
 ```
 
 # Tuples
 ```c 
 
 // tuples are like structs, except they don't have named parameters
-let tup: (int, string) = (23, "John");
+let tup: (int, string) = (23, "River");
 tup.0; // 23
-tup.1; // "helli"
+tup.1; // "River"
 
 // you can destructure a tuple into multiple variables.
 let (age, name) = tup;
@@ -400,7 +473,6 @@ let person = get_person(id);
 
 type Colour = (u8, u8, u8, u8);
 let red: Colour = (255, 0, 0, 255);
-
 ```
 
 
@@ -421,16 +493,15 @@ fun sub ( x, y: int ): int {
     return x - y; // returns x - y
 }
 
-// the above function can also be written as:
-fun sub ( x, y: int ): int = x - y;
-
-fun sub[T: Subtractive](x, y: T): T = x - y;
+// for one-liner functions you can just use an expression or a statement in the body.
+// the return type is inferred:
+fun sub ( x, y: int ) = x - y;
 
 // function types can be declared as such:
 // this is a function that has a parameter of type int and returns a value of type bool
 type func = fun(int): bool;
 
-fun smth(i: int, callback: func): bool = !callback(i);
+fun smth(i: int, callback: func): bool = not callback(i);
 
 fun do_something(): (foo, Maybe[bar]) = {
     
@@ -439,6 +510,7 @@ fun do_something(): (foo, Maybe[bar]) = {
 // Functions support default parameter values
 // If an argument is not passed for a particular parameter,
 // the default value is used instead
+// Note: default values must be at the end of the function signature
 fun Colour_from_rgba( r, g, b: int, a: int = 255 ): Colour =
     Colour {
         r, g, b, a
@@ -450,26 +522,45 @@ Colour_from_rgba(125, 125, 125, 125); // param 'a' => 125;
 
 // Function arguments can be named when calling functions
 // Take the following function for example:
-fun draw_rect_pro ( x, y, width, height: int, rotation: int, col: Colour ): Rectangle {
+fun draw_rect ( x, y, width, height: int, rotation: int, col: Colour ): Rectangle {
     /*...*/
 }
 
 // You can call the function by naming the individual arguments
-let rect = draw_rect_pro(
+let rect = draw_rect (
     x = 20,
     y = 30,
     width = 240,
     height = 360,
-    col = Color { 10,10,10,255 }
-    );
+    col = (10,10,10,255)
+);
 // The advantage of named arguments is that you can rearrange the order in which you pass them:
 draw_rect_pro(
     width = 240,
     height = 360,
     x = 20,
     y = 30,
+    rotation = 10,
     col = Color { 10,10,10,255 }
     ); // perfectly valid
+
+// NOTE: when mixing and matching named vs unnamed arguements, the unnamed arguements must always come first and in order:
+draw_rect_pro(
+    20, // x
+    30, // y
+    width = 240,
+    height = 360,
+    rotation = 10,
+    col = Color { 10,10,10,255 }
+    ); // perfectly valid
+draw_rect_pro(
+    width = 240,
+    height = 360,
+    20, // x
+    30, // y
+    rotation = 10,
+    col = Color { 10,10,10,255 }
+    ); // ERROR
 
 // functions can have multiple return values by utilizing tuples
 fun read_file(path: string): (File, string) {
@@ -531,91 +622,6 @@ let x = ({
     // do stuff here 
 });
 
-
-```
-
-# Control flow
-
-```c
-
-// all the following control flow structures are expressions rather than statements
-
-if ( expression ) {
-    // do stuff
-} else if ( other_expression ) {
-    // do other stuff
-} else {
-    // do yet more stuff
-}
-
-let x = 10 if bool else 11 if other_bool else 23;
-
-
-let x = if bool { 10 } else if other_bool { 11 } else { 23 };
-let x = if (bool) 10 else if (other_bool) 11 else 23;
-
-if x == "string" {
-    do_something();
-}
-
-// optional 'then' keyword for one-liners
-if x then y else z;
-if x then y;
-
-// maybe ifs, and match/swich statements should be expressions
-// but while and for loops should be statements
-
-
-fun x_to_string(x: X): string =
-    switch x {
-        X_XX => "XX",
-        X_XXX => "XXX",
-        X_XXXX => "XXXX"
-        _ => "bleh"
-    };
-
-while expression {
-    // do stuff
-}
-
-repeat {
-
-} until expression;
-
-if x then y else if z then w else a;
-if x then y else while z do do_something();
-
-for let x in y do do_something();
-while x do do_something();
-
-for x; y; z { do_something(); }
-
-for x;y;z do do_something();
-
-for let x in 0..100:2 {
-
-}
-
-for item in list {
-
-}
-
-for let (id, item) := list {
-
-}
-
-// C style
-for let x = 0; x < 10; x++ {
-
-}
-
-// switch expressions cannot be inlined, unlike if, for and while expressions;
-switch expr {
-    case => expr,
-    case => {...},
-    case | case | case => {...},
-    _ => {...}, // default case
-}
 
 ```
 
@@ -749,8 +755,23 @@ val v = if x && y && z && w then a else 0;
 
 val x = 10; // statement
 funcCall();
+```
 
+# Generics
+```rs
+// generic structs
 
+type Buf<T> = struct {
+    idx: size;
+    data: [*]T;
+
+    fun Buf<T>();
+};
+
+let intarr = Buf<int>();
+fun sub[T: Subtractive](x, y: T): T = x - y;
+
+    
 ```
 
 

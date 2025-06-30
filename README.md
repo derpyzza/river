@@ -80,28 +80,6 @@ let y: f32 = 23.0;
 
 ```
 
-## Struct methods
-```
-
-type Person = struct {
-    name: string;
-    job: string;
-
-    // constructor function ( optional )
-    fun Person(): Self {}
-
-    fun sayName() = io.print("Hi! my name is {}.", .name);
-}
-
-let derpy: Person = {};
-derpy.name = "derpyzza";
-
-derpy.sayName(); // prints 'Hi! my name is derpyzza.'
-// the above is the same as doing:
-Person::sayName(derpy);
-    
-```
-
 ## Method call syntax
 ```
 fun Foo(x: Bar) {...}
@@ -177,7 +155,7 @@ let (x, y) = 1, 2, 3; // => error, too many values
 let (x, y) = 1, 2; // fine
 ```
 
-## Algebraic Data Types
+## Algebraic Data Types + Pattern matching
 
 ```rs
 
@@ -185,100 +163,23 @@ type Value = enum {
     Int: int,
     Float: float,
     String: string,
-    Ptr: ^Value  
+    Ptr: *Value  
 };
 
 fun print_value(v: Value) -> string {
     let s: string;
-    switch v.$type {
-        Int:    s.format("int: {}", v),
-        Float:  s.format("float: {}", v),
-        String: s.format("string: {}", v),
-        Ptr:    s.format("ptr to: {}", print_value(v)),
+    switch v {
+        Int(v)    => s.format("int: {}", v),
+        Float(v)  => s.format("float: {}", v),
+        String(v) => s.format("string: {}", v),
+        Ptr(v)    => s.format("ptr to:\n\t{}", print_value(v.*)),
     }
-    
     return s;
 }
 
-fun add_value(v, y: Value) -> Optional[Value] =
-    Some(v + y) if typeof(v) == int and typeof(y) == int
+fun add_value(v, y: Value) -> Optional<[Value]> =
+    Some(v + y) when Value::Int(v) and Value::Int(v)
     else None;
-```
-
-## Pattern matching & Destructuring
-```c 
-
-switch user.rank {
-    "Employee" => {},
-    "Admin" => {},
-    _ => {}
-}
-
-```
-
-## Operator overloading
-
-limits on operator overloading:
-- Must not allocate
-- Must not error
-- Must not return null
-- Must follow a very specific function signature
-
-```c
-
-type Vec2 = struct {
-    x, y: f32;
-
-    #op(+)
-    fun add (a, b: Vec2) -> Vec2 = Vec2 {a.x + b.x, a.y + b.y};
-    #op(-)
-    fun sub (a, b: Vec2) -> Vec2 = Vec2 {a.x - b.x, a.y - b.y};
-    #op(*)
-    fun mul (a, b: Vec2) -> Vec2 = Vec2 {a.x * b.x, a.y * b.y};
-    #op(/)
-    fun div (a, b: Vec2) -> Vec2 = Vec2 {a.x / b.x, a.y / b.y};
-    #op(-, prefix)
-    fun neg (v: Vec2) -> Vec2 = Vec2 {-v.x, -v.y};
-    #op(==)
-    fun eq (a, b: Vec2) -> bool = (a.x == b.x) && (a.y == b.y);
-    #op(!=)
-    fun neq (a, b: Vec2) -> bool = (a.x != b.x) || (a.y != b.y);
-};
-
-// other operations include:
-// gt        : greater than `>`
-// lt        : less than `<`
-// gteq      : greater than or equal to `>=`
-// lteq      : less than or equal to `<=`
-// get_item  : for loop iterations `in`
-// get_index : subscript set `[]`
-// set_index : subscript get `[]`  
-// add_assign: +=
-// sub_assign: -=
-// mul_assign: *=
-// div_assign: /=
-// mod_assign: %=
-
-// function signatures
-op eq (a, b: T) -> bool;
-op neq (a, b: T) -> bool;
-op >= gteq (a, b: T) -> bool;
-op <= lteq (a, b: T) -> bool;
-op < lt (a, b: T) -> bool;
-op > gt (a, b: T) -> bool;
-op + add (a, b: T) -> T;
-op - sub (a, b: T) -> T;
-op * mul (a, b: T) -> T;
-op / div (a, b: T) -> T;
-op - neg (v: T) -> T;
-op [] get_item (a: []T) -> T;
-op [] get_index (a: []T) -> T;
-op [] set_index (a: []T) -> T;
-op += add_assign(a: ^T, b: T);
-op -= sub_assign(a: ^T, b: T);
-op *= mul_assign(a: ^T, b: T);
-op /= div_assign(a: ^T, b: T);
-    
 ```
 
 ## Generics
