@@ -8,5 +8,5 @@ fun fizzbuzz(i: int) {
 }
 
 fun main {
-	for i in [0..100] do fizzbuzz(i);
+	for (let i in 0..100) fizzbuzz(i);
 }

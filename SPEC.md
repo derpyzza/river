@@ -177,27 +177,75 @@ River has the following literal types:
 | as       | alias a module                             |
 
 // maybe keywords
+
 null
+
 goto label
+
 is
+
 macro
-sizeof typeof alignof
-import @C("")
-#include // compile time textual include like in C
+
 impl interface
 
 
 f32 f64
+
 u8 u16 u32 u64 
+
 i8 i16 i32 i64
+
 usize size
+
 uint int
+
 string
+
 bool
+
 void
+
 char
+
 any ?
+
 typeid
+
+# Operators
+
+| Operator | Use                      | Arity  | Placement |
+| -------- | ------------------------ | ------ | --------- |
+| +        | addition                 | binary | infix     |
+| -        | subtraction              | binary | infix     |
+| -        | negation                 | unary  | prefix    |
+| *        | multiplication           | binary | infix     |
+| /        | division                 | binary | infix     |
+| %        | modulus operator         | binary | infix     |
+| >        | less than                | binary | infix     |
+| %        | greater than             | binary | infix     |
+| &        | bitwise and              | unary  | prefix    |
+| \|       | bitwise or               | unary  | prefix    |
+| ^        | bitwise xor              | unary  | prefix    |
+| ~        | bitwise not              | unary  | prefix    |
+| .        | field / method-call      | binary | infix     |
+| =        | assignment               | binary | infix     |
+| +=       | add assignment           | binary | infix     |
+| -=       | sub assignment           | binary | infix     |
+| *=       | mult assignment          | binary | infix     |
+| /=       | div assignment           | binary | infix     |
+| &=       | band assignment          | binary | infix     |
+| |=       | bor assignment           | binary | infix     |
+| ^=       | bixor assignment         | binary | infix     |
+| ==       | equality                 | binary | infix     |
+| !=       | inequality               | binary | infix     |
+| >=       | greater than or equal to | binary | infix     |
+| <=       | less than or equal to    | binary | infix     |
+| not      | boolean not              | unary  | prefix    |
+| and      | boolean and              | binary | infix     |
+| or       | boolean and              | binary | infix     |
+| as       | type cast                | binary | prefix    |
+| []       | array index              | unary  | circumfix |
+| ..       | range                    | binary | infix     |
 
 
 # Modules and packages
@@ -244,6 +292,17 @@ let y, z, w: int; // legal
 let y, z, w: int = 10, 30, 23;
 
 let (x, y, z, w, e, t) = (13, 45, 35, ... = 0);
+```
+
+# Constants
+
+you can declare compile time constants with the `const` keyword.
+only primitive values and other constants can be used in the rhs of the constant declarations.
+```c
+const PI  = 3.1415;
+const TWO_PI = PI * 2; 
+
+const FAC3 = factorial(3); // ERROR, factorial() is not a compile time constant.
 ```
 
 # pointers, arrays and slices
@@ -366,6 +425,10 @@ let x = if (expression) {
     value
 };
 
+// when if statements are being used as an expression, i.e they're expected to produce a value, you MUST provide an else clause in case the if check fails:
+let x = if (false) 10; // ERROR: x never gets initiated :(
+let x = if (false) 10 else 20; // OK
+
 let x = if (bool) 10 else if (other_bool) 11 else 23;
 
 // switch statements are also actually expressions, and can pattern match
@@ -383,15 +446,19 @@ switch x {
     default => {...} 
 }
 
+// when switch cases are being used as expressions, they too must either exhaustively match all cases or provide a default fallback.
+
 fun x_to_string(x: X): string =
     switch x {
         X_XX => "XX",
         X_XXX => "XXX",
         X_XXXX => "XXXX"
-        _ => "bleh"
+        default => "bleh"
     };
 
-// while loops are pretty normal, they're statements too
+// all the loops are statements, and not expressions.
+
+// while loops are pretty normal
 while (expression) { ... };
 while (expression) expression;
 
@@ -644,11 +711,17 @@ let y = MnMs:Red; // => Also compiles
 
 // enums can act as discriminated unions:
 type Literal = enum {
-    Int(long),
-    Float(double),
-    String(std::String),
-    char(char)
+    Int: long,
+    Float: double,
+    String: std::String,
+    char: char
 }
+
+
+
+```
+
+```unions
 
 type Vec3 = union {
     raw: f32[3];
@@ -657,10 +730,10 @@ type Vec3 = union {
     };
 }
 
+    
 let v: Vec3 = Vec3(10, 20, 30);
 v.x += 10;
 print(v); // => {20, 20, 30}
-
 ```
 
 
