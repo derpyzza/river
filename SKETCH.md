@@ -1,3 +1,4 @@
+```
 design doodles
 
 river design goals / considerations
@@ -132,7 +133,6 @@ Vec1 \+ Vec2
 
 
 struct inheritance?
-```rs
 
 type Entity = struct {
   pos: Vec2;
@@ -150,7 +150,6 @@ fun spawn_enemy(e: *Enemy) {
 let goomba: *Enemy = new(Enemy);
 goomba.health = 150;
 spawn_enemy(goomba); // acceptable;
-```
 
 
 variable shadowing should be allowed.
@@ -310,8 +309,6 @@ limits on operator overloading:
 - Must not return null
 - Must follow a very specific function signature
 
-```c
-
 type Vec2 = struct {
     x, y: f32;
 
@@ -364,10 +361,6 @@ op += add_assign(a: ^T, b: T);
 op -= sub_assign(a: ^T, b: T);
 op *= mul_assign(a: ^T, b: T);
 op /= div_assign(a: ^T, b: T);
-    
-```
-
-```rs
 
 fun main() {
 
@@ -381,9 +374,6 @@ fun main() {
     -> collect();
   
 }
-
-  
-```
 
 
 // gfx/base.rvr
@@ -440,3 +430,4 @@ fun main() {
 
   io:print("s: \"{}\"", s); // s: "hello"
 }
+```
