@@ -159,7 +159,7 @@ let (x, y) = 1, 2; // fine
 
 ```rs
 
-type Value = enum {
+type Value = sum {
     Int: int,
     Float: float,
     String: string,

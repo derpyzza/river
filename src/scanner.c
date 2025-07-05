@@ -6,7 +6,7 @@
 // internal scanner state
 struct Scanner {
 	int line;
-	dstr *src;
+	dstr src;
 	dbuf_token *tkns;
 	char *file_start;
 	char *cur;
@@ -135,7 +135,7 @@ static void _scan_word(dbuf_token *tkn) {
 		_advance();
 	}
 	int str_len = scanner.cur-scanner.tok_start + 1;
-	dstr substr = dstr(str_len, str_ptr);
+	dstr substr = { str_ptr, str_len };
 
 	// This flag is here because i couldn't figure out the
 	// proper control flow needed to make sure that keyword
@@ -157,7 +157,7 @@ static void _scan_word(dbuf_token *tkn) {
 }
 
 // convert input string into list of tokens
-dbuf_token* tokenize( dstr *src ) {
+dbuf_token* tokenize( dstr src ) {
 	dbuf_token *tkn = dbuf_new_token(512);
 
 	scanner.src = src;
@@ -165,11 +165,11 @@ dbuf_token* tokenize( dstr *src ) {
 
 	// pointers to the start of the string
 	// and the current character
-	scanner.file_start = (char*) src->cptr;
-	size len = src->len;
+	scanner.file_start = (char*) src.cptr;
+	isize len = src.len;
 	scanner.line = 1;
 	char* line_start = scanner.file_start;
-	scanner.cur = src->cptr;
+	scanner.cur = src.cptr;
 
 	// printf("Scanning %s for tokens ...\n", src.path);
 	for ( ; scanner.cur - scanner.file_start < len; _advance() ) {
@@ -198,13 +198,20 @@ dbuf_token* tokenize( dstr *src ) {
 				case ':': 
 				case '#': 
 				case '@': 
-				case '^':
 					_push_tok(_cur());
 				break;
+				case '^':
+					if (_peek() == '=') {
+						_advance();
+						_push_tok(T_BIXOR_EQ);
+					}
+					else _push_tok(_cur());
+				break;
+
 				case '&':
 					if (_peek() == '=') {
 						_advance();
-						_push_tok(T_AND_EQ);
+						_push_tok(T_BAND_EQ);
 					} else if (_peek() == '&') {
 						_advance();
 						_push_tok(T_LAND);
@@ -214,7 +221,7 @@ dbuf_token* tokenize( dstr *src ) {
 				case '|':
 					if (_peek() == '=') {
 						_advance();
-						_push_tok(T_OR_EQ);
+						_push_tok(T_BOR_EQ);
 					} else if (_peek() == '|') {
 						_advance();
 						_push_tok(T_LOR);
@@ -377,7 +384,7 @@ dbuf_token* tokenize( dstr *src ) {
 	return tkn;
 }
 
-void print_token_array( dstr *src, dbuf_token tkn) {
+void print_token_array( dstr src, dbuf_token tkn) {
 	printf("===DUMPING TS===\n");
 	// printf("File: %s\n", src.path);
 	printf("[TI:CI] token[TN]: tkn, value: val\n"
@@ -391,7 +398,7 @@ void print_token_array( dstr *src, dbuf_token tkn) {
 			case T_LIT_STR:
 				printf("[%02i:%02li] source: \"%.*s\" token[%02i]: %s, value: %.*s\n", 
 					i, 
-					current.span.cptr - src->cptr,
+					current.span.cptr - src.cptr,
 					(int)current.span.len,
 					current.span.cptr,
 					current.type,
@@ -404,7 +411,7 @@ void print_token_array( dstr *src, dbuf_token tkn) {
 			if(current.type < TKNS_START) {
 				printf("[%02i:%02li] source: \"%.*s\" token[%02i]: %c\n", 
 					i,
-					current.span.cptr - src->cptr,
+					current.span.cptr - src.cptr,
 					(int)current.span.len,
 					current.span.cptr,
 					current.type,
@@ -412,7 +419,7 @@ void print_token_array( dstr *src, dbuf_token tkn) {
 				);	
 			} else { printf("[%02i:%02li] source: \"%.*s\" token[%02i]: %s\n", 
 					i,
-					current.span.cptr - src->cptr,
+					current.span.cptr - src.cptr,
 					(int)current.span.len,
 					current.span.cptr,
 					current.type,

@@ -7,7 +7,7 @@ void consume(void) {
 	parser.current++;
 }
 
-size current(void) {
+isize current(void) {
 	 return parser.current; 
 }
 
@@ -19,7 +19,7 @@ dstr * cur_tok_span(void) {
 	return &parser.tokens->data[parser.current].span;
 }
 
-Token *token_at(size id) {
+Token *token_at(isize id) {
 	if (id >= parser.tokens->current ) {
 		return NULL;
 	}

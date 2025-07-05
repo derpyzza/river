@@ -3,7 +3,7 @@
 
 // Forward declarations because C is stupid about these
 #include <libderp/derp.h>
-#include <libderp/dbuf.h>
+#include <stdlib.h>
 
 #include <stdio.h>
 
@@ -30,8 +30,6 @@
   TKN(T_FAT_ARROW,               "=>")          \
   TKN(T_SHL,                     "<<")          \
   TKN(T_SHR,                     ">>")          \
-  TKN(T_LAND,                    "&&")          \
-  TKN(T_LOR,                     "||")          \
   TKN(T_DOT_DOT,                 "..")          \
   TKN(T_ELLIPSE,                "...")          \
   \
@@ -41,44 +39,44 @@
   TKN(T_LIT_FLOAT,               "float_lit")   \
   TKN(T_IDEN,                    "identifier")  \
   	MRK(T_KEYWORD_START)                        \
-  TKN(T_DO,                      "do")          \
-  TKN(T_IF,                      "if")          \
-  TKN(T_IN,                      "in")          \
-  TKN(T_FOR,                     "for")         \
-  TKN(T_FUN,                     "fun")         \
-  TKN(T_LET,                     "let")         \
-  TKN(T_PUB,                     "pub")         \
+  TKN(T_ALIAS,                   "alias")       \
+  TKN(T_LAND,                    "and")         \
+  TKN(T_BREAK,                   "break")       \
   TKN(T_CASE,                    "case")        \
+  TKN(T_CONST,                   "const")       \
+  TKN(T_CONTINUE,                "continue")    \
+  TKN(T_DEFER,                   "defer")       \
   TKN(T_ELSE,                    "else")        \
   TKN(T_ENUM,                    "enum")        \
-  TKN(T_GOTO,                    "goto")        \
-  TKN(T_NULL,                    "null")        \
-  TKN(T_THEN,                    "then")        \
-  TKN(T_TRUE,                    "true")        \
-  TKN(T_TYPE,                    "type")        \
-  TKN(T_ALIAS,                   "alias")       \
-  TKN(T_BREAK,                   "break")       \
-  TKN(T_CONST,                   "const")       \
-  TKN(T_DEFER,                   "defer")       \
   TKN(T_FALSE,                   "false")       \
+  TKN(T_FOR,                     "for")         \
+  TKN(T_FUN,                     "fun")         \
+  TKN(T_GOTO,                    "goto")        \
+  TKN(T_IF,                      "if")          \
+  TKN(T_IMPORT,                  "import")      \
+  TKN(T_IN,                      "in")          \
+  TKN(T_LET,                     "let")         \
   TKN(T_MACRO,                   "macro")       \
   TKN(T_MATCH,                   "match")       \
+  TKN(T_NULL,                    "null")        \
+  TKN(T_LOR,                     "or")          \
+  TKN(T_PUB,                     "public")      \
+  TKN(T_RETURN,                  "return")      \
+  TKN(T_REPEAT,                  "repeat")      \
+  TKN(T_STRUCT,                  "struct")      \
+  TKN(T_TRUE,                    "true")        \
   TKN(T_UNDEF,                   "undef")       \
   TKN(T_UNION,                   "union")       \
   TKN(T_UNTIL,                   "until")       \
+  TKN(T_VAR,                     "var")         \
+  TKN(T_VARIANT,                 "variant")     \
   TKN(T_WHILE,                   "while")       \
-  TKN(T_IMPORT,                  "import")      \
-  TKN(T_REPEAT,                  "repeat")      \
-  TKN(T_RETURN,                  "return")      \
-  TKN(T_SIZEOF,                  "sizeof")      \
-  TKN(T_STATIC,                  "static")      \
-  TKN(T_STRUCT,                  "struct")      \
-  TKN(T_TYPEOF,                  "typeof")      \
-  TKN(T_CONTINUE,                "continue")    \
 		MRK(T_KEYWORD_END)                          \
   \
   TKN(T_EOF,                     "eof")
 
+// TKN(T_THEN,                    "then")        \
+// TKN(T_DO,                      "do")          \
 
 // let flags = FOO .& BAR .& BAZ;
 // let smth: *int = &flags;
@@ -120,24 +118,24 @@ typedef struct Token {
 dbuf_decl(Token, token)
 
 const char* tok_to_str(int t);
-void print_token_array( dstr *src, dbuf_token tkn );
-dbuf_token* tokenize( dstr *src );
+void print_token_array( dstr src, dbuf_token tkn );
+dbuf_token* tokenize( dstr src );
 
 // useful for termination
 #define TOKEN_EOF (Token) { .chr_index = 0, .type = T_EOF, }
 #define TOKEN_NONE (Token) { .chr_index = 0, .type = T_NONE, }
 
 static inline TokCat tok_to_cat(TokenTag token) {
-	if ( IN_RANGE_INC(token, '=', '^') ) {
+	if ( in_range_inc(token, '=', '^') ) {
 		return TC_SYMBOL;
 	}
-	if ( IN_RANGE_INC(token, T_DIV_EQ, T_SHR) ) {
+	if ( in_range_inc(token, T_DIV_EQ, T_SHR) ) {
 		return TC_OPERATOR;
 	}
-	if ( IN_RANGE_INC(token, T_LIT_INT, T_NULL) )  {
+	if ( in_range_inc(token, T_LIT_INT, T_NULL) )  {
 		return TC_LITERAL;
 	}
-	if ( IN_RANGE_INC(token, T_RETURN, T_LET) ) {
+	if ( in_range_inc(token, T_RETURN, T_LET) ) {
 		return TC_KEYWORD;
 	}	
 	if ( token == T_IDEN ) return TC_ID;

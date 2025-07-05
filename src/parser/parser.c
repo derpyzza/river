@@ -4,7 +4,6 @@
 #include <string.h>
 
 #include "parser.h"
-#include <libderp/dbuf.h>
 #include "memory.h"
 #include "parser-internal.h"
 
@@ -19,7 +18,7 @@ static struct Node *var_def(void);
 static struct Node *type_def(bool is_alias);
 static struct Node *import_def(void);
 
-void init_parser( dstr *source, dbuf_token *tokens) {
+void init_parser( dstr source, dbuf_token *tokens) {
 	parser.node_tree = dbuf_new_Node(1024);
 	parser.source = source;
 	parser.tokens = tokens;
@@ -28,13 +27,41 @@ void init_parser( dstr *source, dbuf_token *tokens) {
 	parser.errors = NULL;
 }
 
+Node * new_node(NodeTag type) {
+	Node * node = &parser.node_tree->data[parser.node_tree->current];
+	parser.node_tree->current ++;
+	node->tag = type;
+	node->type = NULL;
+	node->iden = (dstr){0};
+	node->value = (dstr) {0};
+
+	node->op = T_NONE;
+
+	node->rhs 
+		= node->lhs 
+		= node->cond 
+		= node->els 
+		= node->body 
+		= node->init 
+		= node->inc 
+		= NULL;
+	switch(node->tag) {
+		default: break;
+		case N_NODE_LIST:
+		case N_STRUCT_DEF:
+		case N_BLOCK:
+			node->children = dbuf_new_NodeList(8);
+	}
+	return node;
+}
+
 #define PANIC(e, et, u, ut) panic(e, et, u, ut, __FILE__, __LINE__)
 
 bool match_type_token(void) {
 	return false;
 }
 
-dbuf_Node *parse_tokens( dbuf_token *tokens, dstr *src )  { 
+dbuf_Node *parse_tokens( dbuf_token *tokens, dstr src )  { 
 
 	// Initialize parser state, parser struct found in src/parser/parser-internal.h
 	init_parser(src, tokens);
@@ -71,7 +98,7 @@ static Node* type_def(bool is_alias) { return new_node(N_TODO); }
 static Node *top_level(void) {
 	if(match(T_FUN)) return fn_def();
 	if(match(T_LET)) return var_def();
-	if(match(T_TYPE)) return type_def(0);
+	// if(match(T_TYPE)) return type_def(0);
 	if(match(T_ALIAS)) return type_def(1);
 	if(match(T_IMPORT)) return import_def();
 
@@ -134,7 +161,7 @@ static Node *fn_def(void) {
 		fn->iden = *cur_tok_span();
 	} else {
 		printf("error, missing type");
-		PANIC(T_TYPE, P_CAT, ';', P_TOK);
+		// PANIC(T_TYPE, P_CAT, ';', P_TOK);
 	}
 
 	// parse params
@@ -345,30 +372,3 @@ static Node *fn_def(void) {
 // 	}
 // 	return node;
 // }
-
-Node * new_node(NodeTag type) {
-	Node * node = &parser.node_tree->data[parser.node_tree->current];
-	node->tag = type;
-	node->type = NULL;
-	node->iden = (dstr){0};
-	node->value = (dstr) {0};
-
-	node->op = T_NONE;
-
-	node->rhs 
-		= node->lhs 
-		= node->cond 
-		= node->els 
-		= node->body 
-		= node->init 
-		= node->inc 
-		= NULL;
-	switch(node->tag) {
-		default: break;
-		case N_NODE_LIST:
-		case N_STRUCT_DEF:
-		case N_BLOCK:
-			node->children = dbuf_new_NodeList(8);
-	}
-	return node;
-}

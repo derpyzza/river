@@ -709,19 +709,19 @@ let x = Red; // => Error: Assigning variable <x> to nknown value <Red>;
 let x = Colour:Red; // => compiles
 let y = MnMs:Red; // => Also compiles
 
-// enums can act as discriminated unions:
-type Literal = enum {
-    Int: long,
-    Float: double,
-    String: std::String,
-    char: char
-}
+// enums can be tagged with a string to help with printing ?
 
-
+type Colour = enum {
+    Red "colour_red",
+    Blue "colour_blue",
+    Green "colour_green",
+};
 
 ```
 
-```unions
+# Unions
+
+```c
 
 type Vec3 = union {
     raw: f32[3];
@@ -734,6 +734,18 @@ type Vec3 = union {
 let v: Vec3 = Vec3(10, 20, 30);
 v.x += 10;
 print(v); // => {20, 20, 30}
+```
+
+# Discriminated unions ( Variant )
+```rs
+
+type Literal = variant {
+    Int: long,
+    Float: double,
+    String: std::String,
+    char: char
+}
+    
 ```
 
 

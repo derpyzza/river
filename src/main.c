@@ -4,9 +4,8 @@
 #include <strings.h>
 
 #include <libderp/derp.h>
-#include <libderp/dbuf.h>
 
-#include "memory.h"
+// #include "memory.h"
 #include "scanner.h"
 #include "parser/parser.h"
 #include "codegen.h"
@@ -15,7 +14,7 @@
 
 const char* rvr_ext_list[2] = {".rvr", ".river"};
 
-vmem arena;
+// vmem arena;
 
 int
 main(int argc, char** argv) {	
@@ -55,8 +54,8 @@ main(int argc, char** argv) {
 
 			// This is ugly, should change this.
 			dstr source = {.len = strlen(buf), .cptr = buf};
-			dbuf_token* tkn = tokenize(&source);
-			print_token_array(&source, *tkn);
+			dbuf_token* tkn = tokenize(source);
+			print_token_array(source, *tkn);
 
 			// node_s *node = parse_tokens(tkn, source);
 			// print_ast(*node);
@@ -73,15 +72,15 @@ main(int argc, char** argv) {
 		dfilepath path = split_path(raw_path);
 		printf("path: '%s', '%s'\n", path.path, path.ext);
 
-		if (strcmp(path.ext, ".rvr")) {
+		if (strcmp(path.ext.cptr, ".rvr")) {
 			printf("Error: invalid filetype, expected \".rvr\", got \"%s\" instead.\n", path.ext);
 			continue;
 		}
 
 		printf("Compiling file %s...\n", raw_path);
 
-		dstr* source = dfile_read(raw_path);
-		if (source == NULL) {
+		dstr source = dfile_read(raw_path);
+		if (source.cptr == NULL) {
 			printf("ERROR, invalid source file: %s\n", raw_path);
 			exit(1);
 		}

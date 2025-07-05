@@ -1,15 +1,15 @@
-#include <libderp/ddebug.h>
+#include <libderp/derp.h>
 #include <sys/mman.h>
 #include <errno.h>
 #include "memory.h"
 
 void
-mmap_init(vmem * mem, size len) {
+mmap_init(vmem * mem, isize len) {
   void * ptr = 0;
   #if PLATFORM_WINDOWS
 
   #elif PLATFORM_POSIX
-    size min_size = len / 16;
+   isize min_size = len / 16;
     if(min_size < 1) min_size = len;
     while(len >= min_size) {
       ptr = mmap(0, len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
@@ -33,8 +33,8 @@ mmap_init(vmem * mem, size len) {
 }
 
 void *
-mmap_alloc(vmem* mem, size alloc) {
-  size alloc_after = alloc + mem->allocated;
+mmap_alloc(vmem* mem, isize alloc) {
+ isize alloc_after = alloc + mem->allocated;
 
   #if PLATFORM_WINDOWS
 
@@ -50,16 +50,16 @@ mmap_alloc(vmem* mem, size alloc) {
 	return ptr;
 }
 
-size max = 0x10000000;
+isize max = 0x10000000;
 
 void
-vmem_init(vmem * buf, size mb_size) {
+vmem_init(vmem * buf,isize mb_size) {
   if(mb_size > max) mb_size = max;
   mmap_init(buf, 1024 * 1024 * mb_size);
 }
 
 void *
-vmem_alloc(vmem* mem, size size) {
+vmem_alloc(vmem* mem,isize size) {
   return mmap_alloc(mem, size);
 }
 
@@ -73,16 +73,16 @@ memory_init() {
 }
 
 void *
-calloc_mem(size mem) {
-  ASSERT(mem > 0, "")
+calloc_mem(isize mem) {
+  dassert(mem > 0)
 
   mem = (mem + 15U) & ~15ULL;
   return vmem_alloc(&mem_arena, mem);
 }
 
 void *
-calloc_str(size len) {
-  ASSERT(len > 0, "")
+calloc_str(isize len) {
+  dassert(len > 0)
 
   return vmem_alloc(&char_arena, len);
 }
