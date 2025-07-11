@@ -70,6 +70,34 @@ feature list:
 
 what if attaching a $ to something made it run in compile time?
 
+
+i want some kinda opt-in structural typing. the applications for this would be *pretty* niche, and frankly it might get a little annoying? but i'd still like an option for it for when
+there are multiple different types of the same exact data in the same scope and you need to use em interchangably:
+
+// libs/nuklear.rvr
+
+type nkcolour = struct {
+  r, g, b, a: f32;
+}
+
+// gfx.rvr
+
+import libs:nuklear as nuk;
+
+// a shape type is like an interface that defines what a data structure should *look* like
+type Colour = shape {
+  r, g, b, a: f32;
+}
+
+nuk:nkcolour implements Colour;
+
+fun do_smth(c: Colour) { ... }
+
+let red = nuk:nkcolour(255, 0, 0, 1)
+do_smth(red) // works
+
+
+
 printf("runtime");
 $printf("comptime");
 
@@ -86,7 +114,7 @@ i should prolly allow methods back in....
 
 I WANT LAMBDAS
 
-let x = fun(i) => x * x;
+let x = fun(i) => i * i;
 x(5); // => 25
 
 

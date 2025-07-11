@@ -46,23 +46,31 @@ typedef enum DatatypeTag {
 	DATATYPE_IDENTIFIER,
 	DATATYPE_POINTER,
 	DATATYPE_ARRAY,
+	DATATYPE_SLICE,
+	DATATYPE_FUNC,
 	DATATYPE_TUPLE,
-	DATATYPE_UNION
 } DatatypeTag;
 
 #define MAX_PTR_DEPTH 8
 
 union DatatypeUnion {
-	dstr * dt_iden;
+	dstr dt_iden;
 	struct Pointer {
 		Datatype * to;
-	} *dt_ptr;
+	} dt_ptr;
 	struct Array {
 		int size;
 		Datatype * of;
-	} * dt_arr;
-	dbuf_Datatype* dt_tuple;
-	dbuf_Datatype* dt_union;
+	} dt_arr;
+	struct Func {
+		Datatype * return_type;
+		struct Params {
+			dstr iden;
+			dstr def_value;
+			Datatype * type;
+		} * params;
+	} func;
+	dbuf_Datatype dt_tuple;
 };
 
 struct Datatype {
@@ -70,13 +78,6 @@ struct Datatype {
 	DatatypeUnion* type;
 };
 	
-
-// typedef struct Var {
-// 	int is_assign;
-// 	struct Substr *name;
-// 	struct Literal *val;
-// } Var;
-
 // this can be used for import paths
 // but also for namespacing!
 // i.e import x.y.z.w;
