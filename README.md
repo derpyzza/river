@@ -10,8 +10,7 @@
 
 A Small C-inspired language that's transpiled down to human-readable C99 code.
 
-named river 
-cause it flows down to C ( badum tiss )
+named river cause it flows down to C :-)
 
 River is a lightweight programming language for those who like the DIY, hands off nature of C, but wish for a more modern version with convenience features on top.
 
@@ -80,17 +79,6 @@ let y: f32 = 23.0;
 
 ```
 
-## Method call syntax
-```
-fun Foo(x: Bar) {...}
-
-let bar: Bar = Bar();
-bar.Foo(); // Same as calling Foo(bar);
-
-A( B( C( D ))) === D.C().B().A()
-    
-```
-
 ## Array shorthands
 ```
 
@@ -115,9 +103,9 @@ type object = struct {
 };
 
 
-fun function_definition ( x, y: int = 20, has_something: bool = true ) = {
+fun function_definition ( x, y: int = 20, has_something: bool = true ) {
     // define function over here
-};
+}
 ```
 
 ## Defers

@@ -8,46 +8,37 @@
 // #include "memory.h"
 #include "scanner.h"
 #include "parser/parser.h"
-#include "codegen.h"
+// #include "codegen.h"
 
 #define REPL_BUF_SIZE 2048
 
-const char* rvr_ext_list[2] = {".rvr", ".river"};
-
-// vmem arena;
+const char* rvr_ext_list[2] = {
+	".rvr",
+	".river"
+};
 
 int
 main(int argc, char** argv) {	
 	printf("Welcome to the river compiler!\n");
 
-	// memory_init();
-
-	// vmem_init(&arena, 256);
-	
-	// char* string = calloc_str(15);
-	// if(!string) {
-	// 	printf("Couldn't malloc string :(\n");
-	// 	exit(-1);
-	// }
-	// memcpy(string, "Hello, world!\n", sizeof(char) * 15);
-	// printf("memcpy'd string: %s", string);
-
 	// REPL MODE
 	if (argc < 2) {
 		printf("No input files, starting repl\n");
 		char buf[REPL_BUF_SIZE];
+		// 4 kilobytes of memory, just a random number
+		d_arena mem = darena_init_alloc(4 * 1024);
 		while(true) {
 			fputs("rvrcc>> ", stdout);
 			fflush(stdout);
 			if(!fgets(buf, REPL_BUF_SIZE, stdin)){
-				printf("ERROR: couldn't read string\n");
+				dlog_error("couldn't read string\n");
 				exit(1);
 			};
 
 		  if ((strlen(buf) > 0) && (buf[strlen (buf) - 1] == '\n'))
 	        buf[strlen (buf) - 1] = '\0';
 
-			if(!strcmp(buf, "quit\n")) {
+			if(!strcmp(buf, "quit")) {
 				printf("k, bye then\n");
 				exit(0);
 			}
@@ -70,10 +61,10 @@ main(int argc, char** argv) {
 		char* raw_path = argv[i];
 		printf("raw_path: %s\n", raw_path);
 		dfilepath path = split_path(raw_path);
-		printf("path: '%s', '%s'\n", path.path, path.ext);
+		printf("path: '%s', '%s'\n", path.path.cptr, path.ext.cptr);
 
 		if (strcmp(path.ext.cptr, ".rvr")) {
-			printf("Error: invalid filetype, expected \".rvr\", got \"%s\" instead.\n", path.ext);
+			printf("Error: invalid filetype, expected \".rvr\", got \"%s\" instead.\n", path.ext.cptr);
 			continue;
 		}
 

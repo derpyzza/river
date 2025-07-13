@@ -38,7 +38,9 @@
   TKN(T_LIT_CHAR,                "char_lit")    \
   TKN(T_LIT_FLOAT,               "float_lit")   \
   TKN(T_IDEN,                    "identifier")  \
-  	MRK(T_KEYWORD_START)                        \
+  \
+  TKN(T_KEYWORD_START,           "kwrd_start")  \
+  \
   TKN(T_ALIAS,                   "alias")       \
   TKN(T_LAND,                    "and")         \
   TKN(T_BREAK,                   "break")       \
@@ -71,15 +73,11 @@
   TKN(T_VAR,                     "var")         \
   TKN(T_VARIANT,                 "variant")     \
   TKN(T_WHILE,                   "while")       \
-		MRK(T_KEYWORD_END)                          \
+  \
+	TKN(T_KEYWORD_END,             "kwrd end")    \
   \
   TKN(T_EOF,                     "eof")
 
-// TKN(T_THEN,                    "then")        \
-// TKN(T_DO,                      "do")          \
-
-// let flags = FOO .& BAR .& BAZ;
-// let smth: *int = &flags;
 typedef enum TokenTag {
 	T_NONE = 0,
 
@@ -87,14 +85,12 @@ typedef enum TokenTag {
 
 	TKNS_START = 128,
 	#define TKN(t, s) t,
-	#define MRK(t) t,
 		TKNS
-	#undef MRK
 	#undef TKN
 	TKNS_MAX,
 } TokenTag;
 
-static const int NUM_KEY_WORDS = T_KEYWORD_END - T_KEYWORD_START - 2;
+static const int NUM_KEY_WORDS = T_KEYWORD_END - T_KEYWORD_START;
 
 // category type
 typedef enum TokCat {

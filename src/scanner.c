@@ -16,12 +16,11 @@ struct Scanner {
 const char* tok_to_str(int t) {
 	switch((TokenTag)t) {
 		#define TKN(t, s) case t: return s; break;
-		#define MRK(t)
 			TKNS
 		#undef TKN
 		case T_NONE: return "<none>"; break;
 		case TKNS_MAX: case TKNS_START:
-		case T_KEYWORD_END: case T_KEYWORD_START: return "<undefined token>"; break;
+			return "<undefined token>"; break;
 	}
 }
 
@@ -135,7 +134,6 @@ static void _scan_word(dbuf_token *tkn) {
 		_advance();
 	}
 	int str_len = scanner.cur-scanner.tok_start + 1;
-	dstr substr = { str_ptr, str_len };
 
 	// This flag is here because i couldn't figure out the
 	// proper control flow needed to make sure that keyword
@@ -143,12 +141,13 @@ static void _scan_word(dbuf_token *tkn) {
 	// identifier tokens. This flag is my little hack.
 	int flag = 0;
 	for(int i = 0; i < NUM_KEY_WORDS; i++) {
-		int id = i + T_TRUE;
-		const char * str = tok_to_str(id);
-		if ( substr.len == strlen(str)
-		     && !memcmp(substr.cptr, str, substr.len)) {
-			TokenTag token = (TokenTag) id;
-			_push_tok ( token );
+		int id = i + T_KEYWORD_START;
+		const char * tokstr = tok_to_str(id);
+		if (
+		str_len == strlen(tokstr) &&
+		     !memcmp(str_ptr, tokstr, str_len)) {
+			// keyword detected, yaaay
+			_push_tok ((TokenTag) id);
 			flag = 1;
 		}
 	}
@@ -159,6 +158,8 @@ static void _scan_word(dbuf_token *tkn) {
 // convert input string into list of tokens
 dbuf_token* tokenize( dstr src ) {
 	dbuf_token *tkn = dbuf_new_token(512);
+
+	printf("num keywords: %i", NUM_KEY_WORDS);
 
 	scanner.src = src;
 	scanner.tkns = tkn;
@@ -231,7 +232,11 @@ dbuf_token* tokenize( dstr src ) {
 				case '.':
 					if (_peek() == '.') {
 						_advance();
-						_push_tok(T_DOT_DOT);
+						if(_peek() == '.') {
+							_advance();
+							_push_tok(T_ELLIPSE);
+						}
+						else _push_tok(T_DOT_DOT);
 					}
 					else _push_tok(_cur());
 				break;
