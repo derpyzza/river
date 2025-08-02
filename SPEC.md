@@ -3,6 +3,12 @@ This is the language spec for river.
 for now this is more of a sketchpad for features, but it'll get leaner and cleaner with each commit!
 
 
+considerations:
+    null safety
+    error handling
+    ad-hoc unions?
+    interfaces
+
 design patterns:
 
 > ':' attributes
@@ -15,10 +21,10 @@ design patterns:
 
 ```
     // identifier
-    %iden -> [a-zA-Z_] [a-zA-Z0-9_-?!%]* ;
+    iden -> [a-zA-Z_] [a-zA-Z0-9_]* ;
 
     // number literal
-    %number -> float | integer;
+    number -> float | integer;
 
     // decimal exponent
     dec_exp -> [eE] [-+]? integer ;
@@ -36,9 +42,9 @@ design patterns:
     integer ->   
         (
             \d* ( ['_] \d+ ) dec_exp?
-            | <hex_literal> bin_exp?
-        		| <octal_literal>
-        		| <binary_literal>
+            | hex_literal bin_exp?
+        		| octal_literal
+        		| binary_literal
         )
         ( [uUiI] ( \d* | 'z' ) )?
     ;
@@ -156,6 +162,7 @@ River has the following literal types:
 | struct   | declare a struct                           |
 | enum     | declare an enum                            |
 | union    | declare a union                            |
+| raw      | mark a union as an untagged union          |
 | let      | declare an immutable variable              |
 | var      | declare a mutable variable                 |
 | const    | declare a compile-time constant            |
@@ -163,18 +170,21 @@ River has the following literal types:
 | alias    | alias a symbol to another                  |
 | if       | if expression                              |
 | else     | else expression                            |
+| then     | then branch in if expression               |
 | for      | for loop                                   |
 | in       | get item from iterator                     |
 | while    | while loop                                 |
+| do       | do branch in inline for/while loops        |
 | repeat   | repeat loop                                |
 | until    | until conditional for repeat loop          |
 | break    | break loop                                 |
 | continue | continue to next iteration of loop         |
 | defer    | execute expression at the end of the scope |
 | switch   | switch expression                          |
+| case     | case branch for switch expression          |
 | import   | import a module                            |
 | module   | declare a module                           |
-| as       | alias a module                             |
+| as       | alias an import module | type cast         |
 
 // maybe keywords
 
@@ -217,12 +227,12 @@ typeid
 | -------- | ------------------------ | ------ | --------- |
 | +        | addition                 | binary | infix     |
 | -        | subtraction              | binary | infix     |
-| -        | negation                 | unary  | prefix    |
 | *        | multiplication           | binary | infix     |
 | /        | division                 | binary | infix     |
 | %        | modulus operator         | binary | infix     |
-| >        | less than                | binary | infix     |
-| %        | greater than             | binary | infix     |
+| -        | negation                 | unary  | prefix    |
+| <        | less than                | binary | infix     |
+| >        | greater than             | binary | infix     |
 | &        | bitwise and              | unary  | prefix    |
 | \|       | bitwise or               | unary  | prefix    |
 | ^        | bitwise xor              | unary  | prefix    |
@@ -238,12 +248,13 @@ typeid
 | ^=       | bixor assignment         | binary | infix     |
 | ==       | equality                 | binary | infix     |
 | !=       | inequality               | binary | infix     |
-| >=       | greater than or equal to | binary | infix     |
 | <=       | less than or equal to    | binary | infix     |
+| >=       | greater than or equal to | binary | infix     |
 | not      | boolean not              | unary  | prefix    |
 | and      | boolean and              | binary | infix     |
 | or       | boolean and              | binary | infix     |
 | as       | type cast                | binary | prefix    |
+| in       | check item in collection | binary | infix     |
 | []       | array index              | unary  | circumfix |
 | ..       | range                    | binary | infix     |
 
@@ -252,22 +263,115 @@ typeid
 river bundles up it's code files into logical units called modules.
 a river program can be made up of multiple modules, and a module can be made up of multiple `.rvr` files.
 
-modules can share code between each other without explicitly importing the code.
+files in the same module can share code between each other without explicitly importing the code.
+that is to say, if a file `fooA.rvr` and a file `fooB.rvr` share the same module, then they also share the same namespace, and do not have to `import` code from each other.
 
-a `.rvr` file must declare the module at the top of the file
-```c
-module foo; 
+modules come in two forms: directory modules and file modules.
+by default, every file inside a directory is considered to be a single self-contained module.
+
+however, if a directory has a `mod.rvr` file, then that directory and every file within the directory is considered to be the same module.
+a directory may not have more than one module or `mod.rvr` file at a time in this way.
+
+a directory that has a `mod.rvr` file in it, which will be referred to as a directory module from here on out, may itself contain subdirectories.
+these subdirectories are treated as submodules if they themselves are directory modules.
+otherwise, the files within them are treated as file modules and are taken to be in the same module level.
+i.e if a module `foo` has a subdirectory `bar` with three file modules `a`, `b`, and `c`, then those file modules are accessed like `foo.a/b/c` instead of `foo.bar.a/b/c`.
+
+here's an example module hierarchy:
+```
+src/
+|- main.rvr
+|- input.rvr
+|- window.rvr
+|- graphics/
+   |- mod.rvr
+   |- mesh.rvr
+   |- model.rvr
+   |- texture.rvr
+|- physics/
+   |- 2d/
+      |- mod.rvr
+      |- shapes.rvr
+      |- collisions.rvr
+   |- 3d/
+      |- mod.rvr
+      |- shapes.rvr
+      |- collisions.rvr
+   |- debug.rvr
+|- serialize/
+   |- json.rvr
+   |- binary.rvr
+   |- otherFormat.rvr
 ```
 
-if a `.rvr` file does not have a module, it's filename will be taken as the module instead.
- 
+in the given hierarchy, there's 6 top-level modules: `main`, `input`, `window`, `graphics`, `physics`, and `serialize`.
+`graphics` is a single module with no submodules.
+`physics` contains three submodules, two in the form of module directories: `2d`, `3d`, and `debug`.
+`serialize` contains three submodules, in the form of file modules: `json`, `binary`, and `otherFormat`.
+
+module imports must never be cyclical i.e if module `a` imports module `b`, and module `b` imports module `a`, then that's an error.
+the common code from modules `a` and `b` should be moved to a new module `c`.
+
+the `main` module is treated as the entrypoint for the final executable and must be present.
+the `main` module can be renamed and does not have to reside in `main.rvr`, as long as there *is* a `main` module present in the project.
+
+for libraries, a `lib` module is used as the entrypoint instead.
+
+
+## File imports 
+
+```c
+
+// in the C backend, `import`ed variables and functions just get pasted in as forward
+// declarations.
+// then later, the linker compiles the definition in with the parent module's .o file
+
+// import modules with the import keyword
+import std:io;
+
+fun 
+main() {
+    io.println("Hello!");
+}
+
+// import name aliasing
+import std:math as m;
+
+m.abs();
+
+
+import std:io;
+using io;
+
+fun
+main() {
+    println("Hello");
+}
+
+
+
+```
+
+# Constants
+```
+    const_def -> "const" iden ":" type "=" expr ";" ;
+```
+
+you can declare compile time constants with the `const` keyword.
+only primitive values and other constants can be used in the rhs of the constant declarations.
+```c
+const PI  = 3.1415;
+const TWO_PI = PI * 2; 
+
+const FAC3 = factorial(3); // ERROR, factorial() is not a compile time constant.
+```
 
 # variable definition & declaration
 
 ```
     var_def -> 
-          ( "let" | "var" ) %id ( ":" type )? "=" expr ";"
-        | ( "let" | "var" ) %id ( ',' %id )* ( ":" type )? "=" expr ( "," expr )* ";"
+          ( "let" | "var" ) iden ( ":" type )? "=" expr ";"
+        | ( "let" | "var" ) iden ( ',' iden )* ( ":" type )? "=" expr ( "," expr )* ";"
     ;
     
 ```
@@ -285,43 +389,56 @@ x += 10; // x = 20
 
 // you can declare variables without initializing them.
 // However, when just declaring a variable, you must provide it's type
-let y, z, w; // illegal
-let y, z, w: int; // legal
+let w; // illegal
+let w: int; // legal
+
+// variables are declared to a zero-value be default. each primitive type has it's own zero value
+let x: int;    // x = 0
+let x: bool;   // x = false
+let x: string; // x = ""
+
+// if it is desired for a variable to be uninitialized, it can be specified using the `undef` keyword:
+let x: int = undef;
 
 // You can assign multiple variables at once:
-let y, z, w: int = 10, 30, 23;
+let x = 10, z = "string" , y: float = 3.14;
 
-let (x, y, z, w, e, t) = (13, 45, 35, ... = 0);
+// you may also declare multiple variables at once:
+let x, y: int, z: float;
+// if initializing variables however, they must all be manually marked with types:
+let x = 10.4, y: int = 10, z = "string"; // illegal
+let x: float = 10.6, y: int = 10, z: string = "string"; // okay
+
+// unless they're the same type:
+let a = 10, b = 20, c: int = 30;
+
 ```
 
-# Constants
-
-you can declare compile time constants with the `const` keyword.
-only primitive values and other constants can be used in the rhs of the constant declarations.
-```c
-const PI  = 3.1415;
-const TWO_PI = PI * 2; 
-
-const FAC3 = factorial(3); // ERROR, factorial() is not a compile time constant.
-```
-
-# pointers, arrays and slices
+# Pointers
 
 ```rs
 
 // pointers are defined as such:
 let name: *type = &variable;
 // pointers are dereferenced as such
-let name: type = variable.*;
+let name: type = @variable;
 
 // pointers can have up to 8 levels of indirection:
 let name: ********type = value; // pointer to pointer to pointer to ... 8 times to a type of value.
 
 let ptr: ********int ; // pointer to pointer to pointer to ... 8 times to an int.
 
+```
+pointer arithmetic is disallowed. the only operations a pointer has are the address-of and deference operations.
+
+Null pointers also do not exist. instead, nullable pointers are wrapped up in an `Optional` type: `Optional<T*>`
+
+# Arrays
+
+```rs
 // arrays are defined as such:
 let name: [size] type = value;
-let arr:  [6]int = [1, 2, 3, 4, 5, 6]; // array of six integers
+let arr:  [6]int = {1, 2, 3, 4, 5, 6}; // array of six integers
 
 // arrays have their length encoded into them:
 // Do note: the array length is equal to the number of elements in it, not the max index
@@ -332,30 +449,32 @@ arr.len(); // => 6
 // array types must always contain the size
 let name: []type = value; // => ERROR, missing array size
 // but for array literal definitions you can simply just put a _ to infer the length:
-let arr: [_]u8 = [3, 6, 7, 2, 6]; // => Okay ✅
+let arr: [_]u8 = {3, 6, 7, 2, 6}; // => Okay ✅
 let arr: [_]u8; // Error: Must provide a default array
 
+let arr = [5]u8{0, 1, 2, 3, 4}
+
 // you can initialize items in specific locations in an array using the following shorthand:
-let arr: [10]bool = [
+let arr: [10]bool = {
     3 = false,
     6 = true,
-];
+};
 
 // you can initialize an array or a portion of an array with a value using the ... operator
-let buf: [512]u8 = [... = 0x42];
-let foo: [10]u8 = [1, 4, 6, ... = 32];
+let buf: [512]u8 = {... = 0x42};
+let foo: [10]u8 = {1, 4, 6, ... = 32};
 
 // similarly, you can also assign elements over ranges:
-let mem: [512]u8 = [
+let mem: [512]u8 = {
     0x00..0xFF   = 0x42,
     SPECIAL_BYTE = 223,
     OTHER_BYTE   = 243,
     FLAG_BYTE    = Flag.Foo | Flag.Bar;
     0x120..0x200 = 0x00,
-]
+};
 
 // for multi-dimentional arrays
-let map: [10][10]f32 = [...0];
+let map: [10][10]f32 = {...0};
 
 let map: [M_WIDTH][M_HEIGHT][M_LENGTH]int;
 
@@ -366,23 +485,34 @@ let arr:  [6]*int ;  // array of 6 pointers to ints
 let arr: *[6]*int ;  // pointer to array of 6 pointers to ints
 
 // Unlike in C, river's arrays are a distinct type and cannot dissolve down to pointers
-fun print_num_array ( numbers: [10]int ) = { /*...*/ }
+fun print_num_array ( numbers: [10]int ) { /*...*/ }
 
 let nums: *int;
 print_num_array(nums); // ERROR: Incompatible types; expected type int[10], got ^int instead;
 
-// slices are views into contiguous elements in memory, kinda like an array, but they point to memory rather than contain it directly
-// basically, slices are the equivalent of doing something like this in C:
-//
-// struct {
-//     int n_elems;
-//     elem* elems;
-// };
-//
-// n_elems = 512;
-// elems = malloc(sizeof(elem) * n_elems);
-// except instead of doing all that, it's just a self-contained type with a len and a pointer part.
-// the length of slices are known at run-time, rather than at compile time like with arrays
+```
+
+# Slices
+
+slices are views into contiguous elements in memory, kinda like an array, but they point to memory rather than contain it directly
+basically, slices are the equivalent of doing something like this in C:
+
+```c
+struct Slice {
+    int n_elems;
+    elem* elems;
+};
+
+Slice s;
+s.n_elems = 512;
+s.elems = malloc(sizeof(elem) * s.n_elems);
+```
+
+except instead of doing all that, it's just a self-contained type with a len and a pointer part.
+basically just a fat pointer.
+the length of slices are known at run-time, rather than at compile time like with arrays.
+
+```rs
 
 let arr: [_]u8 = [4, 6, 7, 8, 3, 7];
 let slice: [*]u8 = arr[3..5]; // => [8, 3, 7], len 3
@@ -397,13 +527,97 @@ let arr: ********[6]********int; // pointer to pointer t ... 8 times an array of
 
 ```
 
-# strings
+# Strings
 ```rs
 // the string type in river is an alias of [_]char
 let s: string = "hello world";
 s.len(); // 11
 
 let sp = s.split(6)[0]; // "hello"
+```
+
+river supports multiline strings too:
+```rs
+let str = #"
+    # hi hello
+    # this is a multiline string yaaay
+"#
+```
+
+note the `#` characters within the string. those are a necessary part of the syntax.
+the `#` makes it apparant what the indentation level of the string is.
+consider the following scenario:
+```rs
+{
+    {
+        {
+            let str = [multi-line string];
+        }
+    }
+}
+    
+```
+
+if the string is meant to have no indentation to it, normally in most languages you'd have to write it out like this:
+
+```rs
+{
+    {
+        {
+            let str = #"
+hello
+
+this is a multi-line string
+
+    this is an indentation woo
+            "#;
+        }
+    }
+}
+    
+```
+
+you'd have to undercut the indentation of the rest of the code and make the contents of the string stick to the left-most edge of the editor.
+with the `#` glyph however, it can look like this instead:
+
+```rs
+{
+    {
+        {
+            let str = #"
+                #hello
+                #
+                #this is a multi-line string
+                #
+                #    this is an indentation woo
+            "#;
+        }
+    }
+}
+    
+```
+
+now, the indentation is preserved, and it's much cleaner to read.
+having to type out the `#` characters might be annoying,
+but that can be taken care off with language tooling that automatically inserts the `#` characters into the code,
+much in the same way that already-existing tooling tends to insert `*` characters at the start of every multiline comment in languages that use the `/* */` style. 
+
+however, if that's unsavoury for you for whatever reason, then river still supports C's style of automatically concatenating string literals next to each other.
+though of-course, in this case you'd have to provide formatting and newlines yourself.
+
+```c
+{
+    {
+        {
+            let str =
+                "hello\n"
+                "\n"
+                "this is a multi-line string\n"
+                "\n"
+                "    this is an indentation woo\n";
+        }
+    }
+}
     
 ```
 
@@ -411,25 +625,30 @@ let sp = s.split(6)[0]; // "hello"
 
 ```c
 
-if (expression) {
+if expression {
     // do stuff
-} else if (other_expression) {
+} else if other_expression {
     // do other stuff
 } else {
     // do yet more stuff
 }
 // if statements in river are actually expressions, and can return values
-let x = if (expression) {
+let x = if expression {
     value
-} else (expression) {
+} else expression {
     value
 };
 
-// when if statements are being used as an expression, i.e they're expected to produce a value, you MUST provide an else clause in case the if check fails:
-let x = if (false) 10; // ERROR: x never gets initiated :(
-let x = if (false) 10 else 20; // OK
+// if expressions don't need parenthesis for their condition unlike in C.
+// instead, the body MUST either be contained in a block, or use the `then` keyword
+if bool { something() } else { something_else() }
+if bool then something() else something_else()
 
-let x = if (bool) 10 else if (other_bool) 11 else 23;
+// when if statements are being used as an expression, i.e they're expected to produce a value, you MUST provide an else clause in case the if check fails:
+let x = if false then 10; // ERROR: x never gets initiated :(
+let x = if false then 10 else 20; // OK
+
+let x = if bool then 10 else if other_bool then 11 else 23;
 
 // switch statements are also actually expressions, and can pattern match
 switch x {
@@ -459,8 +678,8 @@ fun x_to_string(x: X): string =
 // all the loops are statements, and not expressions.
 
 // while loops are pretty normal
-while (expression) { ... };
-while (expression) expression;
+while expression { ... };
+while expression do expression;
 
 // repeat..until statements repeat an expression until the condition is held true
 // they're kinda like an inverse do while, where do..while repeats until a condition is false, repeat..until repeats until a condition is true
@@ -472,19 +691,37 @@ let x = 0;
 repeat x++ until x == 10;
 
 // river has the classic C style for loops available to use
-for(init;cond;inc) {...}
-for(init;cond;inc) expression;
+for init;cond;inc {...}
+for init;cond;inc do expression;
 
 // river also has a for-each style loop that iterates over a collection:
-for (let item in list) {
-
-}
+for item in list {...}
+for item in list do expr
 
 // the for-in loop uses pattern matching to destructure collections
-for (let index, value in list) {
+for index, value in list {
     do_something();
 }
 
+```
+
+# custom types and symbol aliasing
+
+```c
+
+// the alias keyword is akin to #define in C
+alias Integer = int;
+let x: Integer = 10; // base type: int
+
+// aliased types are interchangable with their base types without the need for an explicit cast
+let y: int = x; // valid
+
+// You can define distinct types with the use of the 'type' keyword:
+type Celcius = double;
+
+let temp: Celcius = 35.0;
+let f: double = temp; // illegal, cast via `as double`
+let f: double = temp as double; // ok 👍
 ```
 
 # Structs 
@@ -493,22 +730,7 @@ for (let index, value in list) {
 
 // You can wrap up several datatypes into a big datatype called a struct, just like in C 
 type Vector3 = struct {
-    x, y, z: f32;
-};
-
-type User = struct {
-    // Struct fields can have default values
-    username: string = "Admin";
-    pin: u8;
-};
-
-let admin: User;
-printf("user.name = %s", admin.username); // => "user.name = Admin"
-admin.name = "Administrator";
-printf("user.name = %s, user.pin = %i", admin.username, admin.pin) // => "user.name = Administrator, user.pin = 0000"; 
-
-type Vec4 = struct(x, y, z, w: float = 1) {
-    x, y, z, w: float;
+    x, y, z: f32;   
 }
 
 // struct field tags
@@ -516,8 +738,8 @@ type Vec4 = struct(x, y, z, w: float = 1) {
 type GameObject = struct {
     pos: Vec3 `json:"pos"`;
     transform: Mat4 `json:"transf"`;
-    active: bool // untagged
-};
+    active: bool; // untagged
+}
 
 ```
 
@@ -540,24 +762,165 @@ let person = get_person(id);
 
 type Colour = (u8, u8, u8, u8);
 let red: Colour = (255, 0, 0, 255);
+
+let (x, y, z, w, e, t) = (13, 45, 35, ... = 3); // w, e, t == 3, 3, 3
+
 ```
 
+# Enums 
+```go
+
+// similar to C's enums, except with their own namespace
+type Colour = enum {
+    Red, Blue, Green, White, Yellow, Brown
+}
+
+type MnMs = enum {
+    Red, Blue, Green, Yellow, Brown, Orange
+}
+
+let x = Red; // => Error: Assigning variable <x> to unknown value <Red>;
+let x = Colour.Red; // => compiles
+let y: Mnms = Red; // => Also compiles
+
+// you can assign values to your enumarations
+// enums are ordered, so if you leave unassigned gaps they just take on the values of the last assigned value + N where N is the distance from the last assigned value
+type Flags = enum {
+    Clear = 1<<0,
+    Stop  = 1<<1,
+    Start = 1<<2,
+    Idk   = 512,
+}
+
+// you can specify the backing type of an enum ( integer only )
+type Something = enum u8 { Something, OtherThing }
+
+// enums with explicit backing types can be used in place of the backing type:
+fun foo(num: u8) {...}
+
+foo(Something.OtherThing); // okay
+
+// otherwise you'd have to manually cast:
+fun bar(num: u16) {...}
+
+bar(Something.OtherThing); // error
+bar(Something.OtherThing as u16); // OK 👍
+
+// you can get the number of enumerations within an enum by using the count function:
+for c in #count(Colour) do something(c);
+
+// enums can be tagged with a string
+type Colour = enum {
+    Red "colour_red",
+    Blue "colour_blue",
+    Green "colour_green",
+}
+
+// enums are concatenative:
+type OperatorTag = enum {
+    Add "+",
+    Sub "-",
+    Mul "*",
+    Div "/",
+}
+
+type KeywordTag = enum {
+    Return "return",
+    Func "func",
+    If "if",
+    Else "else",
+}
+
+// TokenTag now contains the enumerations for OperatorTag and KeywordTag within it's namespace
+// while KeywordTag and OperatorTag both maintain their own separate namespaces
+type TokenTag = enum : OperatorTag, KeywordTag {}
+
+
+// extended enums can have their own fields too
+// the enumerations are placed in the following order:
+// the enum's main body comes first, then all of it's extensions get inserted in after the main body, one by one in order.
+// i.e in this case, EntityKind.Null is 0, EntityKind.Other is 2, and then NpcKind, EnemyKind, and ItemKind get placed in order after that.
+type EntityKind = enum : NpcKind, EnemyKind, ItemKind {
+    Null,
+    Player,
+    Other,
+}
+
+// you may manually lay out the order of extended enums, if needed:
+type TokenTag = enum : OperatorTag, KeywordTag {
+    None = 0,
+
+    ::KeywordTag,
+    ::OperatorTag,
+
+    Eof
+}
+
+// for convenience's sake you can access the first and last elements of an enum directly, including nested ones
+#first(TokenTag.KeywordTag); // TokenTag[.KeywordTag].Return
+#last(TokenTag.KeywordTag); // TokenTag[.KeywordTag].Else
+
+// TODO: figure out value clashes such as this:
+type Colour = enum { Red = 2 }
+type JellyBean = enum { Strawberry = 2 }
+type IdkSomething = enum : Colour, Jellybean {} // both Colour.Red and JellyBean.Strawberry have the same value. error? or maybe offset the values based off the enum.
+// offsetting the value does however seem like it might be bug-prone?
+
+```
+
+# Unions
+
+```c
+
+// unions are pretty standard, only one item can be active at a time, the size of the union is the same as that of it's largest member
+// unions in river are discriminated by default
+type Literal = union {
+    Int: int,
+    Float: i64,
+    String: std::String,
+    Char: char
+};
+
+let intLit = Literal.Int(19);
+
+let v = someLiteralFunction();
+
+switch v {
+    Int(v)    => printf("Int: {}", v);
+    Float(v)  => printf("Float: {}", v);
+    String(v) => printf("String: {}", v);
+    Char(v)   => printf("Char: {}", v);
+}
+
+// unions can be untagged too, if desired:
+type Thingy = raw union {
+    Int: int,
+    Float: float,
+}
+
+```
 
 # Functions 
 
 ```
-    function_def -> "fun" %ID ( "[" generic_list "]" )? ( "(" params_list ")" )? ( "->" %ID )? "=" expr ";" .   
+    function_def -> "fun" %id ( "(" params_list ")" )? ( ":" type )?
+        (("=" expr ";") | block)
+        ;   
 ```
 
 ```c
 
 // NOTES:
 //
-// * Function return types MUST be explicit
-// * Functions MUST return values explicitly, unless using = syntax
+// * Function return types MUST be explicit, unless using = syntax
 
 fun sub ( x, y: int ): int {
     return x - y; // returns x - y
+}
+
+// functions implicitly return the last expression in the body:
+fun make_point (x, y: int): Point {
+    Point.{x, y} // implicitly returned
 }
 
 // for one-liner functions you can just use an expression or a statement in the body.
@@ -569,10 +932,6 @@ fun sub ( x, y: int ) = x - y;
 type func = fun(int): bool;
 
 fun smth(i: int, callback: func): bool = not callback(i);
-
-fun do_something(): (foo, Maybe[bar]) = {
-    
-}
 
 // Functions support default parameter values
 // If an argument is not passed for a particular parameter,
@@ -646,215 +1005,64 @@ if ext == ".md" {
 // the value using the '?' operator:
 let name = get_name()?; // => if get_name() returns null then the program panics;
 
-// for one liners without params the parenthesis can be omitted 
-fun consume() => scanner.char += 1; // note, how do you decide whether or not this function returns a value, without a hint? the rhs of this function is an assignment expression, what does that evaluate to?
-fun peek = scanner.token[scanner.char + 1];
-
 // functions are first class in river, so you can pass them around as values
 // TODO: workshop the function callback syntax a bit more
 fun example_func( val: float , func: fun(float, int) ): u32 = {
     func(val, 20); // => calls the passed-in function
 }
 
-// functions can return other functions
-fun func(): fun(bool): int = {
-    // functions can be defined inline as closures
-    return fun(bool x): int {
-        if x {
-            true
-        } else {
-            false
-        }
-    };
-}
-
 // though it's nicer to just give the return functions a type alias
 type callback = fun(int, float): bool;
 
-// methods
+```
+
+# Methods
+
+built-in types, and user-defined types can both have methods assigned to them.
+methods are functions that are in the type's namespace.
+
+```c++
 
 type Vec2 = struct {
-    x, y: int;
-};
+    x, y: int,
+}
 
-fun Vec2:add(this, rhs: Vec2) -> Vec2 = { ... };
-fun Vec2:neg(self) = { ... };
+fun Vec2::add(self, rhs: Vec2): Vec2 = { ... };
+fun Vec2::neg(self): Vec2 = { ... };
 
 let x = Vec2(10, 10);
 let y = x.neg();  // mutates x
 let z = x:add(y): // does not mutate x
-let w = Vec2:add(z, y);
-
-let x = ({
-    // do stuff here 
-});
-
-
-```
-
-# Enums 
-```c 
-
-// similar to C's enums, except with their own namespace
-
-type Colour = enum {
-    Red, Blue, Green, White, Yellow, Brown
-};
-
-type MnMs = enum {
-    Red, Blue, Green, Yellow, Brown, Orange
-};
-
-let x = Red; // => Error: Assigning variable <x> to nknown value <Red>;
-let x = Colour:Red; // => compiles
-let y = MnMs:Red; // => Also compiles
-
-// enums can be tagged with a string to help with printing ?
-
-type Colour = enum {
-    Red "colour_red",
-    Blue "colour_blue",
-    Green "colour_green",
-};
-
-```
-
-# Unions
-
-```c
-
-type Vec3 = union {
-    raw: f32[3];
-    _: struct {
-        x, y, z: f32;  
-    };
-}
-
+let w = Vec2::add(z, y);
     
-let v: Vec3 = Vec3(10, 20, 30);
-v.x += 10;
-print(v); // => {20, 20, 30}
-```
-
-# Discriminated unions ( Variant )
-```rs
-
-type Literal = variant {
-    Int: long,
-    Float: double,
-    String: std::String,
-    char: char
-}
-    
-```
-
-
-
-# Custom Types
-
-```c
-
-// You can define your own types by aliasing other types
-alias Integer = int;
-let x: Integer = 10; // base type: int
-
-// aliased types are interchangable with their base types without the need for an explicit cast
-
-let y: int = x; // valid
-
-// You can also define distinct types with the use of the 'type' keyword:
-type Celcius = double;
-
-let temp: Celcius = 35.0;
-let f: double = temp; // illegal, cast via `as double`
-let f: double = temp as double; // ok 👍
-
-// Types can be composed of multiple base types
-// this type can represent both u32 or f32 values
-type number -> int | float;
-
-number x = 10; // valid
-number y = 52.32; // also valid
-number z = 42.4d; // not valid, as it is a double value
-
-```
-
-## File imports 
-
-```c
-
-// in the C backend, `import`ed variables and functions just get pasted in as forward
-// declarations.
-// then later, the linker compiles the definition in with the parent module's .o file
-
-// import modules with the import keyword
-import std:io;
-
-fun 
-main() {
-    io:println("Hello!");
-}
-
-import std:math;
-
-m:abs();
-
-
-import std:io;
-using namespace io;
-
-fun
-main() {
-    
-}
-
-
-
-```
-
-# Statements and Expressions
-
-Expressions are strings of code that evaluate to a value,
-whereas statements produce a side-effect;
-
-```c 
-
-// Expressions
-
-x = 3 // outputs 3
-"string literal"
-12424.41 // Number literal
-(object){.x = 2314, .wr = "saftq"} // Struct literal
-{
-    return x;
-} // This whole block is an expression
-
-val y = if x then x;
-
-val v = if x then if y then if z then if w then a else 0;
-// is equal to
-val v = if x && y && z && w then a else 0;
-
-
-// Statements
-
-val x = 10; // statement
-funcCall();
 ```
 
 # Generics
+
+river supports generics / polymorphism via parameterized types and procedures:
 ```rs
-// generic structs
-
-type Buf<T> = struct {
-    idx: size;
-    data: [*]T;
-
-    fun Buf<T>();
+type Arr<T> = struct {
+    data: [*]T,  
 };
 
-let intarr = Buf<int>();
-fun sub[T: Subtractive](x, y: T): T = x - y;
+fun newArray<T>(size: isize, data: [*]T = null, alloc: Allocator = context.allocator ): Arr<T> {
+    let x: Arr<T> = Arr<T>{};
+    x.data = alloc.new(T, isize);
+
+    if data != null {
+        mem.copy(x.data, data);
+    }
+
+    return Arr<T>
+}
+
+let x = newArray<int>(10);
+
+// generic procedures can be constrained to only using the specializations of a generic struct like so:
+fun pushArray<T, A>(arr: A, item: T) where A:Arr { ... }
+
+let x = newArray<int>(10);
+pushArray<int>(x, 5);
 
     
 ```

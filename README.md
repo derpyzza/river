@@ -22,8 +22,7 @@ Outputs to a human readable C99.
 River offers the following feature-set over plain-C:
 - An easier to parse syntax ( for machines and humans alike )
 - Type inferencing and a stronger type system
-- Default function arguments / struct fields
-- Function overloading ( functions are identified by their signatures, not just their names )
+- Default function arguments
 - Limited operator overloading ( limited to basic arithmetic, comparisons and subscripting )
 - Algebraic data types ( discriminated unions, mostly )
 - Method call syntax
@@ -39,6 +38,7 @@ River offers the following feature-set over plain-C:
 
 And gets rid of:
 - The pre-processor
+- Weird declaration syntax
 - Pointers decaying into arrays
 - Implicit type conversions
 - Prefix decrement/increment operators ( ++ / -- )
@@ -80,20 +80,36 @@ let y: f32 = 23.0;
 
 ```
 
-## Method call syntax
-```
-fun Foo(x: Bar) {...}
+## Default parameters
 
-let bar: Bar = Bar();
-bar.Foo(); // Same as calling Foo(bar);
+```go 
 
-A( B( C( D ))) === D.C().B().A()
-    
+type object = struct {
+    x, y: int;
+    foo: bool;
+};
+
+
+fun new_object ( x, y: int = 20, foo: bool = true ) =
+    object {
+        .x = x,
+        .y = y,
+        .foo = foo
+    };
+
+let obj = new_object();
+io.println("%o", obj); // object { .x = 20, .y = 20, foo = true }
+
+let obj2 = new_object(45, 23);
+io.println("%o", obj2); // object { .x = 45, .y = 23, foo = true }
+
+let obj3 = new_object(foo = false);
+io.println("%o", obj3); // object { .x = 20, .y = 20, foo = false }
+
 ```
 
 ## Array shorthands
-```
-
+```rs
 type name = [4]char;
 
 let arr: [256]name = [
@@ -105,61 +121,58 @@ let arr: [256]name = [
     
 ```
 
-## Default values
-
-```go 
-
-type object = struct {
-    param1: int;
-    param2: int = 30;
-};
-
-
-fun function_definition ( x, y: int = 20, has_something: bool = true ) = {
-    // define function over here
-};
-```
-
 ## Defers
 The `defer` keyword just executes the given statement at the end of the current scope.
 
 ```c 
 
-struct object {...};
+type object = struct {...};
+
+fun new_object(...): *object; 
+fun delete_object(o: *object);
 
 fun main() {
     let x = new_object();
-    defer delete_object();
+    defer delete_object(x);
 
     /*
      * do stuff ...
      */
 
     // calls delete here
-    // delete_object()
+    // delete_object(x)
 }
 
 ```
 
 ## Tuples
 
-```c rvr
+```rs
 let x = (23, 59, "String");
 
-// a gets set to x.0, b gets set to x.1
-let (a, b) = x;
-let x = (1, 2, 3);
+// a gets set to x.0, b gets set to x.1, x.2 gets discarded
+let (a, b, _) = x;
 
 // in the case of variable destructuring, the number of variables on the lhs must match those on the rhs:
 let (x, y) = 1, 2, 3; // => error, too many values
 let (x, y) = 1, 2; // fine
+
+// tuples can be used for multiple return values from functions:
+fun read_file(path: string): (File, Error);
+
+let (f, err) = read_file("README.md");
+if (err) {
+    panic(err);
+}
+
+for (line in f) printf(line);
 ```
 
 ## Algebraic Data Types + Pattern matching
 
 ```rs
 
-type Value = sum {
+type Value = union {
     Int: int,
     Float: float,
     String: string,
@@ -177,32 +190,4 @@ fun print_value(v: Value) -> string {
     return s;
 }
 
-fun add_value(v, y: Value) -> Optional<[Value]> =
-    Some(v + y) when Value::Int(v) and Value::Int(v)
-    else None;
-```
-
-## Generics
-
-```c
-
-fun add<[T]>(x, y: T) -> T = x + y;
-
-add<[f32]>(0.2, 0.4); // => 0.6
-add<[int]>(3, 5) // => 8
-
-
-fun sort<[T: Comparable]> ( x: Array<(T)> ) {
-    //...//
-}
-
-sort[int]( Array[int] { 35, 13, 1, 545 } ); // => Array[int]{ 1, 13, 35, 545 }
-
-type num = struct {
-    x: int;
-};
-
-sort[num]( Array[num]{ ... } ); // ERROR, type <num> does not implement interface Comparable
-
-    
 ```

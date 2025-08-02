@@ -17,7 +17,7 @@ river design goals / considerations
 - unload as much work on to the compiler as possible
     - the compiler is generally better at doing tedious stuff than humans are, so unload all of that onto the compiler
     - Having fancy cool metaprogramming features and compile time code execution also comes into this. there are often times where you need to write code that you could also just programatically generate, and i want to make it easy to generate all that code in river.
-    - i like jai's strategy of having compile-time code be the same as runtime code except marked with a keyword. really cool. do that.
+    - i like jai's strategy of having compile-time code be the same as runtime code except marked with a keyword. really cool. do that. maybe.
 - better type system
     C's typesystem is basically a very weak representation of types
     types are essentially a bag of bytes, and you can reinterpret types as each other willy nilly
@@ -179,6 +179,24 @@ let goomba: *Enemy = new(Enemy);
 goomba.health = 150;
 spawn_enemy(goomba); // acceptable;
 
+type GameObject = interface {
+  pos: Transform,
+
+  fun spawn(self: Self);
+  fun moveTo(self: Self, to: Tile);
+}
+
+type troop = struct : GameObject {
+  
+}
+
+
+type Rectangle = struct(width: int = 1, height: int = 1) {
+  perimeter: int = 2 * (height + width)
+  area: int = height * width
+}
+
+let rect = Rectangle(5, 5);
 
 variable shadowing should be allowed.
 
@@ -459,3 +477,17 @@ fun main() {
   io:print("s: \"{}\"", s); // s: "hello"
 }
 ```
+
+
+import matrix::{ Vec2 };
+
+
+fun main() {
+  let x: Vec2 = Vec2::new();
+}
+
+
+
+
+
+

@@ -13,7 +13,7 @@ rule -> production | ( production | production );
 the `|` character means `or`, and rules can be grouped via parenthesis for clarity.
 rules are terminated with the `;` character.
 
-tokens are marked with the `%` character, terminals are wrapped in quotes `"import"`.
+terminals are wrapped in quotes `"import"`.
 
 production rules can be followed up with any of the following operators:
 ```
@@ -24,13 +24,11 @@ production rules can be followed up with any of the following operators:
 
 ```
 
-let x: ^^[^^int ; 2 ; 4] | ^^^[^file, error ; 23] | ^char;
+iden -> [a-zA-Z_]+ ;
+number -> int | float ;
 
-type -> ptr* arr %id
-      | %id ( ',' %id )*
-      | %id ( '|' %id )*
 
-program -> item* %eof;
+program -> item* eof;
 
 item -> import_decl
       | const_decl;
@@ -41,30 +39,41 @@ item -> import_decl
       | enum_decl
       | union_decl;
 
-import_decl -> "import" %id ( "." %id )*? ( "as" %id )? ";" ;
+import_decl -> "import" iden ( "." iden )*? ( "as" iden )? ";" ;
 
-func_decl -> "pub"? "fun" %id ( "(" <params_list> ")" )? ( "->" %id )? "=" <expr>;
+func_decl -> "pub"? "fun" iden ( "(" params_list ")" )? ( ":" type )? "=" expr;
 
-params_list -> <param_item>? ( "," <param_item> )*;
-param_item -> %id ( ":" %id )? ( "=" %lit )?
+params_list -> param_item? ( "," param_item )*;
+param_item -> iden ( ":" iden )? ( "=" lit )?
 
 data_type -> <primary_type> ( "," <primary_type> | "|" <primary_type> )* ;
-primary_type -> <type_header> %id ;
+primary_type -> <type_header> iden ;
 type_header -> "^"* type_arr* ;
 type_arr -> ("[" %number? "]")* "^"* ;
 
-global_var -> %id <var_assign> ( "," <var_assign> )*;
-var_assign -> %id '=' %lit;
+global_var -> iden <var_assign> ( "," <var_assign> )*;
+var_assign -> iden '=' %lit;
 
-const_decl -> "const" %id "=" <expr>;
+const_decl -> "const" iden "=" <expr>;
 
-type_def = "type" %id "=" <expr> ";" ;
+type_def ->
+        "type" iden "=" basic_type ";"
+      | "type" iden "=" (struct_decl | union_decl | enum_decl)
+      ;
 
-struct_decl -> "struct" %id "{" ( <struct_field> ";" )+ "}";
-struct_field -> struct_item ("," struct_item)* ":" %id ;
-struct_item -> %id ("=" %lit)?
+struct_decl -> "struct" "{" ( struct_field "," )+ "}";
+struct_field -> iden ("," iden)* ":" type string? ;
 
-var_decl -> "let" "mut"? %id ( ":" %id )? ( ";" | "=" LITERAL ";"); 
+union_decl -> "raw"? "union" "{" ( union_field "," )+ "}";
+union_field -> iden ":" type string? ;
+enum_decl -> "enum" ( ":" (iden ',')* iden ) "{" (iden ",")* "}";
+
+var_decl -> "let" "mut"? iden ( ":" type )? ( ";" | "=" LITERAL ";"); 
+
+
+type -> ptr* arr iden
+      | iden ( ',' iden )*
+      ;
 
 statement -> expr ";";
 
