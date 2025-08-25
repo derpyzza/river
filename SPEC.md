@@ -6,150 +6,7 @@ for now this is more of a sketchpad for features, but it'll get leaner and clean
 considerations:
     null safety
     error handling
-    ad-hoc unions?
     interfaces
-
-design patterns:
-
-> ':' attributes
-> '=' assigns
-> '@' is a built-in procedure
-> '#' annotates
-
-
-# Identifiers and Numbers
-
-```
-    // identifier
-    iden -> [a-zA-Z_] [a-zA-Z0-9_]* ;
-
-    // number literal
-    number -> float | integer;
-
-    // decimal exponent
-    dec_exp -> [eE] [-+]? integer ;
-    // binary exponent
-    bin_exp -> [pP] [-+]? integer ;
-
-    float -> 
-        ( 
-            \d* ( '.' \d+ )? dec_exp? [fFdD]?
-            | hex_literal* ( '.' hex_literal+ ) bin_exp? [fFdD]? 
-            | hex_literal* bin_exp? [fFdD]
-            ) 
-    ;
-
-    integer ->   
-        (
-            \d* ( ['_] \d+ ) dec_exp?
-            | hex_literal bin_exp?
-        		| octal_literal
-        		| binary_literal
-        )
-        ( [uUiI] ( \d* | 'z' ) )?
-    ;
-
-    binary_literal -> '0b' binary_digit* ( [_'] binary_digit+ )? ;
-    hex_literal -> '0x' hex_digit* ( [_'] hex_digit+ )? ;
-    octal_literal -> '0c' octal_digit* ( [_'] octal_digit+ )? ;
-
-    hex_digit -> [0-9a-fA-F] ;
-    octal_digit -> [0-7] ;
-    binary_digit -> [01] ;
-
-    1
-    32
-    134'43e+10
-    134_43E+10
-    234f
-    13'234'32
-    24_242_24
-    123.134e+13
-
-    0xbadcafe
-    0xBADCAFE
-    0xBad_Cafe
-    0xBAD'CAFE
-    0xBad.Cafe
-    0xBAD.CAFEp+24
-
-    0c777
-    0c11_23
-    0c32'24'24
-
-    0b101010101
-    0b1010'1010
-    0b1001_1010
-
-    123.234
-    12.23_24
-    .05
-    123'234.23'234
-    142_234.244_242
-    123u8      // explicit u8 literal
-    123u16     // explicit u16 literal
-    123u32     // explicit u32 literal
-    123u64     // explicit u64 literal
-    123i8      // explicit i8 literal
-    123i16     // explicit i16 literal
-    123i32     // explicit i32 literal
-    123i64     // explicit i64 literal
-    234uz      // explicit usize literal
-    424iz      // explicit size literal
-    133f32     // explicit f32 literal
-    234f64     // explicit f64 literal
-```
-
-# Comments
-```rs 
-
-// Double slashes indicate a single line comment 
-
-/*
-    A Slash followed by an asterisk marks a multiline comment, 
-    which is ended by an asterisk followed by a slash.
-    Just like in C!
-
-    /*
-        however, unlike in C, comments can be nested
-    */
-*/
-
-```
-
-# Data types and literals
-River comes with several builtin basic data types
-The builtin types are as follows:
-
-| Type   | C-Type       | Description                                              |
-| ------ | ------------ | -------------------------------------------------------- |
-| anyptr | void*        | a pointer type that can be cast down to any pointer type |
-| bool   | _Bool        | boolean type                                             |
-| char   | uint8_t      | alias of u8                                              |
-| f32    | float        | floating point number : corresponds to C floats          |
-| f64    | double       | double precision floating point number                   |
-| int    | int          | signed cpu word sized integer                            |
-| i8     | int8_t       | signed 8 bit integer                                     |
-| i16    | int16_t      | signed 16 bit integer                                    |
-| i32    | int32_t      | signed 32 bit integer                                    |
-| i64    | int64_t      | signed 64 bit integer                                    |
-| uint   | unsigned int | unsigned cpu word sized integer                          |
-| u8     | uint8_t      | unsigned 8 bit integer                                   |
-| u16    | uint16_t     | unsigned 16 bit integer                                  |
-| u32    | uint32_t     | unsigned 32 bit integer                                  |
-| u64    | uint64_t     | unsigned 64 bit integer                                  |
-| size   | intptr_t     | signed pointer sized integer                             |
-| usize  | size_t       | unsigned pointer sized integer                           |
-| string | char[]       | distinct type of static array of u8s                     |
-| void   | void         | used for expressions that return nothing                 |
-
-River has the following literal types:
-
-- null:     memory address 0x0. only applicable to pointers. compiles down to (void*)0;
-- numbers:  signed/unsigned integers, floating point numbers,  
-- string:   "string"
-- true:     just the value true. compiles down to the expression (0==0)
-- false:    just the value false. compiles down to (0!=0);
 
 ## Reserved Keyword list 
 
@@ -257,7 +114,140 @@ typeid
 | in       | check item in collection | binary | infix     |
 | []       | array index              | unary  | circumfix |
 | ..       | range                    | binary | infix     |
+| @        | pointer deference        | unary  | prefix    |
 
+
+# Data types and literals
+River comes with several builtin basic data types
+The builtin types are as follows:
+
+| Type   | C-Type       | Description                                              |
+| ------ | ------------ | -------------------------------------------------------- |
+| anyptr | void*        | a pointer type that can be cast down to any pointer type |
+| bool   | _Bool        | boolean type                                             |
+| char   | uint8_t      | alias of u8                                              |
+| f32    | float        | floating point number : corresponds to C floats          |
+| f64    | double       | double precision floating point number                   |
+| int    | int          | signed cpu word sized integer                            |
+| i8     | int8_t       | signed 8 bit integer                                     |
+| i16    | int16_t      | signed 16 bit integer                                    |
+| i32    | int32_t      | signed 32 bit integer                                    |
+| i64    | int64_t      | signed 64 bit integer                                    |
+| uint   | unsigned int | unsigned cpu word sized integer                          |
+| u8     | uint8_t      | unsigned 8 bit integer                                   |
+| u16    | uint16_t     | unsigned 16 bit integer                                  |
+| u32    | uint32_t     | unsigned 32 bit integer                                  |
+| u64    | uint64_t     | unsigned 64 bit integer                                  |
+| size   | intptr_t     | signed pointer sized integer                             |
+| usize  | size_t       | unsigned pointer sized integer                           |
+| string | char[]       | distinct type of static array of u8s                     |
+| void   | void         | used for expressions that return nothing                 |
+
+River has the following literal types:
+
+- null:     memory address 0x0. only applicable to pointers. compiles down to (void*)0;
+- numbers:  signed/unsigned integers, floating point numbers,  
+- string:   "string"
+- true:     just the value true. compiles down to the expression (0==0)
+- false:    just the value false. compiles down to (0!=0);
+
+
+# Identifiers and Numbers
+```
+    // identifier
+    iden -> [a-zA-Z_] [a-zA-Z0-9_]* ;
+    digit -> [0-9] ;
+
+    // number literal
+    number -> float | integer;
+
+    // decimal exponent
+    dec_exp -> [eE] [-+]? integer ;
+    // binary exponent
+    bin_exp -> [pP] [-+]? integer ;
+
+    float -> 
+        digit* ( '.' digit+ )? dec_exp? [fFdD]?
+        | hex_literal* ( '.' hex_literal+ )? bin_exp? [fFdD]? 
+    ;
+
+    integer ->   
+        (
+            digit* ( ['_] digit+ ) dec_exp?
+            | hex_literal bin_exp?
+        		| octal_literal
+        		| binary_literal
+        )
+        ( [uUiI] ( \d* | 'z' ) )?
+    ;
+
+    binary_literal -> '0b' binary_digit* ( [_'] binary_digit+ )? ;
+    hex_literal -> '0x' hex_digit* ( [_'] hex_digit+ )? ;
+    octal_literal -> '0c' octal_digit* ( [_'] octal_digit+ )? ;
+
+    hex_digit -> [0-9a-fA-F] ;
+    octal_digit -> [0-7] ;
+    binary_digit -> [01] ;
+
+    1
+    32
+    134'43e+10
+    134_43E+10
+    234f
+    13'234'32
+    24_242_24
+    123.134e+13
+
+    0xbadcafe
+    0xBADCAFE
+    0xBad_Cafe
+    0xBAD'CAFE
+    0xBad.Cafe
+    0xBAD.CAFEp+24
+
+    0c777
+    0c11_23
+    0c32'24'24
+
+    0b101010101
+    0b1010'1010
+    0b1001_1010
+
+    123.234
+    12.23_24
+    .05
+    123'234.23'234
+    142_234.244_242
+    123u8      // explicit u8 literal
+    123u16     // explicit u16 literal
+    123u32     // explicit u32 literal
+    123u64     // explicit u64 literal
+    123i8      // explicit i8 literal
+    123i16     // explicit i16 literal
+    123i32     // explicit i32 literal
+    123i64     // explicit i64 literal
+    234uz      // explicit usize literal
+    424iz      // explicit size literal
+    133f32     // explicit f32 literal
+    234f64     // explicit f64 literal
+```
+
+# Comments
+```rs 
+
+// Double slashes indicate a single line comment 
+
+/*
+    A Slash followed by an asterisk marks a multiline comment, 
+    which is ended by an asterisk followed by a slash.
+    Just like in C!
+
+    /*
+        however, unlike in C, comments can be nested
+    */
+*/
+
+```
 
 # Modules and packages
 river bundles up it's code files into logical units called modules.
@@ -327,7 +317,7 @@ for libraries, a `lib` module is used as the entrypoint instead.
 // then later, the linker compiles the definition in with the parent module's .o file
 
 // import modules with the import keyword
-import std:io;
+import std::io;
 
 fun 
 main() {
@@ -335,38 +325,36 @@ main() {
 }
 
 // import name aliasing
-import std:math as m;
+import std::math as m;
 
 m.abs();
 
 
-import std:io;
-using io;
+import std::io;
+using io; // expands io into current scope.
 
 fun
 main() {
     println("Hello");
 }
 
-
-
 ```
 
 # Constants
 ```
-    const_def -> "const" iden ":" type "=" expr ";" ;
+    const_def -> "const" iden "=" expr ";" ;
 ```
 
 you can declare compile time constants with the `const` keyword.
-only primitive values and other constants can be used in the rhs of the constant declarations.
+constants are akin to `#define` in C, they alias a symbol to an expression.
 ```c
-const PI  = 3.1415;
+
+const PI = 3.1415;
 const TWO_PI = PI * 2; 
 
-const FAC3 = factorial(3); // ERROR, factorial() is not a compile time constant.
 ```
 
-# variable definition & declaration
+# Variable declaration & definition
 
 ```
     var_def -> 
@@ -392,6 +380,14 @@ x += 10; // x = 20
 let w; // illegal
 let w: int; // legal
 
+
+let
+    x, y, z, w: int,
+    a, b, c, d: float,
+    q, w, e: string
+    ;
+
+
 // variables are declared to a zero-value be default. each primitive type has it's own zero value
 let x: int;    // x = 0
 let x: bool;   // x = false
@@ -411,7 +407,17 @@ let x: float = 10.6, y: int = 10, z: string = "string"; // okay
 
 // unless they're the same type:
 let a = 10, b = 20, c: int = 30;
+```
 
+c output:
+```c
+
+// let x = 10;
+int x = 10;
+
+// var x = 10;
+int x = 10;
+    
 ```
 
 # Pointers
@@ -419,9 +425,9 @@ let a = 10, b = 20, c: int = 30;
 ```rs
 
 // pointers are defined as such:
-let name: *type = &variable;
+let name: *type = &non_pointer_variable;
 // pointers are dereferenced as such
-let name: type = @variable;
+let name: type = @pointer_variable;
 
 // pointers can have up to 8 levels of indirection:
 let name: ********type = value; // pointer to pointer to pointer to ... 8 times to a type of value.
@@ -430,8 +436,18 @@ let ptr: ********int ; // pointer to pointer to pointer to ... 8 times to an int
 
 ```
 pointer arithmetic is disallowed. the only operations a pointer has are the address-of and deference operations.
+Null pointers also do not exist. instead, nullable pointers are wrapped up in an [`Optional`](#Optionals) type.
 
-Null pointers also do not exist. instead, nullable pointers are wrapped up in an `Optional` type: `Optional<T*>`
+c output:
+```c
+
+// let variable = 10;
+// let ptr = &variable;
+// let otherVar = @ptr;
+int variable = 10;
+int *ptr = &variable;
+int otherVar = *ptr;
+```
 
 # Arrays
 
@@ -492,6 +508,19 @@ print_num_array(nums); // ERROR: Incompatible types; expected type int[10], got 
 
 ```
 
+c output:
+```c
+
+// let arr:  [6]int =
+int arr_data[6] = {1, 2, 3, 4, 5, 6};
+rvrArray arr = (rvrArray){
+    .len = 6,
+    .elem_size = sizeof(int)
+    .data = (void*)arr_data
+};
+    
+```
+
 # Slices
 
 slices are views into contiguous elements in memory, kinda like an array, but they point to memory rather than contain it directly
@@ -499,13 +528,13 @@ basically, slices are the equivalent of doing something like this in C:
 
 ```c
 struct Slice {
-    int n_elems;
-    elem* elems;
+    size_t n_elems;
+    elem_t *_elems;
 };
 
 Slice s;
 s.n_elems = 512;
-s.elems = malloc(sizeof(elem) * s.n_elems);
+s._elems  = malloc(sizeof(elem_t) * s.n_elems);
 ```
 
 except instead of doing all that, it's just a self-contained type with a len and a pointer part.
@@ -527,7 +556,23 @@ let arr: ********[6]********int; // pointer to pointer t ... 8 times an array of
 
 ```
 
+c output:
+```c
+
+// let arr: [_]u8 = [4, 6, 7, 8, 3, 7];
+// let slice: [*]u8 = arr[3..5];
+uint8_t arr[6] = {4, 6, 7, 8, 3, 7};
+RVR_SLICE(u8) slice = RVR_SLICE_FROM(arr, 3, 5);
+    
+```
+
 # Strings
+
+river supports three types of string literals:
+- normal literals
+- raw literals
+- multiline literals
+
 ```rs
 // the string type in river is an alias of [_]char
 let s: string = "hello world";
@@ -537,92 +582,30 @@ let sp = s.split(6)[0]; // "hello"
 ```
 
 river supports multiline strings too:
-```rs
-let str = #"
-    # hi hello
-    # this is a multiline string yaaay
-"#
+```c
+let str =
+    \\ hi hello
+    \\ this is a multiline string yaaay
+    \\
+    \\     this is an indented line
+    ;
 ```
-
-note the `#` characters within the string. those are a necessary part of the syntax.
-the `#` makes it apparant what the indentation level of the string is.
-consider the following scenario:
-```rs
-{
-    {
-        {
-            let str = [multi-line string];
-        }
-    }
-}
-    
-```
-
-if the string is meant to have no indentation to it, normally in most languages you'd have to write it out like this:
-
-```rs
-{
-    {
-        {
-            let str = #"
-hello
-
-this is a multi-line string
-
-    this is an indentation woo
-            "#;
-        }
-    }
-}
-    
-```
-
-you'd have to undercut the indentation of the rest of the code and make the contents of the string stick to the left-most edge of the editor.
-with the `#` glyph however, it can look like this instead:
-
-```rs
-{
-    {
-        {
-            let str = #"
-                #hello
-                #
-                #this is a multi-line string
-                #
-                #    this is an indentation woo
-            "#;
-        }
-    }
-}
-    
-```
-
-now, the indentation is preserved, and it's much cleaner to read.
-having to type out the `#` characters might be annoying,
-but that can be taken care off with language tooling that automatically inserts the `#` characters into the code,
-much in the same way that already-existing tooling tends to insert `*` characters at the start of every multiline comment in languages that use the `/* */` style. 
 
 however, if that's unsavoury for you for whatever reason, then river still supports C's style of automatically concatenating string literals next to each other.
 though of-course, in this case you'd have to provide formatting and newlines yourself.
 
 ```c
-{
-    {
-        {
-            let str =
-                "hello\n"
-                "\n"
-                "this is a multi-line string\n"
-                "\n"
-                "    this is an indentation woo\n";
-        }
-    }
-}
-    
+let str =
+    "hello\n"
+    "\n"
+    "this is a multi-line string\n"
+    "\n"
+    "\tthis is an indentation woo\n";    
 ```
 
 # Control flow
 
+## If expression
 ```c
 
 if expression {
@@ -648,40 +631,85 @@ if bool then something() else something_else()
 let x = if false then 10; // ERROR: x never gets initiated :(
 let x = if false then 10 else 20; // OK
 
+let x = 10 if false else 20;
+
 let x = if bool then 10 else if other_bool then 11 else 23;
+
+
+// else expressions can be used on their own to provide fallback values in case of failure:
+let config = read_config() else default_config;
+// here the else expression only gets triggered if read_config() results a falsey value.
+```
+
+c output:
+```c
+
+// let x = if someCheck() { 10 } else { 20 };
+int x;
+if (someCheck()) {
+    x = 10;
+} else {
+    x = 20;
+}
+
+// let config = read_config() else default_config;
+Config config;
+RvrMaybe _config = read_config();
+if (_config.status == RVR_MAYBE_OK) {
+    config = (Config)_config.ok;
+} else {
+    config = default_config;
+}
+
+    
+```
+
+## Switch expression
+    
+```c
 
 // switch statements are also actually expressions, and can pattern match
 switch x {
-    case => ...,
-    case => {...},
+    case do ...,
+    case do {...},
     // cases don't have implicit fallthrough and a fallthrough must be explicitly forced via use of the `fallthrough` keyword
-    case => {
+    case do {
         ...
         fallthrough
     },
     // cases can be chained together
-    case | case | case => {...},
+    case | case | case do {...},
     // default catch case
-    default => {...} 
+    default do {...} 
 }
 
 // when switch cases are being used as expressions, they too must either exhaustively match all cases or provide a default fallback.
 
 fun x_to_string(x: X): string =
     switch x {
-        X_XX => "XX",
-        X_XXX => "XXX",
-        X_XXXX => "XXXX"
-        default => "bleh"
+        X_XX    do "XX",
+        X_XXX   do "XXX",
+        X_XXXX  do "XXXX",
+        default do "bleh"
     };
+```
 
-// all the loops are statements, and not expressions.
+## While loop
+all the loops are statements, and not expressions.
+    
+```c
 
 // while loops are pretty normal
 while expression { ... };
 while expression do expression;
 
-// repeat..until statements repeat an expression until the condition is held true
+```
+
+## Repeat-Until loop
+    
+```c
+
+// repeat..until loops repeat an expression until the condition is held true
 // they're kinda like an inverse do while, where do..while repeats until a condition is false, repeat..until repeats until a condition is true
 repeat {
 
@@ -689,36 +717,46 @@ repeat {
 
 let x = 0;
 repeat x++ until x == 10;
+```
+
+## For loops
+    
+```rs
 
 // river has the classic C style for loops available to use
 for init;cond;inc {...}
 for init;cond;inc do expression;
 
-// river also has a for-each style loop that iterates over a collection:
-for item in list {...}
+// NOTE: should `let` be ignored here? since x is literally being mutated in the for loop? or should the `let` here mean that it's illegal for it to be mutated *within* the loops body only?
+for let x = 0; x < arr.len; x++ {
+    io.println("x is: {}", arr[x]);
+}
+
+// this is better written using a for..in loop:
+for let x in arr {
+    io.println("x is: {}", x);
+}
+
+for let x in [0..10] do io.println("{}", x*x);
+
+
 for item in list do expr
 
 // the for-in loop uses pattern matching to destructure collections
-for index, value in list {
+for let index, value in list {
     do_something();
 }
 
 ```
 
-# custom types and symbol aliasing
+# Custom types and symbol aliasing
 
 ```c
-
-// the alias keyword is akin to #define in C
-alias Integer = int;
-let x: Integer = 10; // base type: int
-
-// aliased types are interchangable with their base types without the need for an explicit cast
-let y: int = x; // valid
 
 // You can define distinct types with the use of the 'type' keyword:
 type Celcius = double;
 
+// types defined by the `type` keyword are distinct from their base types:
 let temp: Celcius = 35.0;
 let f: double = temp; // illegal, cast via `as double`
 let f: double = temp as double; // ok 👍
@@ -730,15 +768,41 @@ let f: double = temp as double; // ok 👍
 
 // You can wrap up several datatypes into a big datatype called a struct, just like in C 
 type Vector3 = struct {
-    x, y, z: f32;   
+    var x, y, z: f32;   
 }
+
+// struct values must declare their mutability upfront with the var and let keywords:
+type Entity = struct {
+    let id: string;
+    var pos: Vector3;
+    var health: 
+}
+
+var e: Entity = Entity.{
+    .id = "newEntity",
+    .pos = Vector3.{10, 10, 10},
+    .health = 10,
+    };
+
+e.health = 20; // OK ✅
+e.id = "bleh"; // Not OK ❎, will error at compile time
+
+// however, if a struct variable is declared with `let`, you cannot change it's fields at all
+
+let e: Entity = Entity.{
+    .id = "newEntity",
+    .pos = Vector3.{10, 10, 10},
+    .health = 10,
+    };
+e.id = "bleh"; // Not OK ❎, will error at compile time
+e.health = 20; // Also Not OK ❎
 
 // struct field tags
 // you may tag struct fields with a string which attaches meta info to the struct
 type GameObject = struct {
-    pos: Vec3 `json:"pos"`;
-    transform: Mat4 `json:"transf"`;
-    active: bool; // untagged
+    var pos: Vec3 `json:"pos"`;
+    var transform: Mat4 `json:"transf"`;
+    var active: bool; // untagged
 }
 
 ```
@@ -772,11 +836,21 @@ let (x, y, z, w, e, t) = (13, 45, 35, ... = 3); // w, e, t == 3, 3, 3
 
 // similar to C's enums, except with their own namespace
 type Colour = enum {
-    Red, Blue, Green, White, Yellow, Brown
+    Red,
+    Blue,
+    Green,
+    White,
+    Yellow,
+    Brown,
 }
 
 type MnMs = enum {
-    Red, Blue, Green, Yellow, Brown, Orange
+    Red,
+    Blue,
+    Green,
+    Yellow,
+    Brown,
+    Orange,
 }
 
 let x = Red; // => Error: Assigning variable <x> to unknown value <Red>;
@@ -790,6 +864,7 @@ type Flags = enum {
     Stop  = 1<<1,
     Start = 1<<2,
     Idk   = 512,
+    Other, // 513
 }
 
 // you can specify the backing type of an enum ( integer only )
@@ -811,8 +886,8 @@ for c in #count(Colour) do something(c);
 
 // enums can be tagged with a string
 type Colour = enum {
-    Red "colour_red",
-    Blue "colour_blue",
+    Red   "colour_red",
+    Blue  "colour_blue",
     Green "colour_green",
 }
 
@@ -875,8 +950,9 @@ type IdkSomething = enum : Colour, Jellybean {} // both Colour.Red and JellyBean
 // unions are pretty standard, only one item can be active at a time, the size of the union is the same as that of it's largest member
 // unions in river are discriminated by default
 type Literal = union {
+    None,
     Int: int,
-    Float: i64,
+    Float: f64,
     String: std::String,
     Char: char
 };
@@ -892,6 +968,26 @@ switch v {
     Char(v)   => printf("Char: {}", v);
 }
 
+type Maybe(T) = union {
+    None,
+    Some: T,
+}
+
+type Result(T, E) = union {
+    Error: E,
+    Ok: T,
+}
+
+fun readFile(path: string): Result(File, FileError) {
+    let f = file.open(path);
+    switch f {
+        Error(e) => {
+            
+        },
+        Ok(f) => {}
+    }
+}
+
 // unions can be untagged too, if desired:
 type Thingy = raw union {
     Int: int,
@@ -899,6 +995,25 @@ type Thingy = raw union {
 }
 
 ```
+
+# In expression
+
+```go
+
+type Colour = enum {
+    Red, Blue, Green, Orange, Magenta, Cyan, Yellow, Black, White
+}
+
+let x: Colour = getColour();
+
+if x in [ Colour.Red, Colour.Yellow, Colour.Blue ] {
+    io.println("primary colour!");
+} else {
+    io.println("other colour: {}", x);
+}
+    
+```
+
 
 # Functions 
 
@@ -1027,15 +1142,43 @@ type Vec2 = struct {
     x, y: int,
 }
 
-fun Vec2::add(self, rhs: Vec2): Vec2 = { ... };
-fun Vec2::neg(self): Vec2 = { ... };
+fun Vec2::add(self: Self, rhs: Vec2): Vec2 = { ... };
+fun Vec2::neg(self: *Self): Vec2 = { ... };
 
 let x = Vec2(10, 10);
 let y = x.neg();  // mutates x
 let z = x:add(y): // does not mutate x
-let w = Vec2::add(z, y);
+let w = Vec2::add(z, y); // similar to calling z.add(y);
     
 ```
+# Optionals
+
+```c
+
+type File = struct{...};
+
+fun read_file(path: string): File? {
+    ...
+}
+
+let f = read_file("foo.txt");
+if let Ok(v) = f {
+    println("{}", f.data);
+}
+
+let f = read_file("foo.txt")?; // unwraps implicitly, panics on error at runtime
+println("{}", f.data);
+
+    
+```
+
+# Pattern Matching
+
+# Error handling
+
+# Memory management
+
+# Traits
 
 # Generics
 
@@ -1045,7 +1188,7 @@ type Arr<T> = struct {
     data: [*]T,  
 };
 
-fun newArray<T>(size: isize, data: [*]T = null, alloc: Allocator = context.allocator ): Arr<T> {
+fun newArray<T>( size: isize, data: [*]T = null, alloc: Allocator = context.allocator ): Arr<T> {
     let x: Arr<T> = Arr<T>{};
     x.data = alloc.new(T, isize);
 

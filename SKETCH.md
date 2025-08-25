@@ -1,4 +1,3 @@
-```
 design doodles
 
 river design goals / considerations
@@ -67,6 +66,8 @@ feature list:
 - INTERFACES????
 - REFLECTION ????
 - COMPILE-TIME CODE EXECUTION???
+
+prolly replace alias with const
 
 what if attaching a $ to something made it run in compile time?
 
@@ -200,6 +201,8 @@ let rect = Rectangle(5, 5);
 
 variable shadowing should be allowed.
 
+# MEMORY MANAGEMENT
+
 boxed pointers?
 - like some sort of differenciator between "owning" pointers and "viewing" pointers?
 
@@ -208,6 +211,67 @@ pointers own an object and are responsible for calling free somewhere before the
 but references are not allowed to call free at all?
 
 maybe this should all be enforced in the stdlib and not in a language level?
+
+what if destructors were allowed in the language, but they were opt-in and not automatic?
+
+```c++
+
+// manually managed.
+let object = Object::new();
+defer object.delete();
+
+// this one is manually marked as an acquired resource, which means that it automatically calls a destructor??
+let object2 = acquire Object::new();
+  
+```
+
+though obviously this does bring up questions like, how are values allocated?
+can every object declare it's own `new` function or must they all follow the same pattern?
+what if an object doesn't have a destructor? is there a default destructor?
+is there a default constructor too?
+
+what if instead of using a `new` function that's defined on an object, it instead used a built-in `new` function that allocates a new object?
+
+```c++
+
+let object := new(Object); // allocates 1 object and returns a slice to that memory.
+
+let objects := new(Object, 10); // allocates 10 objects at once and returns a slice to that memory.
+
+let debugObjects := new(Object, 10, allocator: DebugAllocator); // allocates 10 objects and uses a custom allocator.
+
+// similarly there should prolly be a delete function:
+// it just frees memory, that's all
+
+delete(object);
+delete(objects);
+delete(debugObjects);
+```
+```rs
+
+fun new(T: type, num: size, alloc: Allocator): *type;
+
+fun new<T>(t: T, num: size, alloc: Allocator): *T;
+
+let object = new<Object>::();
+
+let object = new(Object);
+
+let object = new(Object);
+let objects = new(Object, 10);
+  => {
+    let data: [*]T = alloc.alloc(Object, 10);
+    for d in data {
+      d.init();
+    }
+  }
+  
+```
+
+what if the language had constructors and destructors, and the new/delete functions implicitly call the constructor/destructor for an object after allocating memory for it?
+the constructors could be used for ensuring that the memory/object is formatted properly before use / is in an expected state.
+and then the destructors could be used for ensuring that the cleanup is done correctly?
+
 
 
 explicit fallthrough in switch statements
@@ -476,18 +540,171 @@ fun main() {
 
   io:print("s: \"{}\"", s); // s: "hello"
 }
+
+
+// main.rvr
+
+import parser, scanner, codegen;
+
+// each of these modules are stores in .rvr files.
+// however if i were to split parser.rvr into multiple files in a directory:
+
+parser/
+  | ast.rvr
+  | mod.rvr
+  | expr.rvr
+  | types.rvr
+  | debug.rvr
+
+i should still be able to just use `import parser;` and have it resolve to the proper module
+
+i could do reexports?
+parser.rvr could be edited to be like:
+```
+using ast;
+using expr;
+using types;
+using debug;
+```
+
+and then other files can still just refer to parser as a single module??
+though this does mean that you'd then just have a directory that looks like:
+
+ | main.rvr
+ | scanner.rvr
+ | parser.rvr
+ | parser/
+ | | expr.rvr
+ | | types.rvr
+ | | debug.rvr
+ | | ast.rvr
+
+which is kinda icky
+
+maybe imports should search for modules in a set pattern?
+like first look for `.rvr` files with that name, and if that doesn't exist then for directories with that name?
+if neither exists then that's a [MODULE_NOT_FOUND] error and if both exist then that's a [MODULE_DUPLICATED] error and it should be resolved.
+
+
+```
+type Ast = union {
+
+  Expr: union {
+    BinaryExpr: struct {
+      lhs: *Expr;
+      rhs: *Expr;
+      op: *Token;
+    } "binary expression",
+    UnaryExpr: struct {
+      op: *Token;
+      val: *Expr;      
+    } "unary expression"
+  } "expression",
+
+  If: struct {
+    cond: *Expr,
+    
+  }
+}
+  
 ```
 
 
-import matrix::{ Vec2 };
+fun colourFunction (data: struct{x,y,z,w: f32}) {...}
 
+type Colour = struct {r, g, b, a: f32}
+type OtherColour = struct {r, g, b, a: f32}
+
+let x = Colour(1, 1, 1, 1);
+let y = OtherColour(0, 1, 0, 1);
+
+colourFunction(x); // OK
+colourFunction(y); // Also OK
+
+[x, y, z] => colourFunction();
+// equivalent to:
+colourFunction(x);
+colourFunction(y);
+colourFunction(z);
+
+fun doSomething(str: string, flag: bool) {}
+
+[
+  ("string", true),
+  ("hello", false),
+  ("name", true),
+] => doSomething; // calls doSomething with each of the values given in that array:
+
+doSomething("string", true);
+doSomething("hello", false);
+doSomething("name", true);
+
+
+[
+  ("string", true),
+  ("hello", false),
+  ("name", true),
+].forEach( fun(x: string, y: bool) = doSomething(x, y) );
+
+let vars = [
+  ("string", true),
+  ("hello", false),
+  ("name", true),
+];
+
+for v in vars {
+  doSomething(v.0, v.1);
+}
+  
+using std.io.file;
 
 fun main() {
-  let x: Vec2 = Vec2::new();
+  let f = file.open("input.txt")?;
+  let data = f.read();
+
+  data
+    .split('\n')
+    .forEach((s) => s.split(' '))
+    .filter((s) => s.startsWith('#'))
+    ;
 }
 
+type Message = union {
+  Quit,
+  Move: { x: i32, y: i32 },
+  Write: String,
+  ChangeColor: (i32, i32, i32),
+}
 
+```go
+type Point3D = {
+  x, y, z: f32;
+} // struct type
 
+type RGB = (f32, f32, f32); // tuple type
 
+type Number = int | f64;
 
+type Ast =
+  | BinExpr: {lhs: *Ast; op: char; rhs: *Ast}
+  | UnExpr: {op: char, val: *Ast}
+  | Identifier: string
+  | Number: int | f64
+  ;
+```
+
+ArrayList<int>::new() vs ArrayList::new(int);
+
+Foo<Type, Value>::new() vs Foo(Type, Value);
+
+HashMap<string, int>::new() vs HashMap(string, int);
+
+let x: HashMap(string, int) = HashMap(string, int, 10);
+
+fun HashMap( type: (key: $T, value: $V) ): HashMap(T, V);
+
+fun something( t: typeid ): *typeid {
+  
+}
+  
 
