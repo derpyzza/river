@@ -1,5 +1,3 @@
-
-
 - Implement better memory handling:
     - Arenas?
     - Store AST in flat contiguous array
@@ -40,29 +38,6 @@ required tooling:
     syntax highlighting
     intellisense
     stdlib
-
-maybe tooling:
-    interpreter
-    package manager
-
-
-bare minimum functional river compiler:
-
-functions:
-    TYPE NAME ( PARAMS ) => BODY
-
-Types:
-    int, float, str, char, bool, void ( for functions );
-    variables are typechecked
-
-Variable stuff:
-    let
-    modifiers:
-        mut, ^, []
-
-function bodies are flat list of variable declarations and expressions and function calls
-
-supports imports and moduling
 
 supports C foreign function importing ( for printf );
 
@@ -134,63 +109,6 @@ supports C foreign function importing ( for printf );
 # Notes and Junk
 
 river should probably be able to figure out struct alignment and place the fields in the most optimized alignment.
-
-How about adding semantic casing?
-constants in all caps:
-    const Int SOMETHING = 10;
-function and variable names in snake_case:
-    Bool is_false = true;
-    Void do_something() = {
-        println("Something");
-    }
-private variables begin with an underscore:
-    Int _private = 10;
-types, structs, enums and unions should all be written in PascalCase:
-    Int, Byte, Short, Long, UInt, ULong, UShort, UByte,
-    Char, Str, Float, Double, Bool, Void.
-
-grouping syntax:
-
-{} = blocks, structs;
-() = parenthesized expressions, tuples
-[] = array subscripts, array literals, generics
-
-
-struct literals cannot be anonymous:
- STRUCTNAME {}
-struct literal fields MUST be named.
-
-structs are nominal types that hold named values of different types.
-tuples are structural types that hold unnamed values of different types.
-arrays are structural types that hold unnamed values of the same type.
-
-for (_, ^x) in intList do x *= x; 
-
-@ for pointer derefencing
-
-```c
-
-int x = 10
-    y = 23
-    z = 25;
-
-    
-```
-
-
-
-```
-(if x = 10 then 3 else 7) * 4; // valid
-
-int[10] list= [ 23, 53, 46, 68, 35, 57, otherList... ];
-
-10 * ( 12 + 4 ) // syntax and semantics OK.
-12 * ( 12, "string" ); // syntactically OK, semantically errors.
-
-```
-
-let x = 10 * if y then z else d;
-
 
 
 perhaps function parameters should be tuples, with functions only taking one parameter?

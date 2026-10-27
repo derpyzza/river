@@ -153,24 +153,24 @@ fun main() {
 let x = (23, 59, "String");
 
 // a gets set to x.0, b gets set to x.1, x.2 gets discarded
-let (a, b, _) = x;
+let a, b, _ = x;
 
 // in the case of variable destructuring, the number of variables on the lhs must match those on the rhs:
-let (x, y) = (1, 2, 3); // => error, too many values
-let (x, y) = (1, 2); // fine
+let x, y = 1, 2, 3; // => error, too many values
+let x, y = 1, 2; // fine
 // the only exception is for assigning tuples to a single variable, as you saw at the start
-let tup = (1, 2, 3); // ✅ okay
-let (a, b, c) = tup; // ✅ also okay. a b c get set to 1 2 3 respectively
+let tup = 1, 2, 3; // ✅ okay
+let a, b, c = tup; // ✅ also okay. a b c get set to 1 2 3 respectively
 
 // tuples can be used for multiple return values from functions:
 fun read_file(path: string): (File, Error);
 
-let (f, err) = read_file("README.md");
+let f, err = read_file("README.md");
 if err {
     panic(err);
 }
 
-foreach line in f { printf(line); }
+for let _, line in f { printf(line); }
 ```
 
 ## Algebraic Data Types + Pattern matching

@@ -13,42 +13,39 @@ considerations:
 
 | Keyword  | Use                                        |
 | -------- | ------------------------------------------ |
-| true     | true                                       |
-| false    | false                                      |
-| fun      | function declaraction                      |
-| return   | return values from functions               |
-| struct   | declare a struct                           |
-| enum     | declare an enum                            |
-| union    | declare a union                            |
-| raw      | mark a union as an untagged union          |
-| let      | declare an immutable variable              |
-| var      | declare a mutable variable                 |
-| const    | declare a compile-time constant            |
-| type     | declare a new type                         |
 | alias    | alias a symbol to another                  |
-| if       | if expression                              |
-| else     | else expression                            |
-| then     | then branch in if expression               |
-| for      | for loop                                   |
-| in       | get item from iterator                     |
-| while    | while loop                                 |
-| do       | do branch in inline for/while loops        |
-| repeat   | repeat loop                                |
-| until    | until conditional for repeat loop          |
+| as       | alias an import module | type cast         |
 | break    | break loop                                 |
+| case     | case branch for switch expression          |
+| const    | declare a compile-time constant            |
 | continue | continue to next iteration of loop         |
 | defer    | execute expression at the end of the scope |
-| switch   | switch expression                          |
-| case     | case branch for switch expression          |
+| do       | do branch in inline for/while loops        |
+| else     | else expression                            |
+| enum     | declare an enum                            |
+| false    | false                                      |
+| for      | for loop                                   |
+| fun      | function declaration                       |
+| goto     | goto statement                             |
+| if       | if expression                              |
 | import   | import a module                            |
-| module   | declare a module                           |
-| as       | alias an import module | type cast         |
+| in       | get item from iterator                     |
+| let      | declare an immutable variable              |
+| raw      | mark a union as an untagged union          |
+| return   | return values from functions               |
+| struct   | declare a struct                           |
+| switch   | switch expression                          |
+| then     | then branch in if expression               |
+| true     | true                                       |
+| type     | declare a new type                         |
+| undef    | leave a variable undefined                 |
+| union    | declare a union                            |
+| var      | declare a mutable variable                 |
+| while    | while loop                                 |
 
 // maybe keywords
 
 null
-
-goto label
 
 is
 
@@ -56,27 +53,16 @@ macro
 
 impl interface
 
-
 f32 f64
-
 u8 u16 u32 u64 
-
 i8 i16 i32 i64
-
 usize size
-
 uint int
-
 string
-
 bool
-
 void
-
 char
-
 any ?
-
 typeid
 
 # Operators
@@ -90,13 +76,14 @@ typeid
 | %        | truncated modulo         | binary | infix     |
 | %%       | floored remainder        | binary | infix     |
 | -        | negation                 | unary  | prefix    |
+| *        | pointer deference        | unary  | prefix    |
 | <        | less than                | binary | infix     |
 | >        | greater than             | binary | infix     |
 | &        | bitwise and              | unary  | prefix    |
 | \|       | bitwise or               | unary  | prefix    |
 | ^        | bitwise xor              | unary  | prefix    |
 | ~        | bitwise not              | unary  | prefix    |
-| =        | assignment               | binary | infix     |
+| :=       | assignment               | binary | infix     |
 | ++       | increment                | unary  | postfix   |
 | --       | decrement                | unary  | postfix   |
 | +=       | add assignment           | binary | infix     |
@@ -117,7 +104,6 @@ typeid
 | .        | field / method-call      | binary | infix     |
 | []       | array index              | unary  | circumfix |
 | ..       | range                    | binary | infix     |
-| @        | pointer deference        | unary  | prefix    |
 | ->       | function applicator      | binary | infix     |
 
 
@@ -127,7 +113,7 @@ The builtin types are as follows:
 
 | Type   | C-Type       | Description                                              |
 | ------ | ------------ | -------------------------------------------------------- |
-| anyptr | void*        | a pointer type that can be cast down to any pointer type |
+| any    | void*        | a pointer type that can be cast down to any pointer type |
 | bool   | _Bool        | boolean type                                             |
 | char   | uint8_t      | alias of u8                                              |
 | f32    | float        | floating point number : corresponds to C floats          |
@@ -216,98 +202,139 @@ for libraries, a `lib` module is used as the entrypoint instead.
 
 # Compiler directives
 
-- turn off reflection 
+- turn off reflection ( per datatype / per file / per module / per project )
+    ```c
+        @no-reflect
+        struct Foo {
+            x: Bar
+            y: Baz
+        }
+        // ---
+        @no-reflect:file
+
+    ```
+- turn off automatic struct packing/alignment ( per struct )
     
 
 
 # Identifiers and Numbers
+
+## Identifiers
 ```
-    iden ->
-        [a-zA-Z_] [a-zA-Z0-9_]*
-    digit ->
-        [0-9]
+iden -> [a-zA-Z_] [a-zA-Z0-9_-]* 
 
-    number ->
-        | float
-        | integer
+identifier
+_identifier
+some_identifier
+other-identifier // yes, hyphenated identifiers are allowed    
+
+// valid identifiers
+_ // valid identifier, but has special semantic value
+a
+_a
+_3
+abc
+_abc
+_a_bc
+_0_10
+a-b
+a-b_c
+_0-1_2
+__
+_-
+_---
+_-_
+_0__0_
+
+```
+
+## Numbers
+
+```
+digit ->
+    [0-9]
+
+number ->
+    | float
+    | integer
 
 
-    dec_exp -> [eE] [-+]? integer ;
+dec_exp -> [eE] [-+]? integer ;
 
-    bin_exp -> [pP] [-+]? integer ;
-
-
-    float -> 
-        | digit* ( '.' digit+ )? dec_exp? [fFdD]?
-        | hex_literal* ( '.' hex_literal+ )? bin_exp? [fFdD]? 
+bin_exp -> [pP] [-+]? integer ;
 
 
-    integer ->   
-        (
-            digit* ( ['_] digit+ ) dec_exp?
-            | hex_literal bin_exp?
-        		| octal_literal
-        		| binary_literal
-        )
-        ( [uUiI] ( \d* | 'z' ) )?
+float -> 
+    | digit* ( '.' digit+ )? dec_exp? [fFdD]?
+    | hex_literal* ( '.' hex_literal+ )? bin_exp? [fFdD]? 
 
 
-    binary_literal ->
-        '0b' binary_digit* ( [_'] binary_digit+ )?
-    hex_literal ->
-        '0x' hex_digit* ( [_'] hex_digit+ )?
-    octal_literal ->
-        '0c' octal_digit* ( [_'] octal_digit+ )?
+integer ->   
+    (
+        digit* ( ['_] digit+ ) dec_exp?
+        | hex_literal bin_exp?
+    		| octal_literal
+    		| binary_literal
+    )
+    ( [uUiI] ( \d* | 'z' ) )?
 
 
-    hex_digit ->
-        [0-9a-fA-F]
-    octal_digit ->
-        [0-7]
-    binary_digit ->
-        [01]
+binary_literal ->
+    '0b' binary_digit* ( [_'] binary_digit+ )?
+hex_literal ->
+    '0x' hex_digit* ( [_'] hex_digit+ )?
+octal_literal ->
+    '0c' octal_digit* ( [_'] octal_digit+ )?
 
-    1
-    32
-    134'43e+10
-    134_43E+10
-    234f
-    13'234'32
-    24_242_24
-    123.134e+13
 
-    0xbadcafe
-    0xBADCAFE
-    0xBad_Cafe
-    0xBAD'CAFE
-    0xBad.Cafe
-    0xBAD.CAFEp+24
+hex_digit ->
+    [0-9a-fA-F]
+octal_digit ->
+    [0-7]
+binary_digit ->
+    [01]
 
-    0c777
-    0c11_23
-    0c32'24'24
+1
+32
+134'43e+10
+134_43E+10
+234f
+13'234'32
+24_242_24
+123.134e+13
 
-    0b101010101
-    0b1010'1010
-    0b1001_1010
+0xbadcafe
+0xBADCAFE
+0xBad_Cafe
+0xBAD'CAFE
+0xBad.Cafe
+0xBAD.CAFEp+24
 
-    123.234
-    12.23_24
-    .05
-    123'234.23'234
-    142_234.244_242
-    123u8      // explicit u8 literal
-    123u16     // explicit u16 literal
-    123u32     // explicit u32 literal
-    123u64     // explicit u64 literal
-    123i8      // explicit i8 literal
-    123i16     // explicit i16 literal
-    123i32     // explicit i32 literal
-    123i64     // explicit i64 literal
-    234uz      // explicit usize literal
-    424iz      // explicit size literal
-    133f32     // explicit f32 literal
-    234f64     // explicit f64 literal
+0c777
+0c11_23
+0c32'24'24
+
+0b101010101
+0b1010'1010
+0b1001_1010
+
+123.234
+12.23_24
+.05
+123'234.23'234
+142_234.244_242
+123u8      // explicit u8 literal
+123u16     // explicit u16 literal
+123u32     // explicit u32 literal
+123u64     // explicit u64 literal
+123i8      // explicit i8 literal
+123i16     // explicit i16 literal
+123i32     // explicit i32 literal
+123i64     // explicit i64 literal
+234uz      // explicit usize literal
+424iz      // explicit size literal
+133f32     // explicit f32 literal
+234f64     // explicit f64 literal
 ```
 
 # Comments
@@ -367,15 +394,15 @@ fun main() {
 
 # Constants
 ```
-    const_def -> "const" iden ":" type "=" expr ";" ;
+    const_def -> "const" iden ":" type ":=" expr ";" ;
 ```
 
 you can declare compile time constants with the `const` keyword.
 constants are akin to `constexpr` in C++, they alias a symbol to an expression.
 ```rust
 
-const PI: f32 = 3.1415;
-const TWO_PI: f32 = PI * 2; 
+const PI: f32 := 3.1415;
+const TWO_PI: f32 := PI * 2; 
 
 ```
 
@@ -384,23 +411,26 @@ const TWO_PI: f32 = PI * 2;
 ```
     var_decl ->
           | ("let" | "var") iden ":" data_type ";"
-          | ("let" | "var") iden ( ":" data_type )? "=" LITERAL ";"
+          | ("let" | "var") iden ":" data_type? ":=" LITERAL ";"
           | ("let" | "var") iden ( "," iden )+ ":" data_type ";"
-          | ("let" | "var") iden ( "," iden )+ ":" data_type  "=" LITERAL ( "," LITERAL )+ ";"
+          | ("let" | "var") iden ( "," iden )+ ":" data_type  ":=" LITERAL ( "," LITERAL )+ ";"
           ;
-    
 ```
 
 ```ts
 
 // variables are declared with the 'let' keyword
-let x: int = 10;
+let x: int := 10;
 
 // variables declared with the 'let' keyword are immutable
 // to create mutable variables, use the 'var' keyword
 
-var x: int = 10;
+var x: int := 10;
 x += 10; // x = 20
+
+// variable types can also be inferenced
+let foo := 10; // => int
+let bar := 3.1415; // => float
 
 // you can declare variables without initializing them.
 // However, when just declaring a variable, you must provide it's type
@@ -412,14 +442,14 @@ let w: int; // legal
 let x: int; // x = 0
 
 // if a variable is supposed to be uninitialized, use the `undef` keyword:
-let foo: int = undef;
+let foo: int := undef;
 
 // you may declare multiple variables at once, provided they're of the same type:
 let r, g, b, a: u8;
 // you may also assign values to said variables in the order of definition.
 // NOTE: this is only limited to variable declaration, and does not work in other contexts
 // ( i.e struct / function default parameters )
-let r, g, b, a: u8 = 0xFF, 0x05, 0x24, 0xFF;
+let r, g, b, a: u8 := 0xFF, 0x05, 0x24, 0xFF;
 ```
 
 # Pointers
@@ -427,30 +457,21 @@ let r, g, b, a: u8 = 0xFF, 0x05, 0x24, 0xFF;
 ```rs
 
 // pointers are defined as such:
-let name: *type = &non_pointer_variable;
+let name: *type := &non_pointer_variable;
 // pointers are dereferenced as such
-let name: type = @pointer_variable;
+let name: type := *pointer_variable;
 ```
-pointer arithmetic is disallowed. the only operations a pointer has are the address-of and deference operations.
+pointer arithmetic is disallowed.
+the only operations a pointer has are the address-of and deference operations.
+See [`Slices`](#Slices) for pointer-arithmetic.
 Null pointers also do not exist. instead, nullable pointers are wrapped up in an [`Optional`](#Optionals) type.
-
-c output:
-```c
-
-// let variable = 10;
-// let ptr = &variable;
-// let otherVar = @ptr;
-int variable = 10;
-int *ptr = &variable;
-int otherVar = *ptr;
-```
 
 # Arrays
 
 ```rs
 // arrays are defined as such:
-let name: [size]type = value;
-let arr:  [6]int = {1, 2, 3, 4, 5, 6}; // array of six integers
+let name: [size]type := value;
+let arr:  [6]int := {1, 2, 3, 4, 5, 6}; // array of six integers
 
 // arrays have their length encoded into them:
 // Do note: the array length is equal to the number of elements in it, not the max index
@@ -459,34 +480,34 @@ let arr:  [6]int = {1, 2, 3, 4, 5, 6}; // array of six integers
 arr.len(); // => 6
 
 // array types must always contain the size
-let name: []type = value; // => ERROR, missing array size
+let name: []type := value; // => ERROR, missing array size
 // but for array literal definitions you can simply just put a _ to infer the length:
-let arr: [_]u8 = {3, 6, 7, 2, 6}; // => Okay ✅
+let arr: [_]u8 := {3, 6, 7, 2, 6}; // => Okay ✅
 let arr: [_]u8; // Error: Must provide a default array
 
-let arr = [5]u8{0, 1, 2, 3, 4}
+let arr := [5]u8.{0, 1, 2, 3, 4}
 
 // you can initialize items in specific locations in an array using the following shorthand:
-let arr: [10]bool = {
+let arr: [10]bool := {
     3 = false,
     6 = true,
 };
 
 // you can initialize an array or a portion of an array with a value using the ... operator
-let buf: [512]u8 = {... = 0x42};
-let foo: [10]u8 = {1, 4, 6, ... = 32};
+let buf: [512]u8 := {... := 0x42};
+let foo: [10]u8 := {1, 4, 6, ... := 32};
 
 // similarly, you can also assign elements over ranges:
-let mem: [512]u8 = {
-    0x00..0xFF   = 0x42,
-    SPECIAL_BYTE = 223,
-    OTHER_BYTE   = 243,
-    FLAG_BYTE    = Flag.Foo | Flag.Bar;
-    0x120..0x200 = 0x00,
+let mem: [512]u8 := {
+    0x00..0xFF   := 0x42,
+    SPECIAL_BYTE := 223,
+    OTHER_BYTE   := 243,
+    FLAG_BYTE    := Flag.Foo | Flag.Bar;
+    0x120..0x200 := 0x00,
 };
 
 // for multi-dimentional arrays
-let map: [10][10]f32 = {...0};
+let map: [10][10]f32 := {...0};
 
 let map: [M_WIDTH][M_HEIGHT][M_LENGTH]int;
 
@@ -539,10 +560,10 @@ the length of slices are known at run-time, rather than at compile time like wit
 ```rs
 
 
-let arr: [_]u8 = [4, 6, 7, 8, 3, 7];
-let slice: [*]u8 = arr[3..5]; // => [8, 3, 7], len 3
+let arr: [_]u8 := [4, 6, 7, 8, 3, 7];
+let slice: [*]u8 := arr[3..5]; // => [8, 3, 7], len 3
 
-let mem: [*]u8 = mem.alloc(u8, 100);
+let mem: [*]u8 := mem.alloc(u8, 100);
 mem.len(); // => 100
 
 // like with regular pointers, pointers to arrays can have up to 8 levels of indirection:
@@ -554,26 +575,36 @@ let arr: ********[6]********int; // pointer to pointer t ... 8 times an array of
 
 # Strings
 
-river supports types of string literals:
+```rs
+// the string type in river is an alias of [_]char
+// so it implicitly stores a length variable
+let s: string := "hello world";
+s.length; // 11
+
+let sp := s.split(6)[0]; // "hello"
+```
+
+river supports three types of string literals:
 - normal literals
 - multiline literals
 
 ```rs
-// the string type in river is an alias of [_]char
-let s: string = "hello world";
-s.len(); // 11
 
-let sp = s.split(6)[0]; // "hello"
-```
+// normal string literals can have character escape sequences
+// such as \n, \t etc
+let str := "hello there \n how are you?"
 
-river supports multiline strings too:
-```c
-let str =
+io::println(str); // hello there
+                  // how are you?
+
+// multiline strings span multiple lines
+let str :=
     \\ hi hello
     \\ this is a multiline string yaaay
     \\
     \\     this is an indented line
     ;
+
 ```
 
 however, if that's unsavoury for you for whatever reason, then river still supports C's style of automatically concatenating string literals next to each other.
@@ -589,11 +620,11 @@ let str =
 
 # Control flow expressions
 
-## If-expression
-```c
+## If Expression
+```rs
 
 // if-statements in river are actually expressions, and can return values
-let x = if condition {
+let x := if condition {
     value
 } else condition {
     value
@@ -608,27 +639,60 @@ if condition {
     // do yet more stuff
 }
 
+
 // if-expressions don't need parenthesis for their condition unlike in C.
 // instead, the body MUST be contained in a block
 if bool { something() } else { something_else() }
 
 // when if-statements are being used as an expression, i.e they're expected to produce a value, you MUST provide an else clause in case the `if` check fails:
-let x = if false { 10 }; // ERROR: x never gets initiated :(
-let x = if false { 10 } else { 20 }; // OK
+let x := if false { 10 }; // ERROR: x never gets initiated :(
+let x := if false { 10 } else { 20 }; // OK
+
+```
+
+## Else Expressions
+```rs
 
 // else expressions can be used on their own to provide fallback values in case of failure:
-let config = read_config() else default_config;
+let config := read_config() else default_config;
 // here the else expression only gets triggered if read_config() results a falsey value.
+
+// similarly
+
+```
+
+### If-Let/Var Expression
+
+```rs
+
+// if let or if var expressions is this thing i'll come up with a description later
+if let out := func() {
+    do_something_with_out(out);
+} else {
+    do_something_else_with_out(out);
+}
+
+do_something_with_out(out); // ERROR: Out not declared.
+
+
+// can run additional checks ( up to one )
+if let out := func(); out != null {
+    do_something_with_out(out);
+} else {
+    do_something_else_with_out(out);
+}
+
+
 ```
 
 ## Switch expression
     
-```c
+```rs
 
-const foo = 10;
-let num = getSomeNum();
+const foo := 10;
+let num := getSomeNum();
 
-let val = switch num {
+let val := switch num {
     0 => "string",
 
     // you can match multiple cases at once with the | operator
@@ -644,7 +708,6 @@ let val = switch num {
     52 => nextcase,
     53 => "yaaay",
 
-    // default
     default => {...}
 }
 
@@ -656,6 +719,18 @@ fun x_to_string(x: X): string =>
         X_XXXX  => "XXXX",
         default => "bleh"
     };
+
+// river also supports another switch construct called an anonymous switch:
+let foo, bar, baz: bool;
+
+let v := switch _ {
+    foo => 10,
+    bar => 20,
+    baz => 30,
+    else => 40,
+};
+
+    
 ```
 
 # Loop statements
@@ -666,7 +741,7 @@ all the loop constructs are statements, and not expressions.
 ```c
 
 // while loops are pretty normal
-while expression { ... };
+while expression { ... }
 
 ```
 
@@ -679,7 +754,7 @@ do {
 
 } while expression;
 
-let x = 0;
+let x := 0;
 do { x++ } while x < 10;
 ```
 
@@ -691,7 +766,7 @@ do { x++ } while x < 10;
 for init;cond;inc {...}
 
 // NOTE: the `let` here means that it's illegal for it to be mutated *within* the loops body
-for let x = 0; x < arr.len; x++ {
+for let x := 0; x < arr.len; x++ {
     io.println("x is: {}", arr[x]);
 }
 
@@ -718,12 +793,12 @@ for let (index, value) in arr.enumerate() {
 ```c
 
 // You can define distinct types with the use of the 'type' keyword:
-type Celcius = double;
+type Celcius := double;
 
 // types defined by the `type` keyword are distinct from their base types:
-let temp: Celcius = 35.0;
-let f: double = temp; // illegal, cast via `as double`
-let f: double = temp as double; // ok 👍
+let temp: Celcius := 35.0;
+let f: double := temp; // illegal, cast via `as double`
+let f: double := temp as double; // ok 👍
 ```
 
 # Structs 
@@ -735,70 +810,66 @@ struct Vector3 {
     x, y, z: f32;
 }
 
-struct Colour {
-    r, g, b: u8 = 0;  // r = g = b = 0
-    a: u8 = 1;        // a = 1
-}
-
+// struct fields can have default values
 struct Foo {
 
     // ❌ illegal
-    r, g, b: u8 = 0, 1, 2;
+    r, g, b: u8 := 0, 1, 2;
 
     // ✅ allowed
-    r: u8 = 0;
-    g: u8 = 1;
-    b: u8 = 2;
+    r: u8 := 0;
+    g: u8 := 1;
+    b: u8 := 2;
 }
 
 
 let v: Vector3;
-v.x = 1;
-v.y = 3;
+v.x := 1;
+v.y := 3;
 io::println("{%v}", v); // => Vector3 { x: 1, y: 3, z: 0 }
 
 struct Entity {
-    id: string,
-    pos: Vector3,
-    health: int,
+    id: string;
+    pos: Vector3;
+    health: int;
 }
 
 // struct initialization
-let e: Entity = .{"newEntity", Vector3.{10, 10, 10}, 10};
+let e: Entity := .{"newEntity", Vector3.{10, 10, 10}, 10};
 
 // alternatively, the struct fields can be named on initialization
-let e: Entity = .{   
-    .id = "newEntity",
-    .pos = Vector3.{10, 10, 10},
-    .health = 10
+let e: Entity := .{   
+    .id := "newEntity",
+    .pos := Vector3.{10, 10, 10},
+    .health := 10
 };
 
 // if the type isn't provided during declaration, 
-let e = Entity.{"newEntity", .{10, 10, 10}, 10};
+let e := Entity.{"newEntity", .{10, 10, 10}, 10};
 
 
 // struct fields may have default values, that are automatically inserted on initialization
 struct Person {
-    name: string = "John Doe";
-    admin: bool = false;
+    name: string := "John Doe";
+    admin: bool := false;
     id: int; // no custom default value
 }
 
 // default struct initialization
-let x = Entity.{}; // => Entity.{ "John Doe", false, 0 };
+let x := Entity.{}; // => Entity.{ "John Doe", false, 0 };
 
 
 // struct fields may also set their default values relative to other fields:
 struct Rectangle {
-    height: int = 1;
-    width:  int = 1;
+    height: int := 1;
+    width:  int := 1;
 
-    area: int = height * width;
-    perim: int = 2 * height + 2 * width; 
+    area: int := height * width;
+    perim: int := 2 * height + 2 * width; 
 }
 
-let x = Rectangle.{}; // => Rectangle { .height = 1, .width = 1, .area = 1, .perim = 4 }
-let y = Rectangle.{10, 10}; // => Rectangle { .height = 10, .width = 10, .area = 10, .perim = 40 }
+let x := Rectangle.{}; // => Rectangle { .height = 1, .width = 1, .area = 1, .perim = 4 }
+let y := Rectangle.{10, 10}; // => Rectangle { .height = 10, .width = 10, .area = 10, .perim = 40 }
 
 // TODO: Needs more work
 // structs may subtype one other struct
@@ -824,13 +895,13 @@ struct GameObject {
 // anonymous struct literals and types are treated as structural and can be coerced into named structs
 fun foo(): struct{ x, y, z: f32 };
 
-let x: Vector3 = foo(); // Okay
+let x: Vector3 := foo(); // Okay
 
 fun bar(v: struct{a, b, c, d: u8});
 
-let c = Colour.{0xff, 0x00, 0x00, 0x00};
+let c := Colour.{0xff, 0x00, 0x00, 0x00};
 bar(c); // also okay
-let d = .{0, 0, 1, 255};
+let d := .{0, 0, 1, 255};
 bar(d); // also okay
 
 // anonymous structs may not have default values
@@ -842,31 +913,33 @@ bar(d); // also okay
 ```c 
 
 // tuples are like structs, except they don't have named parameters
-let tup: (int, string) = (23, "River");
+let tup: (int, string) := (23, "River");
 tup.0; // 23
 tup.1; // "River"
 
 // you can destructure a tuple into multiple variables.
-let (age, name) = tup;
+let age, name := tup;
 
 fun get_person(id: int): (int, string)  {
-    return (people[id].0, people[id].1);
+    return people[id].0, people[id].1;
 }
 
-let person = get_person(id);
+let person := get_person(id);
 
-type Colour = (u8, u8, u8, u8);
-let red: Colour = (255, 0, 0, 255);
+type Colour := (u8, u8, u8, u8);
+let red: Colour := (255, 0, 0, 255);
 
-let (x, y, z, w, e, t) = (13, 45, 35, ... = 3); // w, e, t == 3, 3, 3
-
+// NOTE: tuple types MUST be wrapped in parenthesis
+//     > however, tuple literals can omit the parents
+//     > and just use commas, like in python.
+//     > unless passing into a function parameter
 ```
 
 # Enums 
 ```rs
 
-// base enums are similar to C's enums, except with their own namespace
-enum Colour : u8 {
+// enums are similar to C's enums, except with their own namespace
+enum Colour {
     Red,
     Blue,
     Green,
@@ -875,23 +948,15 @@ enum Colour : u8 {
     Brown,
 }
 
-let x = Red; // => Error: Assigning variable <x> to unknown value <Red>;
-let x = Colour::Red; // => compiles
-let y: Colour = Red; // => Also compiles
+let x := Red; // => Error: Assigning variable <x> to unknown value <Red>;
+let x := Colour::Red; // => compiles
+let y: Colour := Red; // => Also compiles
 
 
 // you can specify the backing type of an enum ( integer only )
 enum Something : u8 {
     Something,
     OtherThing
-}
-
-// enums can also be used as a convenient grouping of named constants:
-// ( backing type must be specified )
-enum Enemies : u8 const ( health: int, moves: [2]string ) {
-    Zombie   = { .health = 10, moves: { "punch", "bite"  } },
-    Skeleton = { .health =  8, moves: { "shoot", "dodge" } },
-    Spider   = { .health = 15, moves: { "sting", "run"   } },
 }
 
 // you can assign values to your enumarations
@@ -905,23 +970,26 @@ enum Flags {
     Other, // 513
 }
 
-// enums with explicit backing types can be used in place of the backing type:
+// enums with explicit backing types can be used in place of the backing type, or any type that they can be implicitly cast to:
 fun foo(num: u8) {...}
-
-foo(Something::OtherThing); // okay
-
-// otherwise you'd have to manually cast:
 fun bar(num: u16) {...}
 
-bar(Something::OtherThing); // error
-bar(Something::OtherThing as u16); // OK 👍
+foo(Something::OtherThing); // okay
+bar(Something::OtherThing); // also okay
+
+
+// otherwise you'd have to manually cast:
+fun baz(num: f32) {...}
+
+baz(Something::OtherThing); // error
+baz(Something::OtherThing as f32); // OK 👍
 
 
 // enums have various reflective fields:
 // - first: get the first element of an enum
-let x = TokenTag::KeywordTag.first; // => TokenTag[.KeywordTag].Return
+let x := TokenTag::KeywordTag.first; // => TokenTag[.KeywordTag].Return
 // - last: get the last element of an enum
-let x = TokenTag::KeywordTag.last; // TokenTag[.KeywordTag].Else
+let x := TokenTag::KeywordTag.last; // TokenTag[.KeywordTag].Else
 // - len: get the total number of elements in an enum
 for c in Colour.len { something(c); }
 // - values: get an array with all enum values
@@ -1037,6 +1105,13 @@ fun Colour_from_rgba( r, g, b: int, a: int = 255 )
 Colour_from_rgba(125, 125, 125); // param 'a' => 255;
 Colour_from_rgba(125, 125, 125, 125); // param 'a' => 125;
 
+// default function arguments also support type inferencing, but only for
+// values known at compile time ( such as constants, and literals )
+fun new_object(pos: vec3, alloc := default_allocator): Object {}
+
+// here, `default_allocator` is presumed to be some global constant, and it's
+// type is inferred ( to be Allocator, the type of the global constant )
+
 // Function arguments can be named when calling functions
 // Take the following function for example:
 fun draw_rect ( x, y, width, height, rotation: int, col: Colour ): Rectangle {
@@ -1044,31 +1119,33 @@ fun draw_rect ( x, y, width, height, rotation: int, col: Colour ): Rectangle {
 }
 
 // You can call the function by naming the individual arguments
+// this uses the same syntax as named struct fields
 let rect = draw_rect(
-    x = 20,
-    y = 30,
-    width = 240,
-    height = 360,
-    col = (10,10,10,255)
+    .x = 20,
+    .y = 30,
+    .width = 240,
+    .height = 360,
+    .col = Color.{10,10,10,255}
 );
-// The advantage of named arguments is that you can rearrange the order in which you pass them:
+// The advantage of named arguments is that you can rearrange the order in which
+// you pass them, irrespective of the original ordering:
 draw_rect_pro(
-    width = 240,
-    height = 360,
-    x = 20,
-    y = 30,
-    rotation = 10,
-    col = Color { 10,10,10,255 }
+    .width = 240,
+    .height = 360,
+    .x = 20,
+    .y = 30,
+    .rotation = 10,
+    .col = Color.{ 10,10,10,255 }
     ); // perfectly valid
 
 // NOTE: when mixing and matching named vs unnamed arguements, the unnamed arguements must always come first and in order:
 draw_rect_pro(
     20, // x
     30, // y
-    width = 240,
-    height = 360,
-    rotation = 10,
-    col = Color { 10,10,10,255 }
+    .width = 240,
+    .height = 360,
+    .rotation = 10,
+    .col = Color.{ 10,10,10,255 }
     ); // ✅ perfectly valid
 
 draw_rect_pro(
@@ -1140,6 +1217,42 @@ impl Vector3 {
 let up  = Vector3::Up; // Vector3(0,1,0);
 let neg = Vector3(-1); // Vector3(-1,-1,-1);
 
+
+// you may also set a file to be the impl for a type.
+
+// types.rvr
+struct Vec2 { ... }
+struct Vec3 { ... }
+struct Mat4 { ... }
+
+// Vec2.rvr
+impl Vec2;
+
+fun add(*self, rhs: Self) {
+    self.x += rhs.x;
+    self.y += rhs.y;
+}
+
+fun toString(v: Self): String {
+    let s = String::new().sprintln(
+        "Vec2: {x: %v, y: %v}",
+        v.x,
+        v.y
+    );
+
+    s
+}
+
+// when using file-level impl blocks, you may only have one per file. having multiple blocks is a syntax error.
+
+// Vecs.rvr
+impl Vec2;
+
+... code ...
+
+impl Vec3; // ERROR
+
+
     
 ```
 
@@ -1161,7 +1274,7 @@ impl Vec2 {
         self.y += rhs.y;
     }
 
-    fun toString(v: Vec2): String {
+    static fun toString(v: Self): String {
         let s = String::new().sprintln(
             "Vec2: {x: %v, y: %v}",
             v.x,
@@ -1175,8 +1288,7 @@ impl Vec2 {
 let x = Vec2(10, 10);
 let y = x.neg();  // mutates x
 let z = x:add(y): // does not mutate x
-let w = Vec2::add(z, y); // similar to calling z.add(y);
-    
+let w = Vec2::add(z, y); // similar to calling z.add(y);    
 ```
 
 # Using statement
@@ -1224,6 +1336,11 @@ struct NPC {
 fun print_npc_pos(npc: NPC) {
     io::println("%v is at pos (%v, %v)", npc.name npc.x, npc.y);
 }
+
+// you can of-course still access the original field directly too:
+let n := NPC.{ .pos = .{ 10, 20 } };
+n.x += 20;
+io::println("pos: %v", n.pos); // { 30, 20 }
     
 ```
 
@@ -1250,14 +1367,14 @@ impl Arr[$T: typeid] {
 
 }
 
-type ArrInt: Arr(int);
+type ArrInt = Arr[int];
 
 let x = ArrInt::new(10);
 
-let y = Arr(f32)::new(24);
+let y = Arr[f32]::new(24);
 
 // generic procedures can be constrained to only using the specializations of a generic struct like so:
-fun pushArray<T, A>(arr: A, item: T) where A:Arr { ... }
+fun pushArray[T, A](arr: A, item: T) where A:Arr { ... }
 
 let x = Arr[int]::new(10);
 pushArray<int>(x, 5);
@@ -1357,9 +1474,117 @@ let result_matrix = transpose(mult(mat, mat2));
 
 # Memory management
 
+# Closures
+
 # Macros / Code Generation
 
-# Reflection / Type introspection
+# Type introspection
+
+```rs
+
+// river supports full runtime type introspection
+
+// however, in the interest of smaller executables, most of the introspection information is disabled by default
+// by default, this is the following type information avaiable at runtime:
+//     - typeid: type name
+//     - typeof: base type [ int types, float types, string, char, bool, struct, enum, union, array, slice, tuple, function pointer ]
+//     - sizeof: type size
+//     - names: only for enums, array of string representation of the enumeration constant. i.e Colour::Red => "Red"
+//     - inner: the "inner" or backing type [ array, pointer, slice ]
+//     - len: arrays and enums only
+//     - firstof: first element, enums only
+//     - lastof: last element, enums only
+
+// you can turn on full runtime introspection for types with the `rtti` attribute
+#rtti
+struct Player {
+    pos: vec3;  // note that the types for all the fields must also have reflection enabled on them
+    name: string;
+    // other fields
+}
+// the following is the type information available with full rtti enabled
+//     - typeid: type name
+//     - typeof: base type [ int, float, bool, struct, enum, union, array, tuple, function pointer ]
+//     - sizeof: type size
+//     - names: only for enums, array of string representation of the enumeration constant. i.e Colour::Red => "Red"
+//     - values: only for enums, array of enum values
+//     - inner: the "inner" or backing type [ array, pointer, slice ]
+//     - len: arrays and enums only
+//     - firstof: first element, enums only
+//     - lastof: last element, enums only
+//     - fields: array of structs that contains a field name ( string ) along with a type ( typeinfo ), for unions and structs only.
+//     - methods: array of type methods
+//     - params: only for function pointer types, list of function paramaters
+//     - returns: only for function pointer types, return value
+
+fun print_type(t: typeinfo) {
+    // ...
+}
+
+let p := Player.{ .pos = .{10, 30, 20}, .name = "Joe" };
+print_type(p.typeinfo); // => struct Player {
+                        //     name: pos, val: .{10, 30, 20}
+                        //     name: name, val: "Joe"
+                        // }
+
+// #rtti attribute parameters:
+    // no-privates: exclute private fields
+    // names-only: only include field and type names and exclude typeinfo ( struct and union only )
+#rtti(no-privates)
+struct User {
+    name: string;
+    private password: string; // excluded
+}
+
+// you can also just manually exclude fields from getting rtti embedded for them:
+#rtti
+struct Game {
+    #no-rtti
+    renderer: Renderer; // excluded
+    world: World; // included
+}
+
+// rtti can also be completely disabled for a type using the `no-rtti` attribute
+#no-rtti
+struct Foo { ... }
+
+// you can also just simply set a compiler flag that automatically sets the rtti level
+// for every single type in the package
+// rvr compile src --rtti:[all|none|all-ex|none-ex]
+// - all: enables rtti for all types in the package
+// - none: disables rrit for all types in the package
+// - all-ex: enables rtti for all types in the package except the manually marked ones
+// - none-ex: disables rtti for all types in the package except the manually marked ones
+```
+
+# C FFI
+```c
+// use C types
+cstr, cvoid, *cvoid
+
+// import functions from C
+foreign {
+    fun malloc(size: isize): *void;
+}
+
+// export functions for C ( pretty naming )
+#extern("add_ii")
+fun add(x, y: int): int;
+#extern("add_ff")
+fun add(x, y: f32): f32;
+
+    
+```
+
+# Attributes
+```
+- extern
+- rtti: enable rtti for type
+- no-rtti: disable rtti for type
+- discard: allow discarding function return value
+- ignore-error: allow ignoring error value ( requires error to be the last value returned )
+    
+```
 
 
 # Misc + Reference
