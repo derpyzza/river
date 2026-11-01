@@ -18,10 +18,9 @@ static struct Node *var_def(void);
 static struct Node *type_def(bool is_alias);
 static struct Node *import_def(void);
 
-void init_parser( dstr source, dbuf_token *tokens) {
+void init_parser( dstr source ) {
 	parser.node_tree = dbuf_new_Node(1024);
 	parser.source = source;
-	parser.tokens = tokens;
 	parser.current = -1;
 	parser.had_error = false;
 	parser.errors = NULL;
@@ -61,10 +60,10 @@ bool match_type_token(void) {
 	return false;
 }
 
-dbuf_Node *parse_tokens( dbuf_token *tokens, dstr src )  { 
+Node *parse_tokens( dstr src )  { 
 
 	// Initialize parser state, parser struct found in src/parser/parser-internal.h
-	init_parser(src, tokens);
+	init_parser( src );
 
 	Node * n = new_node(N_TODO);
 	dbuf_push_Node(parser.node_tree, *n);

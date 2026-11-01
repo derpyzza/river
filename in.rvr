@@ -3,7 +3,7 @@
 // Parse the following text and make it return a .c file
 // With the equivalent code
 
-fun main -> int = {
+fun main(): int {
 	12 + -12 + 14 / 2 * 6;
 	42 + 53;
-};
+}

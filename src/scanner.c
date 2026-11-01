@@ -1,17 +1,20 @@
 #include "scanner.h"
+#include "derp.h"
 
 #include <stdio.h>
 #include <string.h>
 
 // internal scanner state
 struct Scanner {
-	int line;
+	int line; // current line number
 	dstr src;
-	dbuf_token *tkns;
+	char *cur;        // current character
+	char *tok_start;  // start of the current lexeme
 	char *file_start;
-	char *cur;
-	char *tok_start; // start of the current lexeme
+	char *line_start; // start of the current line
 };
+
+#define TOKEN_ERROR (Token) { T_ERROR, .line = scanner.line, .chr_index = scanner.cur - scanner.file_start }
 
 const char* tok_to_str(int t) {
 	switch((TokenTag)t) {
@@ -53,9 +56,24 @@ static inline char _peek_by(int by) {
 	return *(c+by);
 }
 
+
 static inline u8 _cur(void) {
 	return *scanner.cur;
 }
+
+// checks if the current + the next n characters match a string
+static inline bool _chk_next_n (int n, char chars[]) {
+	if ( _cur() != chars[0] ) return false;
+
+	for(int i = 0; i < n-1; i++) {
+		if(_peek_by(i) != chars[i]) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 
 static inline int _line(void) {
 	return scanner.line;
@@ -73,15 +91,21 @@ static inline void _advance_by(int by) {
 	scanner.cur += by;
 }
 
-static void _push_tok (int type) {
-	dstr span;
-	span.cptr = scanner.tok_start;
-	span.len = scanner.cur - scanner.tok_start + 1;
-	dbuf_push_token(scanner.tkns,
-	  (Token){
-	  	.span = span,
-	  	.type = type
-	  });
+
+static inline bool _is_stringy(void) {
+	char c = _cur();
+	return ( c == '"' );
+}
+
+
+Token _make_tok(TokenTag type, TokCat cat) {
+	return (Token) {
+		type,
+		scanner.line,
+		scanner.tok_start - scanner.file_start,
+		(dstr){scanner.tok_start, scanner.cur - scanner.tok_start + 1},
+		cat
+	};
 }
 
 /*
@@ -103,8 +127,8 @@ static void _push_tok (int type) {
 	binary_literal -> '0b' <[01]>* ;
 */
 
-static void _scan_num(dbuf_token *tkn) {
 
+static Token _scan_num(void) {
 	while(_is_digit(_peek())) {
 		_advance();
 	} 
@@ -113,325 +137,365 @@ static void _scan_num(dbuf_token *tkn) {
 		_advance_by(2);
 		if (!_is_digit(_cur()) && !(_cur() == 'f') && !(_cur() == 'd')) {
 			printf("ERROR: extra period after number at line %i\n", _line());
+			return TOKEN_ERROR;
 		} else {
 			while(_is_digit(_cur())) {
 				_advance();
 			}
-			_push_tok(T_LIT_FLOAT);
-			return;
+			return _make_tok(T_LIT_FLOAT, TC_LITERAL);
 		}
 	}
 
-	// int len = c-start-_start;
-	_push_tok(T_LIT_INT);
+	return _make_tok(T_LIT_INT, TC_LITERAL);
 }
 
-static void _scan_word(dbuf_token *tkn) {
-	char* str_ptr = scanner.cur;
-	// the first letter of an identifier MUST be an alphabetical character, but every subsequent character can be alphanumeric.
-	// so _1234 is a valid identifier but 12t is not for example.
-	while(_is_alphanum(_peek())) {
-		_advance();
-	}
-	int str_len = scanner.cur-scanner.tok_start + 1;
-
-	// This flag is here because i couldn't figure out the
-	// proper control flow needed to make sure that keyword
-	// identifiers get stored as keyword tokens and not keyword AND
-	// identifier tokens. This flag is my little hack.
-	int flag = 0;
+TokenTag _lookup_keyword(const char* str_ptr, usize str_len) {
 	for(int i = 0; i < NUM_KEY_WORDS; i++) {
-		int id = i + T_KEYWORD_START;
+		TokenTag id = T_KEYWORD_START + i;
 		const char * tokstr = tok_to_str(id);
 		if (
 		str_len == strlen(tokstr) &&
 		     !memcmp(str_ptr, tokstr, str_len)) {
 			// keyword detected, yaaay
-			_push_tok ((TokenTag) id);
-			flag = 1;
+			return id;
 		}
 	}
+	return T_IDEN;
+}
 
-	if (!flag) _push_tok ( T_IDEN );
+static Token _scan_word(void) {
+	// the first letter of an identifier MUST be an alphabetical character, but every subsequent character can be alphanumeric.
+	// so _1234 is a valid identifier but 12t is not for example.
+	while(_is_alphanum(_peek())) {
+		_advance();
+	}
+
+	char* str_ptr = scanner.tok_start;
+	usize str_len = scanner.cur-scanner.tok_start + 1;
+	TokenTag tag = _lookup_keyword(str_ptr, str_len);
+
+	Token out = _make_tok ( T_IDEN, tag == T_IDEN ? TC_IDEN : TC_KEYWORD );
+	_advance();
+	return out;
+}
+
+void _skip_whitespace(void) {
+	while ( _is_whitespace( _cur() ) ) {
+		if ( _cur() == '\n' ) {
+			scanner.line++;
+			scanner.line_start = scanner.cur;
+		}
+		_advance();
+	}
+}
+
+static Token _scan_string(void) {
+  while ( _peek() != '"' ) {
+    if ( _peek() == '\n' || _peek() == '\0' ) {
+      dlog_error("Unterminated string at l:%i\n", _line());
+      return TOKEN_ERROR;
+    }
+    if ( _peek() == '\\' ) {
+      _advance();                 
+      if ( _peek() == '\0' ) {
+        printf("Unterminated string at l:%i\n", _line());
+        return TOKEN_ERROR;
+      }
+    }
+    _advance();
+  }
+
+  _advance();
+
+  Token out = _make_tok(T_LIT_STR, TC_LITERAL);
+  _advance();
+
+  return out;
+}
+
+void _skip_comments(void) {
+	if( _chk_next_n(2, "//") ) {
+		_advance_by(2);
+		while(_peek() != '\n') _advance();
+	}
+
+	if( _chk_next_n(2, "/*") ) {
+		_advance_by(2);
+		int depth = 1;
+		
+		while ( depth > 0 && _peek() != EOF ) {
+			if(_peek() == '\n') {
+				scanner.line ++;
+				_advance();
+				scanner.line_start = scanner.cur;
+			} else if ( _chk_next_n(2, "/*") ) {
+				depth++;
+				_advance_by(2);
+			} else if ( _chk_next_n(2, "*/") ) {
+				depth--;
+				_advance_by(2);
+			}
+			else _advance();
+		}
+
+		if ( depth > 0 ) {
+			// idk throw an error here
+			// for now i'm just going to panic
+			// FIXME: add actual error handling here.
+			dlog_error("Unterminated multiline comment :(");
+			exit(-1);
+		}
+	}
+}
+
+
+void scanner_init(dstr src) {
+	scanner.src = src;
+	scanner.line = -1;
+	scanner.cur = src.cptr;
+	scanner.file_start = src.cptr;
+	scanner.tok_start = src.cptr;
 }
 
 // convert input string into list of tokens
-dbuf_token* tokenize( dstr src ) {
-	dbuf_token *tkn = dbuf_new_token(512);
+Token next_token(void) {
+	isize len = scanner.src.len;
 
-	printf("num keywords: %i", NUM_KEY_WORDS);
+	while (true) {
+    char *before = scanner.cur;
+    _skip_whitespace();
+    _skip_comments();
+    if (scanner.cur == before) break;
+	}
 
-	scanner.src = src;
-	scanner.tkns = tkn;
+	scanner.tok_start = scanner.cur;
 
-	// pointers to the start of the string
-	// and the current character
-	scanner.file_start = (char*) src.cptr;
-	isize len = src.len;
-	scanner.line = 1;
-	char* line_start = scanner.file_start;
-	scanner.cur = src.cptr;
+	Token out;
 
-	// printf("Scanning %s for tokens ...\n", src.path);
-	for ( ; scanner.cur - scanner.file_start < len; _advance() ) {
-		scanner.tok_start = scanner.cur;
+	if ( _is_digit( _cur() ) ) {
+		return _scan_num();
+	} else if ( _is_alpha( _cur() ) ) {
+		return _scan_word();
+	} else if ( _is_stringy() ) {
+		return _scan_string();
+	}
 
-		if ( _is_digit( _cur() ) ) {
-			_scan_num(tkn);
-		} else if ( _is_alpha( _cur() ) ) {
-			_scan_word(tkn);
-		} else if ( _is_whitespace( _cur() ) ) {
-			if ( _cur() == '\n' ) {
-				scanner.line++;
-				line_start = scanner.cur;
-			}
-		} else {
-			switch ( _cur() ) {
-				case '(': 
-				case ')': 
-				case '{': 
-				case '}': 
-				case '[': 
-				case ']': 
-				case ';': 
-				case ',': 
-				case '?': 
-				case ':': 
-				case '#': 
-				case '@': 
-					_push_tok(_cur());
-				break;
-				case '^':
-					if (_peek() == '=') {
-						_advance();
-						_push_tok(T_BIXOR_EQ);
-					}
-					else _push_tok(_cur());
-				break;
+	else {
+		switch ( _cur() ) {
+			case '(':  case ')': 
+			case '{':  case '}': 
+			case '[':  case ']': 
+			case ';':  case ',': 
+			case '?':  case '#': 
+			case '@': 
+				out = _make_tok( (TokenTag)_cur(), TC_SYMBOL);
+			break;
 
-				case '&':
-					if (_peek() == '=') {
-						_advance();
-						_push_tok(T_BAND_EQ);
-					} else if (_peek() == '&') {
-						_advance();
-						_push_tok(T_LAND);
-					}
-					else _push_tok(_cur());
-				break;
-				case '|':
-					if (_peek() == '=') {
-						_advance();
-						_push_tok(T_BOR_EQ);
-					} else if (_peek() == '|') {
-						_advance();
-						_push_tok(T_LOR);
-					}
-					else _push_tok(_cur());
-				break;
-				case '.':
-					if (_peek() == '.') {
-						_advance();
-						if(_peek() == '.') {
-							_advance();
-							_push_tok(T_ELLIPSE);
-						}
-						else _push_tok(T_DOT_DOT);
-					}
-					else _push_tok(_cur());
-				break;
-				case '*':
-					if ( _peek() == '=') {
-						_advance();
-						_push_tok(T_MUL_EQ);
-					}
-					else _push_tok(_cur());
-				break;
-				case '+':
-					if (_peek() == '=') {
-						_advance();
-						_push_tok(T_ADD_EQ);
-					} 
-					// else if (_peek(c) == '+') {
-					// _push_tok(_INC,  (String){.len = 2, .c_ptr = c},c - line_start);
-					// 	_advance();
-					// }
-					else _push_tok(_cur());
-				break;
-				case '-':
-					if (_peek() == '=') {
-						_advance();
-						_push_tok(T_SUB_EQ);
-					} 
-					// else if (_peek(c) == '-') {
-					// _push_tok(_DEC,  (String){.len = 2, .c_ptr = c},c - line_start);
-					// 	_advance();
-					// }
-					else if (_peek() == '>') {
-						_advance();
-						_push_tok(T_ARROW);
-					}
-					else _push_tok(_cur());
-				break;
-				case '/':
-					if (_peek() == '=') { 
-						_advance();
-						_push_tok(T_DIV_EQ);
-					} 
-					// COMMENT
-					else if  (_peek() == '/') {
-						while(_peek() != '\n') {
-							_advance();
-						}
-						line_start = scanner.cur;
-					}
-					else _push_tok(_cur());
-				break;
-				case '%':
-					if (_peek() == '=') {
-						_advance();
-						_push_tok(T_MOD_EQ);
-					}
-					else _push_tok(_cur());
-				break;
-				case '!':
-					if (_peek() == '=') {
-						_advance();
-						_push_tok(T_NOT_EQ);
-					}
-					else _push_tok(_cur());
-				break;
-				case '=':
-					if (_peek() == '=')
-					{
-						_advance();
-						_push_tok(T_EQ_EQ);
-					} 
-					else if (_peek() == '>') {
-						_advance();
-						_push_tok(T_FAT_ARROW);
-					}
-					else _push_tok(_cur());
-				break;
-				case '<':
-					if (_peek() == '=') {
-						_advance();
-						_push_tok(T_LT_EQ);
-					}
-					else if (_peek() == '<' ) {
-						_advance();
-						if(_peek() == '=') {
-							_advance();
-							_push_tok(T_SHL_EQ);
-						} else _push_tok(T_SHL);
-					}
-					else _push_tok(_cur());
-				break;
-				case '>':
-					if (_peek() == '=') {
-						_advance();
-						_push_tok(T_GT_EQ);
-					}
-					else if (_peek() == '>' ) {
-						_advance();
-						if(_peek() == '=') {
-							_advance();
-							_push_tok(T_SHR_EQ);
-						} else _push_tok(T_SHR);
-					}
-					else _push_tok(_cur());
-				break;
-				// STRING HANDLING
-				case '"':
-				{
-					if(_peek() == '"') {
-						_advance_by(2);
-						_push_tok ( T_LIT_STR );
-					}
-					while( _peek() != '"' && ((scanner.cur - scanner.file_start) != len) ) {
-						if ( _peek() == '\n' ) {
-							_advance();
-							printf("WARNING: Unterminated string on a newline at line %i\n", _line());
-							scanner.line++;
-							// continue;
-						}
-						_advance();
-					}
-
-					if ( (scanner.cur-scanner.file_start) == len ) {
-						printf("ERROR: Unterminated string\n");
-						// exit(-1);
-					}
+			// ^ ^=
+			case '^':
+				if (_peek() == '=') {
 					_advance();
-
-					// stores the entire string, quotes included
-					_push_tok(T_LIT_STR);
-					break;
+					out = _make_tok(T_BIXOR_EQ, TC_OPERATOR);
 				}
-				case '\'': {
-						_advance();
-					if(_peek() != '\'') {
-						printf("ERROR, unterminated character\n");
-						_advance();
-						continue;
-					} else _advance();
-					_push_tok ( T_LIT_CHAR );
-					break;
+				else {
+					out = _make_tok(_cur(), TC_OPERATOR);
 				}
-				default:
-					printf("Unknown character encountered: %c at l:%i\n", _cur(), _line());
-				break;
-			}
-		}
-	}
-
-	_push_tok(T_EOF);
-	return tkn;
-}
-
-void print_token_array( dstr src, dbuf_token tkn) {
-	printf("===DUMPING TS===\n");
-	// printf("File: %s\n", src.path);
-	printf("[TI:CI] token[TN]: tkn, value: val\n"
-				 "----------------------------------\n");
-	for (int i = 0; i < tkn.current; i++ ) {
-		Token current = tkn.data[i];
-		switch(current.type) {
-			case T_LIT_INT:
-			case T_LIT_FLOAT:
-			case T_LIT_CHAR:
-			case T_LIT_STR:
-				printf("[%02i:%02li] source: \"%.*s\" token[%02i]: %s, value: %.*s\n", 
-					i, 
-					current.span.cptr - src.cptr,
-					(int)current.span.len,
-					current.span.cptr,
-					current.type,
-					tok_to_str(current.type), 
-					(int)current.span.len,
-					current.span.cptr
-					);
 			break;
+
+			// : :=
+			case ':':
+				if(_peek() == '=') {
+					_advance();
+					out = _make_tok(T_ASSIGN, TC_OPERATOR);
+				} else {
+					out = _make_tok(_cur(), TC_SYMBOL); 
+				}
+			break;
+
+			// & && &=
+			case '&':
+				if (_peek() == '=') {
+					_advance();
+					out = _make_tok(T_BAND_EQ, TC_OPERATOR);
+				} else if (_peek() == '&') {
+					_advance();
+					out = _make_tok(T_LAND, TC_OPERATOR);
+				}
+				else {
+					out = _make_tok(_cur(), TC_OPERATOR);
+				}
+			break;
+
+			// | || |=
+			case '|':
+				if (_peek() == '=') {
+					_advance();
+					out = _make_tok(T_BOR_EQ, TC_OPERATOR);
+				} else if (_peek() == '|') {
+					_advance();
+					out = _make_tok(T_LOR, TC_OPERATOR);
+				}
+				else {
+					out = _make_tok(_cur(), TC_OPERATOR);
+				}
+			break;
+
+			// . .. ...
+			case '.':
+				if (_peek() == '.') {
+					_advance();
+					if(_peek() == '.') {
+						_advance();
+						out = _make_tok(T_ELLIPSE, TC_OPERATOR);
+					}
+					else {
+							out = _make_tok(T_DOT_DOT, TC_OPERATOR);
+						}
+				}
+				else {
+						out = _make_tok(_cur(), TC_OPERATOR);
+					}
+			break;
+
+			// * *=
+			case '*':
+				if ( _peek() == '=' ) {
+					_advance();
+					out = _make_tok(T_MUL_EQ, TC_OPERATOR);
+				}
+				else {
+					out = _make_tok(_cur(), TC_OPERATOR);
+				}
+			break;
+
+			// + +=
+			case '+':
+				if (_peek() == '=') {
+					_advance();
+					out = _make_tok(T_ADD_EQ, TC_OPERATOR);
+				} 
+				else {
+					out = _make_tok(_cur(), TC_OPERATOR);
+				}
+			break;
+
+			// - -= ->
+			case '-':
+				if (_peek() == '=') {
+					_advance();
+					out = _make_tok(T_SUB_EQ, TC_OPERATOR);
+				} 
+				// else if (_peek(c) == '-') {
+				// out = _make_tok(_DEC,  (String){.len = 2, .c_ptr = c},c - line_start);
+				// 	_advance();
+				// }
+				else if (_peek() == '>') {
+					_advance();
+					out = _make_tok(T_ARROW, TC_OPERATOR);
+				}
+				else {
+					out = _make_tok(_cur(), TC_OPERATOR);
+				}
+			break;
+
+			// / /=
+			case '/':
+				if (_peek() == '=') { 
+					_advance();
+					out = _make_tok(T_DIV_EQ, TC_OPERATOR);
+				} 
+				// COMMENT
+				else {
+					out = _make_tok(_cur(), TC_OPERATOR);
+				}
+			break;
+
+			// % %=
+			case '%':
+				if (_peek() == '=') {
+					_advance();
+					out = _make_tok(T_MOD_EQ, TC_OPERATOR);
+				}
+				else {
+					out = _make_tok(_cur(), TC_OPERATOR);
+				}
+			break;
+
+			// ! !=
+			case '!':
+				if (_peek() == '=') {
+					_advance();
+					out = _make_tok(T_NOT_EQ, TC_OPERATOR);
+				}
+				else {
+					out = _make_tok(_cur(), TC_OPERATOR);
+				}
+			break;
+
+			// == =>
+			case '=':
+				if (_peek() == '=')
+				{
+					_advance();
+					out = _make_tok(T_EQ_EQ, TC_OPERATOR);
+				} 
+				else if (_peek() == '>') {
+					_advance();
+					out = _make_tok(T_FAT_ARROW, TC_OPERATOR);
+				} else {
+					goto error_case;
+				}
+			break;
+
+			// < <= << <<=
+			case '<':
+				if (_peek() == '=') {
+					_advance();
+					out = _make_tok(T_LT_EQ, TC_OPERATOR);
+				}
+				else if (_peek() == '<' ) {
+					_advance();
+					if(_peek() == '=') {
+						_advance();
+						out = _make_tok(T_SHL_EQ, TC_OPERATOR);
+					} else {
+						out = _make_tok(T_SHL, TC_OPERATOR);
+					}
+				}
+				else {
+						out = _make_tok(_cur(), TC_OPERATOR);
+				}
+			break;
+
+			// > >= >> >>=
+			case '>':
+				if (_peek() == '=') {
+					_advance();
+					out = _make_tok(T_GT_EQ, TC_OPERATOR);
+				}
+				else if (_peek() == '>' ) {
+					_advance();
+					if(_peek() == '=') {
+						_advance();
+						out = _make_tok(T_SHR_EQ, TC_OPERATOR);
+					} else {
+						out = _make_tok(T_SHR, TC_OPERATOR);
+					}
+				}
+				else {
+					out = _make_tok(_cur(), TC_OPERATOR);
+				}
+			break;
+
 			default:
-			if(current.type < TKNS_START) {
-				printf("[%02i:%02li] source: \"%.*s\" token[%02i]: %c\n", 
-					i,
-					current.span.cptr - src.cptr,
-					(int)current.span.len,
-					current.span.cptr,
-					current.type,
-					current.type
-				);	
-			} else { printf("[%02i:%02li] source: \"%.*s\" token[%02i]: %s\n", 
-					i,
-					current.span.cptr - src.cptr,
-					(int)current.span.len,
-					current.span.cptr,
-					current.type,
-					tok_to_str(current.type)
-				); }
+				error_case:
+				printf("Unknown character encountered: %c at l:%i\n", _cur(), _line());
+				_advance();
+				return TOKEN_ERROR;
 			break;
 		}
+
+		_advance();
+		return out;
 	}
-	printf("Total used tokens: %ld, Unused tokens: %ld\n", tkn.current, tkn.cap - tkn.current);
 }

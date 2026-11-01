@@ -96,9 +96,8 @@ typedef enum NodeTag {
 	N_TODO,
 	N_NODE_LIST, // hack
 	N_PROG,
+	N_EXPR_BLOCK,
 	N_EXPR,
-	N_BIN_EXPR,
-	N_UN_EXPR,
 	N_LIT,
 	N_STMT,
 	N_BLOCK,
@@ -114,37 +113,29 @@ typedef enum NodeTag {
 	N_CONST
 } NodeTag;
 
-// NOTE: 
-// ineffeciently laid out struct but meh.
-// can change this later if it bottlenecks somehow
-
-// master node struct that represents a single node of the AST.
-// just haphazardly stuffed with every possible value a node could need.
 typedef struct Node Node;
-dbuf_decl(Node**, NodeList) // array of pointers to nodes
+typedef struct NodeList {
+	Node * nodes;
+	size_t num_nodes;
+} NodeList;
+
 struct Node {
-	TokenTag op;
-	Datatype * type; // optional
-	dstr iden; 	// name bound to this object
-	dstr value; // literal value
-
 	NodeTag tag;
-	dbuf_NodeList* children;
-	// for expressions
-	Node *lhs, *rhs;
+	union {
+		struct {
+			NodeList items;
+		} program;
 
-	// handy for functions and control flow expressions.
-	Node
-		*cond, 	// condition
-		*els, 	// else-clause
-		*body, 	// body
-		*init,	// initial expression, for `for` loops
-		*inc;		// increment expression, for `for` loops
+		struct {
+			dstr name;
+			Datatype return_type;
+			NodeList children;
+			Node * body; // optionally null, if just a forward declaration.
+		} func_decl;
+	}data;
 };
-dbuf_decl(Node, Node)
 
 
-dbuf_Node *parse_tokens( dbuf_token *tokens, dstr src ); 
+Node* parse_tokens(dstr source);
 Node* new_node( NodeTag tag );
 void print_ast( Node *node, int level );
-ParseError parse_error(int expected);

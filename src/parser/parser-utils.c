@@ -141,7 +141,7 @@ int match_range(int start, int end)
 }
 
 int match( TokenTag expected) {
-	if (peek().type == expected) {
+	if ( next_token().type == expected ) {
 		consume();
 		return 1;
 	}

@@ -111,7 +111,7 @@ static Node *primary(void) {
 
 
 static Node *new_bin_expr(TokenTag type, struct Node *lhs, struct Node *rhs) {
-	struct Node *expr = new_node(N_BIN_EXPR);
+	struct Node *expr = new_node(N_EXPR_BIN);
 	expr->lhs = lhs;
 	expr->rhs = rhs;
 	expr->op = type;
@@ -120,7 +120,7 @@ static Node *new_bin_expr(TokenTag type, struct Node *lhs, struct Node *rhs) {
 
 
 static Node *new_un_expr( TokenTag type, Node *rhs) {
-	struct Node *expr = new_node(N_UN_EXPR);
+	struct Node *expr = new_node(N_EXPR_UN);
 	expr->rhs = rhs;
 	expr->op = type;
 	return expr;
@@ -176,7 +176,7 @@ static const char* unop_to_string( UnOpType type ) {
 
 void print_expr( Node *expr ) {
 	switch(expr->tag) {
-		case N_BIN_EXPR: {
+		case N_EXPR_BIN: {
 				printf("(");
 				print_expr(expr->lhs);
 				printf(" %s ", tok_to_str(expr->op));
@@ -184,7 +184,7 @@ void print_expr( Node *expr ) {
 				printf(")");
 			break;
 		}
-		case N_UN_EXPR:
+		case N_EXPR_UN:
 		{
 			printf("%s(", tok_to_str(expr->op));
 			print_expr(expr->rhs);

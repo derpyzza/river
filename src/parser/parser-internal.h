@@ -8,7 +8,6 @@ struct Parser {
 	bool had_error;
 	dstr source; // current file being parsed
 	dbuf_ParseErrors *errors;
-	dbuf_token *tokens;
 	dbuf_Node * node_tree;
 };
 
@@ -48,7 +47,7 @@ int match(TokenTag type);
 int match_range(int start, int end);
 // int match_type_token(void);
 
-void init_parser(dstr src, dbuf_token* tokens);
+void init_parser(dstr src);
 
 void panic(int expected, int is_expected_tok, int until, int is_until_tok, const char * file, const int line);
 
