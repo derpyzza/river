@@ -10,12 +10,52 @@
 #include "parser/parser.h"
 // #include "codegen.h"
 
+// 2 kilobytes of repl characters. just a random number for now
 #define REPL_BUF_SIZE 2048
 
 const char* rvr_ext_list[2] = {
 	".rvr",
 	".river"
 };
+
+void run_repl(void) {
+	char buf[REPL_BUF_SIZE];
+
+	// 4 kilobytes of memory, just a random number as well
+	d_arena mem = { 0 };
+	darena_init(&mem, 4 * 1024);
+
+	while(true) {
+		fputs("river>> ", stdout);
+		fflush(stdout);
+		if(!fgets(buf, REPL_BUF_SIZE, stdin)){
+			dlog_error("couldn't read string\n");
+			exit(1);
+		};
+
+	  if ((strlen(buf) > 0) && (buf[strlen (buf) - 1] == '\n'))
+        buf[strlen (buf) - 1] = '\0';
+
+		if(!strcmp(buf, "quit")) {
+			printf("k, bye then\n");
+			exit(0);
+		}
+
+		// This is ugly, should change this.
+		dstr source = {.len = strlen(buf), .cptr = buf};
+		scanner_init(source);
+		Token tok = next_token();
+		do {
+			dlog_info("%.*s [\"%s\":%s]", dstr_fmt(tok.span), tok_to_str(tok.type), cat_to_str(tok.cat));
+			tok = next_token();
+		} while( (tok.type != T_EOF) && (tok.type != T_ERROR) );
+
+		// Node *node = parse_tokens(source);
+		// print_ast(*node);
+		// printf("%.*s", dstr_fmt(node->iden));
+	}
+	exit(0);
+}
 
 int
 main(int argc, char** argv) {	
@@ -25,40 +65,7 @@ main(int argc, char** argv) {
 	// REPL MODE
 	if (argc < 2) {
 		printf("No input files, starting repl\n");
-		char buf[REPL_BUF_SIZE];
-		// 4 kilobytes of memory, just a random number
-		d_arena mem = { 0 };
-		darena_init(&mem, 4 * 1024);
-
-		while(true) {
-			fputs("rvrcc>> ", stdout);
-			fflush(stdout);
-			if(!fgets(buf, REPL_BUF_SIZE, stdin)){
-				dlog_error("couldn't read string\n");
-				exit(1);
-			};
-
-		  if ((strlen(buf) > 0) && (buf[strlen (buf) - 1] == '\n'))
-	        buf[strlen (buf) - 1] = '\0';
-
-			if(!strcmp(buf, "quit")) {
-				printf("k, bye then\n");				exit(0);
-			}
-
-			// This is ugly, should change this.
-			dstr source = {.len = strlen(buf), .cptr = buf};
-			scanner_init(source);
-			Token tok;
-			do {
-				dlog_info("%.*s", dstr_fmt(tok.span));
-				tok = next_token();
-			} while( (tok.type != T_EOF) || (tok.type != T_ERROR));
-
-			// Node *node = parse_tokens(source);
-			// print_ast(*node);
-			// printf("%.*s", dstr_fmt(node->iden));
-		}
-		exit(0);
+		run_repl();
 	}
 
 	// Compile all the files given in turn
@@ -90,7 +97,7 @@ main(int argc, char** argv) {
 
 		// Node *node = parse_tokens(source);
 		// if(node != NULL) {
-			printf("==== AST DUMP ====\n");
+			// printf("==== AST DUMP ====\n");
 			// print_ast(node, 0);
 		// }
 		// else printf("file had errors, compilation terminated\n");

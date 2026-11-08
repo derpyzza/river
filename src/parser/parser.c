@@ -70,6 +70,7 @@ bool match_type_token(void) {
 
 Node * parse_tokens( dstr src )  { 
 	// Initialize parser state, parser struct found in src/parser/parser-internal.h
+	scanner_init(src);
 	init_parser(src);
 	consume(); // prime token
 

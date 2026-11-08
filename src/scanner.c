@@ -14,21 +14,25 @@ struct Scanner {
 	char *line_start; // start of the current line
 };
 
-#define TOKEN_ERROR (Token) { T_ERROR, .line = scanner.line, .chr_index = scanner.cur - scanner.file_start }
+#define TOKEN_ERROR (Token) { T_ERROR, .line = scanner.line, .col_index = scanner.cur - scanner.line_start }
 
 const char* tok_to_str(int t) {
-	char str[2];
+	// shitty hack but i can't think of any other solutions
+	// to the base-case of single character tokens
+	if (t > 0 && t < 128) {
+		static char chr[128][2];
+		chr[t][0] = (char)t;
+		return chr[t];
+	}
+
 	switch((TokenTag)t) {
 		#define TKN(t, s) case t: return s; break;
 			TKNS
 		#undef TKN
-		case T_NONE: return "<none>"; break;
+		case T_NONE:
+			return "<none>"; break;
 		case TKNS_MAX: case TKNS_START:
 			return "<undefined token>"; break;
-		default: {
-			sprintf(str, "%c", t);
-			return str;
-		}
 	}
 }
 
@@ -47,30 +51,30 @@ static inline bool _is_alphanum( char c ) {
 }
 
 static inline bool _is_whitespace( char c ) {
-	return (c == ' ' || c == '\n' || c == '\t' || c == '\r');
+	return (c == ' ' || c == '\n' || c == '\t' || c == '\r' || c == '\v' || c == '\f');
+}
+
+static inline char _peek_by(int by) {
+	char *c = scanner.cur + by;
+	return (c < scanner.file_start + scanner.src.len) ? *c : '\0';
 }
 
 // returns the next character in a string without consuming the current one
 static inline char _peek(void) {
-	char *c = scanner.cur;
-	return *(c+1);
+	return _peek_by(1);
 }
 
-static inline char _peek_by(int by) {
-	char *c = scanner.cur;
-	return *(c+by);
+static inline char _cur(void) {
+	return _peek_by(0);
 }
 
-
-static inline u8 _cur(void) {
-	return *scanner.cur;
+static inline bool _at_end(void) {
+	return scanner.cur >= scanner.file_start == scanner.src.len;
 }
 
 // checks if the current + the next n characters match a string
 static inline bool _chk_next_n (int n, char chars[]) {
-	if ( _cur() != chars[0] ) return false;
-
-	for(int i = 0; i < n-1; i++) {
+	for(int i = 0; i < n; i++) {
 		if(_peek_by(i) != chars[i]) {
 			return false;
 		}
@@ -103,11 +107,11 @@ static inline bool _is_stringy(void) {
 }
 
 
-Token _make_tok(TokenTag type, TokCat cat) {
+static Token _make_tok(TokenTag type, TokCat cat) {
 	return (Token) {
 		type,
 		scanner.line,
-		scanner.tok_start - scanner.file_start,
+		scanner.tok_start - scanner.line_start,
 		(dstr){scanner.tok_start, scanner.cur - scanner.tok_start + 1},
 		cat
 	};
@@ -134,35 +138,33 @@ Token _make_tok(TokenTag type, TokCat cat) {
 
 
 static Token _scan_num(void) {
+	TokenTag tag = T_LIT_INT;
+
 	while(_is_digit(_peek())) {
 		_advance();
 	} 
 	
-	if (_peek() == '.') {
-		_advance_by(2);
-		if (!_is_digit(_cur()) && !(_cur() == 'f') && !(_cur() == 'd')) {
-			printf("ERROR: extra period after number at line %i\n", _line());
-			return TOKEN_ERROR;
-		} else {
-			while(_is_digit(_cur())) {
-				_advance();
-			}
-			return _make_tok(T_LIT_FLOAT, TC_LITERAL);
+	if (_peek() == '.' && _is_digit(_peek_by(2) ) ) {
+		tag = T_LIT_FLOAT;
+		_advance();
+		while(_is_digit(_peek())) {
+			_advance();
 		}
+		if(_peek() == 'f' || _peek() == 'd') _advance();
 	}
-
-	return _make_tok(T_LIT_INT, TC_LITERAL);
+	Token out = _make_tok(tag, TC_LITERAL);
+	_advance();
+	return out;
 }
 
 TokenTag _lookup_keyword(const char* str_ptr, usize str_len) {
-	for(int i = 0; i < NUM_KEY_WORDS; i++) {
-		TokenTag id = T_KEYWORD_START + i;
-		const char * tokstr = tok_to_str(id);
+	for(int i = T_KEYWORD_START+1; i < T_KEYWORD_END; i++) {
+		const char * tokstr = tok_to_str(i);
 		if (
 		str_len == strlen(tokstr) &&
 		     !memcmp(str_ptr, tokstr, str_len)) {
 			// keyword detected, yaaay
-			return id;
+			return i;
 		}
 	}
 	return T_IDEN;
@@ -188,9 +190,11 @@ void _skip_whitespace(void) {
 	while ( _is_whitespace( _cur() ) ) {
 		if ( _cur() == '\n' ) {
 			scanner.line++;
+			_advance();
 			scanner.line_start = scanner.cur;
+		} else {
+			_advance();
 		}
-		_advance();
 	}
 }
 
@@ -198,12 +202,14 @@ static Token _scan_string(void) {
   while ( _peek() != '"' ) {
     if ( _peek() == '\n' || _peek() == '\0' ) {
       dlog_error("Unterminated string at l:%i\n", _line());
+      _advance();
       return TOKEN_ERROR;
     }
     if ( _peek() == '\\' ) {
       _advance();                 
       if ( _peek() == '\0' ) {
-        printf("Unterminated string at l:%i\n", _line());
+        dlog_error("Unterminated string at l:%i\n", _line());
+	      _advance();
         return TOKEN_ERROR;
       }
     }
@@ -221,15 +227,15 @@ static Token _scan_string(void) {
 void _skip_comments(void) {
 	if( _chk_next_n(2, "//") ) {
 		_advance_by(2);
-		while(_peek() != '\n') _advance();
+		while(_cur() != '\n' && !_at_end()) _advance();
 	}
 
 	if( _chk_next_n(2, "/*") ) {
 		_advance_by(2);
 		int depth = 1;
 		
-		while ( depth > 0 && _peek() != EOF ) {
-			if(_peek() == '\n') {
+		while ( depth > 0 && !_at_end() ) {
+			if(_cur() == '\n') {
 				scanner.line ++;
 				_advance();
 				scanner.line_start = scanner.cur;
@@ -240,7 +246,9 @@ void _skip_comments(void) {
 				depth--;
 				_advance_by(2);
 			}
-			else _advance();
+			else {
+				_advance();
+			}
 		}
 
 		if ( depth > 0 ) {
@@ -256,16 +264,15 @@ void _skip_comments(void) {
 
 void scanner_init(dstr src) {
 	scanner.src = src;
-	scanner.line = -1;
+	scanner.line = 0;
 	scanner.cur = src.cptr;
 	scanner.file_start = src.cptr;
 	scanner.tok_start = src.cptr;
+	scanner.line_start = src.cptr;
 }
 
 // convert input string into list of tokens
 Token next_token(void) {
-	isize len = scanner.src.len;
-
 	while (true) {
     char *before = scanner.cur;
     _skip_whitespace();
@@ -277,13 +284,9 @@ Token next_token(void) {
 
 	Token out;
 
-	if ( _is_digit( _cur() ) ) {
-		return _scan_num();
-	} else if ( _is_alpha( _cur() ) ) {
-		return _scan_word();
-	} else if ( _is_stringy() ) {
-		return _scan_string();
-	}
+	if      ( _is_digit(_cur()) ) { return _scan_num(); }
+	else if ( _is_alpha(_cur()) ) { return _scan_word(); }
+	else if ( _is_stringy() )     { return _scan_string(); }
 
 	else {
 		switch ( _cur() ) {
@@ -493,13 +496,15 @@ Token next_token(void) {
 			break;
 
 			default:
-				if( scanner.cur - scanner.file_start == scanner.src.len ) {
-					return _make_tok(T_EOF, TC_EOF);
-				} else if (_cur() == '\0') {
-					return _make_tok(T_EOF, TC_EOF);
+				if( _at_end() ) {
+					return TOKEN_EOF;
 				}
 				error_case:
-				printf("Unknown character encountered: %c at l:%i\n", _cur(), _line());
+				dlog_error("Unknown character encountered: '%c'(%i) at l:%i\n",
+          _cur(),
+          _cur(),
+          _line()
+        );
 				_advance();
 				return TOKEN_ERROR;
 			break;

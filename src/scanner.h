@@ -117,7 +117,7 @@ typedef enum TokCat {
 typedef struct Token {
 	TokenTag type; 
 	usize line;
-	int chr_index; // the starting character index
+	int col_index; // the starting character index
 	dstr span;
 	TokCat cat; 	 // the token category
 } Token;
@@ -128,8 +128,8 @@ void scanner_init(dstr src);
 Token next_token(void);
 
 // useful for termination
-#define TOKEN_EOF (Token) { .chr_index = 0, .type = T_EOF, }
-#define TOKEN_NONE (Token) { .chr_index = 0, .type = T_NONE, }
+#define TOKEN_EOF (Token) { .col_index = 0, .type = T_EOF, }
+#define TOKEN_NONE (Token) { .col_index = 0, .type = T_NONE, }
 
 static inline TokCat tok_to_cat(TokenTag token) {
 	if ( in_range_inc(token, '=', '^') ) {
