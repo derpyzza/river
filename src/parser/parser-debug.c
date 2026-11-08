@@ -3,21 +3,21 @@
 
 
 // TODO: Probably a waste of effort, but consider writing a set of proper string builder functions for generating debug parser output.
-void print_ast( Node *node, int level ) {
-	if (!node) exit(-1);
-	if (level == 0) printf("<root>\n");
-	if(!node->children) {
-		dlog_error("Node has no children");
-		return;
-	}
-	for ( int i = 0; i < node->children->current; i++ ) {
-		printf("\t");
-		struct Node *cur = (Node*)node->children->data[i];
-		if (cur == NULL) continue;
-		switch(cur->tag) {
-			default: printf("Unknown or not implemented yet!\n"); break;
-			case N_NONE: printf("None!\n"); break;
-			case N_TODO: printf("todo!!!\n"); break;
+// void print_ast( Node *node, int level ) {
+// 	if (!node) exit(-1);
+// 	if (level == 0) printf("<root>\n");
+// 	if(!node->children) {
+// 		dlog_error("Node has no children");
+// 		return;
+// 	}
+// 	for ( int i = 0; i < node->children->current; i++ ) {
+// 		printf("\t");
+// 		struct Node *cur = (Node*)node->children->data[i];
+// 		if (cur == NULL) continue;
+// 		switch(cur->tag) {
+// 			default: printf("Unknown or not implemented yet!\n"); break;
+// 			case N_NONE: printf("None!\n"); break;
+// 			case N_TODO: printf("todo!!!\n"); break;
 	// 		case N_VAR: {
 	// 			printf("<var> name: %.*s, type: <TYPE>, rhs: ",
 	// 				cur->name.len,
@@ -95,7 +95,7 @@ void print_ast( Node *node, int level ) {
 	// 			printf("\n");
 	// 			break;
 	// 		}
-		}
+		// }
 		// printf("\n");
-	}
-}
+	// }
+// }

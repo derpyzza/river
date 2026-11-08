@@ -20,37 +20,46 @@ const char* rvr_ext_list[2] = {
 int
 main(int argc, char** argv) {	
 	printf("Welcome to the river compiler!\n");
+	dlog_init(DLOG_TRACE);
 
 	// REPL MODE
-	// if (argc < 2) {
-	// 	printf("No input files, starting repl\n");
-	// 	char buf[REPL_BUF_SIZE];
-	// 	// 4 kilobytes of memory, just a random number
-	// 	d_arena mem = darena_init_alloc(4 * 1024);
-	// 	while(true) {
-	// 		fputs("rvrcc>> ", stdout);
-	// 		fflush(stdout);
-	// 		if(!fgets(buf, REPL_BUF_SIZE, stdin)){
-	// 			dlog_error("couldn't read string\n");
-	// 			exit(1);
-	// 		};
+	if (argc < 2) {
+		printf("No input files, starting repl\n");
+		char buf[REPL_BUF_SIZE];
+		// 4 kilobytes of memory, just a random number
+		d_arena mem = { 0 };
+		darena_init(&mem, 4 * 1024);
 
-	// 	  if ((strlen(buf) > 0) && (buf[strlen (buf) - 1] == '\n'))
-	//         buf[strlen (buf) - 1] = '\0';
+		while(true) {
+			fputs("rvrcc>> ", stdout);
+			fflush(stdout);
+			if(!fgets(buf, REPL_BUF_SIZE, stdin)){
+				dlog_error("couldn't read string\n");
+				exit(1);
+			};
 
-	// 		if(!strcmp(buf, "quit")) {
-	// 			printf("k, bye then\n");				exit(0);
-	// 		}
+		  if ((strlen(buf) > 0) && (buf[strlen (buf) - 1] == '\n'))
+	        buf[strlen (buf) - 1] = '\0';
 
-	// 		// This is ugly, should change this.
-	// 		dstr source = {.len = strlen(buf), .cptr = buf};
+			if(!strcmp(buf, "quit")) {
+				printf("k, bye then\n");				exit(0);
+			}
 
-	// 		// node_s *node = parse_tokens(tkn, source);
-	// 		// print_ast(*node);
-	// 		// printf("\n");
-	// 	}
-	// 	exit(0);
-	// }
+			// This is ugly, should change this.
+			dstr source = {.len = strlen(buf), .cptr = buf};
+			scanner_init(source);
+			Token tok;
+			do {
+				dlog_info("%.*s", dstr_fmt(tok.span));
+				tok = next_token();
+			} while( (tok.type != T_EOF) || (tok.type != T_ERROR));
+
+			// Node *node = parse_tokens(source);
+			// print_ast(*node);
+			// printf("%.*s", dstr_fmt(node->iden));
+		}
+		exit(0);
+	}
 
 	// Compile all the files given in turn
 	for (int i = 1; i < argc; i++) {
@@ -79,16 +88,16 @@ main(int argc, char** argv) {
 		// 	continue;
 		// }
 
-		Node *node = parse_tokens(source);
-		if(node != NULL) {
+		// Node *node = parse_tokens(source);
+		// if(node != NULL) {
 			printf("==== AST DUMP ====\n");
-			print_ast(node, 0);
-		}
-		else printf("file had errors, compilation terminated\n");
+			// print_ast(node, 0);
+		// }
+		// else printf("file had errors, compilation terminated\n");
 		// printf("\n");
 		// codegen(out_file, node->children->data[0]);
 		// fclose(out_file);
-		free(node);
+		// free(node);
 	}
 	return 0;
 }

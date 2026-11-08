@@ -6,11 +6,12 @@
 #include "../scanner.h"
 
 typedef struct ParseError {
-	bool is_tok; // guess
-	int type; // token / cat type
+	bool is_tok;    // guess
+	int expected;   // token / cat type
 	int debug_line; // compiler source line that the error is emitted from
-	int got; // index to got token
-	// char *msg;
+	Token got;
+	// int got_id;     // index to got token
+	const char * msg;
 	const char * debug_file;
 } ParseError;
 
@@ -113,27 +114,28 @@ typedef enum NodeTag {
 	N_CONST
 } NodeTag;
 
+
 typedef struct Node Node;
-typedef struct NodeList {
-	Node * nodes;
-	size_t num_nodes;
-} NodeList;
+
+dbuf_decl(Node *, NodeList)
 
 struct Node {
 	NodeTag tag;
-	union {
-		struct {
-			NodeList items;
-		} program;
+	int line;
+	dstr iden;
+	dstr value;
+	int op;
 
-		struct {
-			dstr name;
-			Datatype return_type;
-			NodeList children;
-			Node * body; // optionally null, if just a forward declaration.
-		} func_decl;
-	}data;
+	Path path;
+
+	Datatype type;
+	Node * lhs, * rhs;
+	Node * cond, * body, *els; // if Cond, Body, Els
+	Node * init, * inc; // for Init; Cond; Inc
+	dbuf_NodeList children;
 };
+
+dbuf_decl(Node, Node)
 
 
 Node* parse_tokens(dstr source);

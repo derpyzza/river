@@ -110,6 +110,7 @@ typedef enum TokCat {
 	TC_IDEN,
 	TC_SYMBOL,
 	TC_OPERATOR,
+	TC_EOF,
 	TC_MAX
 } TokCat;
 

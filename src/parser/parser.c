@@ -12,25 +12,33 @@
 
 
 // Forward declarations so that i can rearrange the definitions as i wish
-static struct Node *top_level(void);
-static struct Node *fn_def(void);
-static struct Node *var_def(void);
-static struct Node *type_def(bool is_alias);
-static struct Node *import_def(void);
+static Node *top_level  (void);
+
+static Node *const_decl (bool pub);
+static Node *enum_decl  (bool pub);
+static Node *fn_decl    (bool pub);
+static Node *import_decl(void);
+static Node *struct_decl(bool pub);
+static Node *type_decl  (bool pub, bool is_alias);
+static Node *union_decl (bool pub);
+// global variables are never public?
+static Node *var_decl   (void);
 
 void init_parser( dstr source ) {
-	parser.node_tree = dbuf_new_Node(1024);
+	dbuf_Node * node = d_alloc(sizeof(dbuf_Node));
+	*node = dbuf_Node_make(1024);
+	parser.node_tree = node;
 	parser.source = source;
-	parser.current = -1;
+	parser.cur = TOKEN_NONE;
+	parser.prev = TOKEN_NONE;
 	parser.had_error = false;
-	parser.errors = NULL;
 }
 
 Node * new_node(NodeTag type) {
-	Node * node = &parser.node_tree->data[parser.node_tree->current];
-	parser.node_tree->current ++;
+	Node * node = &parser.node_tree->data[parser.node_tree->cur];
+	parser.node_tree->cur++;
 	node->tag = type;
-	node->type = NULL;
+	node->type = (Datatype){0};
 	node->iden = (dstr){0};
 	node->value = (dstr) {0};
 
@@ -39,7 +47,7 @@ Node * new_node(NodeTag type) {
 	node->rhs 
 		= node->lhs 
 		= node->cond 
-		= node->els 
+		= node->els
 		= node->body 
 		= node->init 
 		= node->inc 
@@ -49,129 +57,138 @@ Node * new_node(NodeTag type) {
 		case N_NODE_LIST:
 		case N_STRUCT_DEF:
 		case N_BLOCK:
-			node->children = dbuf_new_NodeList(8);
+			node->children = dbuf_NodeList_make(8);
 	}
 	return node;
 }
 
-#define PANIC(e, et, u, ut) panic(e, et, u, ut, __FILE__, __LINE__)
+// #define PANIC(e, et, u, ut) panic(e, et, u, ut, __FILE__, __LINE__)
 
 bool match_type_token(void) {
 	return false;
 }
 
-Node *parse_tokens( dstr src )  { 
-
+Node * parse_tokens( dstr src )  { 
 	// Initialize parser state, parser struct found in src/parser/parser-internal.h
-	init_parser( src );
+	init_parser(src);
+	consume(); // prime token
 
-	Node * n = new_node(N_TODO);
-	dbuf_push_Node(parser.node_tree, *n);
-	print_ast(parser.node_tree, 0);
-	return 0;
+	Node * n = new_node(N_PROG);
+	dbuf_Node_push(parser.node_tree, *n);
 
 	while(!match(T_EOF)) {
 		struct Node* item = top_level();
 		if(item != NULL) {
-			if(item->children) {
-				for(int i = 0; i < item->children->current; i++) {
-					dbuf_push_Node(parser.node_tree, **item->children->data[i]);
-				}
-			} else {
-				dbuf_push_Node(parser.node_tree, *item);
-			}
+			// if(item->children.data) {
+			// 	for(int i = 0; i < item->children.current; i++) {
+			// 		dbuf_push_Node(parser.node_tree, *item->children.data[i]);
+			// 	}
+			// } else {
+				dbuf_Node_push(parser.node_tree, *item);
+			// }
 		} 
 	}
 
 	if(check_errors() == 0) {
-		return parser.node_tree;
+		return &parser.node_tree->data[0];
 	}
 	else return NULL;
 }
 
 
-static Node* var_def(void) { return new_node(N_TODO); }
-static Node* import_def(void) { return new_node(N_TODO); }
-static Node* type_def(bool is_alias) { return new_node(N_TODO); }
+static Node* import_decl(void) {
+	Node * n = new_node(N_IMPORT);
+	Path path;
+	path.has_subpaths = false;
+	path.cur_subpath = 0;
+	Token iden = expect(T_IDEN, "Missing import name");
+	if(iden.type == TOKEN_NONE.type) return n;
+	path.root = iden.span;
+	path.full = iden.span;
+	do {
+		Token subpath = expect(T_IDEN, "Missing identifier");
+		if(iden.type == TOKEN_NONE.type) return n;
+		path.subpath[path.cur_subpath] = subpath.span;
+		path.cur_subpath++;
+		// FIXME: this is actually buggy.
+		// as it stands right now, Token.span only records the token's span (duh),
+		// and the tokenizer skips all whitespace. what that means though is that
+		// you can write your path in the code as:
+		// import x . y . z   . a . b;
+		// or
+		// import x
+		//      . y
+		//      . z . a . b;
+		// etc.
+		// but none of that is recorded in the full path string because i'm not
+		// allocating a new string and just treating the full path as a string view
+		// into the original source string.
+		path.full.len += subpath.span.len + 1;
+	} while (match('.'));
 
-static Node *top_level(void) {
-	if(match(T_FUN)) return fn_def();
-	if(match(T_LET)) return var_def();
-	// if(match(T_TYPE)) return type_def(0);
-	if(match(T_ALIAS)) return type_def(1);
-	if(match(T_IMPORT)) return import_def();
+	n->path = path;
+
+	if (match(T_AS)) {
+		n->iden = expect(T_IDEN, "Missing alias").span;
+	} else {
+		// set the final subpath item as the module identifier
+		// i.e import sys.math.vector; sets vector as the module name
+		// vs import io; sets io as a the module name
+		n->iden = path.subpath[path.cur_subpath];
+	}
+
+	expect(';', "Missing ';' after import");
+	return n;
+}
+
+
+static Node* const_decl(bool public) { return new_node(N_TODO); }
+static Node* var_decl(void) { return new_node(N_TODO); }
+static Node* type_decl(bool pub, bool is_alias) { return new_node(N_TODO); }
+
+static Node * top_level(void) {
+	bool pub = false;
+	if(match(T_PUB)) {
+		pub = true;
+	}
+
+	if(match(T_ALIAS)) return type_decl(pub, true);
+	if(match(T_CONST)) return const_decl(pub);
+	if(match(T_FUN)) return fn_decl(pub);
+	if(match(T_IMPORT)) return import_decl();
+	if(match(T_LET)) return var_decl();
+	if(match(T_TYPE)) return type_decl(pub, false);
 
 	// skip unknown characters for now *shrug*
 	// maybe panic here?
 	// dunno
 	// printf("unknown node type: %s\n", token_to_str(current_tok().type));
-	consume();
+	error_unexpected(cur_tok(), T_PUB, true, "DEBUG_FILE", 2048);
 	return NULL;
 }
 
-// Datatype * new_datatype(DatatypeTag tag) {
-// 	Datatype * new = malloc(sizeof(Datatype));
-// 	new->tag = tag;
-// 	new->type = malloc(sizeof(DatatypeUnion));
-// }
-
-
-/* 
-type tokens: 
-  ( "^"* ("[" <int> "]")+ | ("[" "]")* ) "^"* IDEN ("," type)* ;
-
-datatype -> primary_type ( "," primary_tab )* ;
-primary_type ->
-
-*/
-
-// Datatype* parse_datatype_array(void) {}
-// Datatype* parse_datatype_header(void) {}
-
-// Datatype* parse_datatype_primary(void) {
-// 	if(match(T_IDEN)) {
-// 		// check if tuple
-// 		if (check_next(',')) {
-// 			Datatype* tuple = new_datatype(DATATYPE_TUPLE);
-// 		}
-// 	}
-// }
-
-// Datatype* parse_datatype(void) {
-// 	Datatype* out = parse_datatype_primary();
-// 	if(match(',')) {
-// 		out->type->dt_tuple = parse_datatype_primary();
-// 	} else if (match('|')) {
-// 		out->type->dt_union = parse_datatype_primary();
-// 	}
-// }
-
-// void match_params() {
-	
-// }
-
 // function_def -> "fun" <ID> ( "(" <params_list> ")" )? ( "->" <type> )? "=" <expr> ";" .
 // "fun" <ID> ( "::" <ID> )? ( "[" <generic> "]" )? ( "(" <params_list>? ")" )? ( "->" <type> )? ( "=" <expr> ";" | <block> )
-static Node *fn_def(void) {
+static Node *fn_decl(bool public) {
 	Node* fn = new_node(N_FUNC_DEF); 
 
 	// match identifier
-	if( match_type_token() ) {
-		fn->iden = *cur_tok_span();
-	} else {
-		printf("error, missing type");
-		// PANIC(T_TYPE, P_CAT, ';', P_TOK);
+	Token iden = expect(T_IDEN, "Missing function name");
+	if(iden.type == T_ERROR) {
+		return fn;
 	}
+	fn->iden = iden.span;
 
 	// parse params
-	if(match('(')) {
-		while(!match(')')) {
-			consume();
-		}
-		// error
+	expect('(', "Missing parameters list");
+	do {
+		consume();
+	} while(!match(')'));
+
+	if(match(':')) {
+
 	}
 
-	
 	if (match(T_ARROW)) {
 		// match type
 		if (match_type_token()) {
@@ -182,16 +199,16 @@ static Node *fn_def(void) {
 	}
 
 	if(match('=')) {
-		fn->body = parse_expr();
+		// fn->body = parse_expr();
 	}
 	else {
 		// TODO: support proper "OR" type errors;
-		PANIC('=', P_TOK, ';', P_TOK);
+		// PANIC('=', P_TOK, ';', P_TOK);
 	}
 
-	if( fn->body->tag != N_BLOCK && !match(';')) {
-		PANIC(';', P_TOK, TC_KEYWORD, P_CAT);
-	}
+	// if( fn->body->tag != N_BLOCK && !match(';')) {
+	// 	PANIC(';', P_TOK, TC_KEYWORD, P_CAT);
+	// }
 	printf("returning fn!\n");
 	return fn;
 }

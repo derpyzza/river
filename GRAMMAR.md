@@ -32,18 +32,19 @@ type -> ptr* arr %id
 
 program -> item* %eof;
 
-item -> import_decl
+item ->
       | const_decl;
-      | global_var
-      | struct_decl
-      | fn_def
-      | type_def
       | enum_decl
+      | fn_def
+      | global_var
+      | import_decl
+      | struct_decl
+      | type_def
       | union_decl;
 
 import_decl -> "import" %id ( "." %id )*? ( "as" %id )? ";" ;
 
-func_decl -> "pub"? "fun" %id ( "(" <params_list> ")" )? ( "->" %id )? "=" <expr>;
+func_decl -> "pub"? "fun" %id ( "(" <params_list> ")" )? ( "->" %id )? ( "=" <expr> ";" | <block_expr> ) ;
 
 params_list -> <param_item>? ( "," <param_item> )*;
 param_item -> %id ( ":" %id )? ( "=" %lit )?

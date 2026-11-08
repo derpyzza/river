@@ -17,6 +17,7 @@ struct Scanner {
 #define TOKEN_ERROR (Token) { T_ERROR, .line = scanner.line, .chr_index = scanner.cur - scanner.file_start }
 
 const char* tok_to_str(int t) {
+	char str[2];
 	switch((TokenTag)t) {
 		#define TKN(t, s) case t: return s; break;
 			TKNS
@@ -24,6 +25,10 @@ const char* tok_to_str(int t) {
 		case T_NONE: return "<none>"; break;
 		case TKNS_MAX: case TKNS_START:
 			return "<undefined token>"; break;
+		default: {
+			sprintf(str, "%c", t);
+			return str;
+		}
 	}
 }
 
@@ -174,7 +179,7 @@ static Token _scan_word(void) {
 	usize str_len = scanner.cur-scanner.tok_start + 1;
 	TokenTag tag = _lookup_keyword(str_ptr, str_len);
 
-	Token out = _make_tok ( T_IDEN, tag == T_IDEN ? TC_IDEN : TC_KEYWORD );
+	Token out = _make_tok ( tag, tag == T_IDEN ? TC_IDEN : TC_KEYWORD );
 	_advance();
 	return out;
 }
@@ -488,6 +493,11 @@ Token next_token(void) {
 			break;
 
 			default:
+				if( scanner.cur - scanner.file_start == scanner.src.len ) {
+					return _make_tok(T_EOF, TC_EOF);
+				} else if (_cur() == '\0') {
+					return _make_tok(T_EOF, TC_EOF);
+				}
 				error_case:
 				printf("Unknown character encountered: %c at l:%i\n", _cur(), _line());
 				_advance();

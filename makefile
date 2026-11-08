@@ -8,7 +8,7 @@ EXEC = $(BIN)/$(PROGNAME)
 
 CFLAGS := -Wall -pedantic -Wswitch -g -ggdb3 -DPLATFORM_POSIX
 LDFLAGS := -L libs/libderp -lderp
-INC := -Ilibs/
+INC := -Ilibs/ -Ilibs/libderp/
 
 SRC_FILES := $(wildcard $(SRC)/**.c) $(wildcard $(SRC)/**/**.c) $(wildcard $(SRC)/**/**/**.c)
 OBJ_FILES := $(patsubst $(SRC)/%.c, $(BIN)/%.o, $(SRC_FILES))
