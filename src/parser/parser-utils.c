@@ -16,11 +16,11 @@ Token expect(int tag, const char* msg) {
 		return consume();
 	}
 	// FIXME: get proper error handling, reporting, and synchronization in here
-	dlog_error("%s", msg);
+	dlog_error("%s at file %.*s, line #%lu: %.*s", msg, dstr_fmt(parser.file_name), cur_tok().line, dstr_fmt(cur_tok().span));
 	// FIXME: get proper line and file reporting in here
 	error_unexpected(cur_tok(), tag, true, "DEBUG_FILE", 2048);
-	exit(-1);
 	return TOKEN_NONE;
+	exit(-1);
 }
 
 void error_unexpected( Token got, int expected, bool is_tok, const char * file, const int line ){
@@ -57,7 +57,7 @@ void report_error(ParseError *error) {
 		// printf("%s:%i:%i: ERROR Unexpected token; expected '%s', got '%.*s' (%s)\n",
 			// parser.source->path,
 			(int)error->got.line,
-			error->got.chr_index,
+			error->got.col_index,
 			tok_to_str((TokenTag)error->expected),
 			dstr_fmt(error->got.span),
 			tok_to_str(error->got.type)
@@ -69,7 +69,7 @@ void report_error(ParseError *error) {
 		// printf("%s:%i:%i: ERROR Unexpected token; expected <%s>, got '%.*s' (%s)\n",
 			// parser.source->path,
 			(int)error->got.line,
-			error->got.chr_index,
+			error->got.col_index,
 			cat_to_str((TokCat)error->expected),
 			dstr_fmt(error->got.span),
 			tok_to_str(error->got.type)
@@ -108,7 +108,7 @@ Token consume(void) {
 
 bool match( TokenTag expected ) {
 	if ( parser.cur.type != expected ) { return false; }
-	dlog_debug("Matched %s!", tok_to_str(expected));
+
 	consume();
 	return true;
 }

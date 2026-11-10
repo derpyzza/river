@@ -4,10 +4,10 @@
 #include <string.h>
 
 #include "parser.h"
-#include "memory.h"
+// #include "memory.h"
 #include "parser-internal.h"
 
-#include "expr.h"
+// #include "expr.h"
 #include "../scanner.h"
 
 
@@ -24,19 +24,17 @@ static Node *union_decl (bool pub);
 // global variables are never public?
 static Node *var_decl   (void);
 
-void init_parser( dstr source ) {
-	dbuf_Node * node = d_alloc(sizeof(dbuf_Node));
-	*node = dbuf_Node_make(1024);
-	parser.node_tree = node;
+void init_parser( dstr source, dstr file_name, d_arena arena ) {
 	parser.source = source;
 	parser.cur = TOKEN_NONE;
 	parser.prev = TOKEN_NONE;
 	parser.had_error = false;
+	parser.file_name = file_name;
+	parser.arena = arena;
 }
 
 Node * new_node(NodeTag type) {
-	Node * node = &parser.node_tree->data[parser.node_tree->cur];
-	parser.node_tree->cur++;
+	Node * node = darena_alloc(&parser.arena, sizeof(Node));
 	node->tag = type;
 	node->type = (Datatype){0};
 	node->iden = (dstr){0};
@@ -54,6 +52,7 @@ Node * new_node(NodeTag type) {
 		= NULL;
 	switch(node->tag) {
 		default: break;
+		case N_PROG:
 		case N_NODE_LIST:
 		case N_STRUCT_DEF:
 		case N_BLOCK:
@@ -68,32 +67,26 @@ bool match_type_token(void) {
 	return false;
 }
 
-Node * parse_tokens( dstr src )  { 
+Node * parse_tokens( dstr src, dstr file_name, d_arena arena )  { 
 	// Initialize parser state, parser struct found in src/parser/parser-internal.h
 	scanner_init(src);
-	init_parser(src);
+	init_parser(src, file_name, arena);
 	consume(); // prime token
 
 	Node * n = new_node(N_PROG);
-	dbuf_Node_push(parser.node_tree, *n);
 
 	while(!match(T_EOF)) {
 		struct Node* item = top_level();
 		if(item != NULL) {
-			// if(item->children.data) {
-			// 	for(int i = 0; i < item->children.current; i++) {
-			// 		dbuf_push_Node(parser.node_tree, *item->children.data[i]);
-			// 	}
-			// } else {
-				dbuf_Node_push(parser.node_tree, *item);
-			// }
-		} 
+			dbuf_NodeList_push(&n->children, item);
+		} else {
+			dlog_error("item is null");
+		}
 	}
 
 	if(check_errors() == 0) {
-		return &parser.node_tree->data[0];
-	}
-	else return NULL;
+		return n;
+	} else return NULL;
 }
 
 
@@ -106,9 +99,10 @@ static Node* import_decl(void) {
 	if(iden.type == TOKEN_NONE.type) return n;
 	path.root = iden.span;
 	path.full = iden.span;
-	do {
+	while (match('.')) {
 		Token subpath = expect(T_IDEN, "Missing identifier");
-		if(iden.type == TOKEN_NONE.type) return n;
+		if(subpath.type == T_NONE) return n;
+		path.has_subpaths = true;
 		path.subpath[path.cur_subpath] = subpath.span;
 		path.cur_subpath++;
 		// FIXME: this is actually buggy.
@@ -125,7 +119,7 @@ static Node* import_decl(void) {
 		// allocating a new string and just treating the full path as a string view
 		// into the original source string.
 		path.full.len += subpath.span.len + 1;
-	} while (match('.'));
+	}
 
 	n->path = path;
 
@@ -135,7 +129,7 @@ static Node* import_decl(void) {
 		// set the final subpath item as the module identifier
 		// i.e import sys.math.vector; sets vector as the module name
 		// vs import io; sets io as a the module name
-		n->iden = path.subpath[path.cur_subpath];
+		n->iden = path.subpath[path.cur_subpath - 1];
 	}
 
 	expect(';', "Missing ';' after import");
@@ -164,7 +158,7 @@ static Node * top_level(void) {
 	// maybe panic here?
 	// dunno
 	// printf("unknown node type: %s\n", token_to_str(current_tok().type));
-	error_unexpected(cur_tok(), T_PUB, true, "DEBUG_FILE", 2048);
+	error_unexpected(cur_tok(), T_PUB, true, parser.file_name.cptr, parser.cur.line);
 	return NULL;
 }
 

@@ -4,11 +4,13 @@
 #include "parser.h"
 
 struct Parser {
+	dstr file_name;
 	bool had_error;
 	dstr source; // current file being parsed
 	dbuf_ParseErrors errors;
-	dbuf_Node * node_tree;
+	// dbuf_Node * node_tree;
 	Token cur, prev;
+	d_arena arena;
 };
 
 enum PanicType {
@@ -25,6 +27,7 @@ Token prev_tok(void);
 
 bool check_errors(void);
 
+const char* node_to_str(int node_tag);
 
 // prints an "Unexpected token error"
 void error_unexpected( Token got, int expected, bool is_tok, const char * file, const int line );
@@ -34,7 +37,7 @@ Token consume(void);
 bool match(TokenTag tag);
 Token expect(int tag, const char* msg);
 
-void init_parser(dstr src);
+void init_parser(dstr src, dstr file_name, d_arena arena);
 
 void panic(int expected, int is_expected_tok, int until, int is_until_tok, const char * file, const int line);
 

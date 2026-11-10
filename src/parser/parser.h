@@ -92,28 +92,32 @@ typedef struct Path {
 	dstr subpath[32];
 } Path;
 
-typedef enum NodeTag {
-	N_NONE,
-	N_TODO,
-	N_NODE_LIST, // hack
-	N_PROG,
-	N_EXPR_BLOCK,
-	N_EXPR,
-	N_LIT,
-	N_STMT,
-	N_BLOCK,
-	N_FUNC_DEF,
-	N_IMPORT,
-	N_STRUCT_DEF,
-	N_STRUCT_FIELD,
-	N_IF,
-	N_WHILE,
-	N_FOR,
-	N_FOREACH,
-	N_VAR,
-	N_CONST
-} NodeTag;
+#define NODES                             \
+  NODE(N_NONE,         "none")            \
+  NODE(N_TODO,         "todo")            \
+  NODE(N_NODE_LIST,    "node_list")       \
+  NODE(N_PROG,         "prog")            \
+  NODE(N_EXPR_BLOCK,   "expr_block")      \
+  NODE(N_EXPR,         "expr")            \
+  NODE(N_LIT,          "lit")             \
+  NODE(N_STMT,         "stmt")            \
+  NODE(N_BLOCK,        "block")           \
+  NODE(N_FUNC_DEF,     "func_def")        \
+  NODE(N_IMPORT,       "import")          \
+  NODE(N_STRUCT_DEF,   "struct_def")      \
+  NODE(N_STRUCT_FIELD, "struct_field")    \
+  NODE(N_IF,           "if")              \
+  NODE(N_WHILE,        "while")           \
+  NODE(N_FOR,          "for")             \
+  NODE(N_FOREACH,      "foreach")         \
+  NODE(N_VAR,          "var")             \
+  NODE(N_CONST,        "const")           \
 
+typedef enum NodeTag {
+	#define NODE(N, S) N,
+	NODES
+	#undef NODE
+} NodeTag;
 
 typedef struct Node Node;
 
@@ -138,6 +142,6 @@ struct Node {
 dbuf_decl(Node, Node)
 
 
-Node* parse_tokens(dstr source);
+Node* parse_tokens(dstr source, dstr file_name, d_arena arena);
 Node* new_node( NodeTag tag );
 void print_ast( Node *node, int level );

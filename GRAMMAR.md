@@ -42,7 +42,7 @@ item ->
       | type_def
       | union_decl;
 
-import_decl -> "import" %id ( "." %id )*? ( "as" %id )? ";" ;
+import_decl -> "import" <iden> ( "." <iden> )* ( "as" <iden> )? ";" ;
 
 func_decl -> "pub"? "fun" %id ( "(" <params_list> ")" )? ( "->" %id )? ( "=" <expr> ";" | <block_expr> ) ;
 

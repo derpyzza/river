@@ -494,6 +494,9 @@ Token next_token(void) {
 					out = _make_tok(_cur(), TC_OPERATOR);
 				}
 			break;
+			case '\0':
+				return TOKEN_EOF;
+			break;
 
 			default:
 				if( _at_end() ) {
@@ -506,6 +509,7 @@ Token next_token(void) {
           _line()
         );
 				_advance();
+				exit(-1);
 				return TOKEN_ERROR;
 			break;
 		}

@@ -41,18 +41,14 @@ void run_repl(void) {
 			exit(0);
 		}
 
-		// This is ugly, should change this.
+		// NOTE This is ugly, should change this.
 		dstr source = {.len = strlen(buf), .cptr = buf};
 		scanner_init(source);
 		Token tok = next_token();
 		do {
-			dlog_info("%.*s [\"%s\":%s]", dstr_fmt(tok.span), tok_to_str(tok.type), cat_to_str(tok.cat));
+			dlog_info("[\"%s\":%s] %.*s ", tok_to_str(tok.type), cat_to_str(tok.cat), dstr_fmt(tok.span));
 			tok = next_token();
 		} while( (tok.type != T_EOF) && (tok.type != T_ERROR) );
-
-		// Node *node = parse_tokens(source);
-		// print_ast(*node);
-		// printf("%.*s", dstr_fmt(node->iden));
 	}
 	exit(0);
 }
@@ -95,16 +91,18 @@ main(int argc, char** argv) {
 		// 	continue;
 		// }
 
-		// Node *node = parse_tokens(source);
-		// if(node != NULL) {
-			// printf("==== AST DUMP ====\n");
-			// print_ast(node, 0);
-		// }
-		// else printf("file had errors, compilation terminated\n");
+		d_arena node_arena = { 0 }; 
+		Node *node = parse_tokens(source, path.name, node_arena);
+		if(node != NULL) {
+		 printf("==== AST DUMP ====\n");
+		 print_ast(node, 0);
+		} else printf("file had errors, compilation terminated\n");
+
 		// printf("\n");
 		// codegen(out_file, node->children->data[0]);
 		// fclose(out_file);
 		// free(node);
+		darena_clear(&node_arena);
 	}
 	return 0;
 }

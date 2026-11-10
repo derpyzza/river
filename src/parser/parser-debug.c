@@ -1,23 +1,67 @@
+#include "derp.h"
 #include "parser.h"
 #include "expr.h"
 
+const char* node_to_str(NodeTag node) {
+	switch(node) {
+		#define NODE(N,S) case N: return S;
+		NODES
+		#undef NODE
+		default:
+			return "UNKNOWN NODE";
+	}
+}
+
+void ind(int d) { for(int i = 0; i < d; i++) printf(" "); printf("\n"); }
+
+void print_kids( Node* n, int d) {
+	for(int i = 0; i < n->children.cur; i++) {
+		ind(d+1);
+		print_ast(n, d+1);
+	}
+}
 
 // TODO: Probably a waste of effort, but consider writing a set of proper string builder functions for generating debug parser output.
-// void print_ast( Node *node, int level ) {
-// 	if (!node) exit(-1);
-// 	if (level == 0) printf("<root>\n");
-// 	if(!node->children) {
-// 		dlog_error("Node has no children");
-// 		return;
-// 	}
-// 	for ( int i = 0; i < node->children->current; i++ ) {
-// 		printf("\t");
-// 		struct Node *cur = (Node*)node->children->data[i];
-// 		if (cur == NULL) continue;
-// 		switch(cur->tag) {
-// 			default: printf("Unknown or not implemented yet!\n"); break;
-// 			case N_NONE: printf("None!\n"); break;
-// 			case N_TODO: printf("todo!!!\n"); break;
+void print_ast( Node *node, int depth ) {
+	if (!node) {
+		dlog_error("Node is NULL, returning...");
+	}
+
+	if(!node->children.data) {
+		dlog_error("Node has no children");
+		return;
+	}
+	for ( int i = 0; i < node->children.cur; i++ ) {
+		for( int i = 0; i < depth; i++) printf(" ");
+		struct Node *cur = (Node*)node->children.data[i];
+		if (cur == NULL) {
+			dlog_warn("Node, child #%i of %s is NULL", i, node_to_str(cur->tag));
+			continue;
+		}
+
+		switch(cur->tag) {
+			default: printf("Unknown or not implemented yet!\n"); break;
+			case N_NONE: printf("None!\n"); break;
+			case N_TODO: printf("todo!!!\n"); break;
+			case N_PROG: {
+				printf("(prog ");
+				print_kids(cur, depth);
+				break;
+			}
+
+			case N_IMPORT: {
+				dstr root = cur->path.root;
+				printf("<imp def> path: %.*s, root: %.*s", 
+					dstr_fmt(cur->path.full),
+					dstr_fmt(root)
+				);
+				printf(", alias: %.*s",
+					dstr_fmt(cur->iden)
+				);
+				printf("\n");
+				break;
+			}
+
 	// 		case N_VAR: {
 	// 			printf("<var> name: %.*s, type: <TYPE>, rhs: ",
 	// 				cur->name.len,
@@ -80,22 +124,8 @@
 
 	// 			break;
 	// 		}
-	// 		case N_IMPORT: {
-	// 			dstr root = cur->path.root;
-	// 			printf("<imp def> path: %.*s, root: %.*s", 
-	// 					(int)cur->path.full.len,
-	// 					cur->path.full.cptr,
-	// 					(int)root.len, 
-	// 					root.cptr
-	// 					);
-	// 				printf(", alias: %.*s",
-	// 					cur->name.len,
-	// 					cur->name.cptr
-	// 				);
-	// 			printf("\n");
-	// 			break;
-	// 		}
 		// }
 		// printf("\n");
-	// }
-// }
+		}
+	}
+}
