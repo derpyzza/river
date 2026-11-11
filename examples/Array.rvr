@@ -1,0 +1,54 @@
+// dynamically sized array, like c++'s `std::vector`, or rust's `Vector` type.
+
+
+pub type Array<T> = struct {
+	data: [*]T;
+	current: isize;
+}
+
+impl Array<T> {
+	fun new(len: isize = 8, alloc: Allocator): Self = 
+		Self.{
+			data = alloc.new(Self, len),
+			current = 0,
+		};
+
+	fun from(data: [*]T): Self {}
+
+	fun grow(self: *Self, by: int = 0, alloc: Allocator) {
+		if by != 0 {
+			self.data = alloc.realloc(self.data, by);
+		} else {
+			self.data = alloc.realloc(self.data, self.data.len * 2);
+		}
+	}
+
+	fun push(self: *Self, item: T) {
+		if (self.current + 1 > self.data.len) {
+			self.grow();
+		}
+
+		self.data[self.current] = item;
+		self.current++;
+	}
+
+	fun pop(self: *Self) {}
+
+	#operator("[]", {type = usize})
+	fn index(self: *Self, index: isize): T
+		= self.data[index];
+
+	#operator("[]=")
+	fn setIndex(self: *Self, index: isize, item: T)
+		= self.data[index] = T;
+}
+
+fun main() {
+	var x = Array<int>::from([1, 1, 2, 3, 5, 8, 13]);
+
+	io.print(x[4]); // 5
+
+	x[4] = 10;
+
+	io.print(x[4]); // 10
+}

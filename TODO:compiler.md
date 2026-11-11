@@ -1,0 +1,3 @@
+- Implement better memory handling:
+    - Arenas?
+    - Store AST in flat contiguous array

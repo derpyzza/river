@@ -7,99 +7,169 @@ the grammar of river. currently a mess but will get better with time.
 rules are in snake_case, and are defined with the following pattern:
 
 ```
-rule -> production | ( production | production );
+rule:
+      production
+      | ( production | production )
 ```
 
 the `|` character means `or`, and rules can be grouped via parenthesis for clarity.
-rules are terminated with the `;` character.
 
-tokens are marked with the `%` character, terminals are wrapped in quotes `"import"`.
+terminals are wrapped in quotes `"import"`.
 
 production rules can be followed up with any of the following operators:
 ```
 *: Needs zero or more of
 +: Needs one or more of
-?: optionally can have
+?: Either one or zero of
 ```
 
 ```
 
-let x: ^^[^^int ; 2 ; 4] | ^^^[^file, error ; 23] | ^char;
+iden:
+       [a-zA-Z_]+
 
-type -> ptr* arr %id
-      | %id ( ',' %id )*
-      | %id ( '|' %id )*
+number:
+      int | float 
 
-program -> item* %eof;
+
+program ->
+      item* eof
+
+vis ->
+      "pub"
 
 item ->
-      | const_decl;
-      | enum_decl
-      | fn_def
-      | global_var
       | import_decl
-      | struct_decl
-      | type_def
-      | union_decl;
+      | vis? (
+            | const_decl
+            | var_decl
+            | func_decl
+            | type_decl
+            | struct_decl
+            | enum_decl
+            | union_decl
+            | trait_decl
+            | impl_decl
+      )
 
-import_decl -> "import" <iden> ( "." <iden> )* ( "as" <iden> )? ";" ;
+import_decl ->
+      "import" iden ( "." iden )* ( "as" iden )? ";"
 
-func_decl -> "pub"? "fun" %id ( "(" <params_list> ")" )? ( "->" %id )? ( "=" <expr> ";" | <block_expr> ) ;
 
-params_list -> <param_item>? ( "," <param_item> )*;
-param_item -> %id ( ":" %id )? ( "=" %lit )?
+const_decl ->
+      "const" iden ":" type "=" expr ";"
 
-data_type -> <primary_type> ( "," <primary_type> | "|" <primary_type> )* ;
-primary_type -> <type_header> %id ;
-type_header -> "^"* type_arr* ;
-type_arr -> ("[" %number? "]")* "^"* ;
+var_decl ->
+          | ("let" | "var") iden ( "," iden )* ":" type ";"
+          | ("let" | "var") iden ( "," iden )* ( ":" type )? "=" expr ";"
 
-global_var -> %id <var_assign> ( "," <var_assign> )*;
-var_assign -> %id '=' %lit;
+func_name ->
+      | iden
+      | iden "::" iden
 
-const_decl -> "const" %id "=" <expr>;
+func_decl ->
+      | fun" func_name "(" params_list? ")" ( ":" type )? block_expr
+      | fun" func_name "(" params_list? ")" ( ":" type )? "=" blockless_expr ";"
 
-type_def = "type" %id "=" <expr> ";" ;
+params_list ->
+      param_item ( "," param_item )*;
 
-struct_decl -> "struct" %id "{" ( <struct_field> ";" )+ "}";
-struct_field -> struct_item ("," struct_item)* ":" %id ;
-struct_item -> %id ("=" %lit)?
+param_item ->
+      | iden ":" type ( "=" lit )?
+      | iden ( "," iden )+ ":" type ( "=" lit )?
 
-var_decl -> "let" "mut"? %id ( ":" %id )? ( ";" | "=" LITERAL ";"); 
 
-statement -> expr ";";
+type_def ->
+      "type" iden "=" data_type ";"
 
-stmt -> expr_stmt
-      | decl_stmt;
 
-expr_stmt -> expr ";" ;
-decl_stmt -> ( 'let' | TYPE ) ID "=" expr;
+struct_decl ->
+      "struct" "{" ( struct_field ";" )+ "}"
 
-block_expr -> "{" (( stmt* expr? ) | expr) "}" ; 
+struct_field ->
+      | iden ":" type ( "=" lit | "=>" blockless_expr )? string? 
+      | iden ( "," iden )+ ":" type ( "=" lit | "=>" blockless_expr )? string? 
 
-expr -> "{" ( assignment ";"? | assignment )+ "}" | assignment;
-assignment -> ID "=" assignment | lor ;
 
-lor -> land ( "||" land )* ;
-land -> eq ( "&&" eq )* ;
-eq -> comp ( ( "!=" | "==" ) comp )* ;
-comp -> shift ( ( ">" | ">=" | "<" | "<=" ) shift )* ;
-shift -> add ( (">>" | "<<") add)*
+union_decl ->
+      "raw"? "union" "{" ( union_field "," )+ "}"
 
-add -> mult ( ('+'|'-') mult )*;
-mult -> unary ( ('*' | '/' | '%') unary)*;
-unary -> primary | ( ('-' | '!') primary);
+union_field ->
+      iden ":" type string?
 
-primary 
-      -> "(" expr ")"
-      | INT 
-      | FLOAT
-      | STRING
-      | CHAR
-      | ARRAY_LIT
+
+enum_decl ->
+      "enum" ( ":" (iden ',')* iden )? "{" (iden ",")* "}"
+
+
+type ->
+      | ptr* arr iden
+      | iden ( ',' iden )*
+
+
+stmt ->
+      (
+            | expr
+            | var_decl
+            | const_decl
+            | loop_stmt     
+            | "return" expr
+            | "break"
+            | "continue"
+      ) ";"
+
+
+expr ->
+      | block_expr
+      | blockless_expr
+
+      
+block_expr ->
+      "{" (( stmt+ expr? ) | expr) "}"
+
+blockless_expr ->
+      "{" ( assignment ";"? | assignment )+ "}" | assignment
+
+assignment ->
+      | iden "=" assignment
+      | lor 
+
+lor ->
+      land ( "||" land )*
+land ->
+      eq ( "&&" eq )*
+eq ->
+      comp ( ( "!=" | "==" ) comp )*
+comp ->
+      shift ( ( ">" | ">=" | "<" | "<=" ) shift )*
+shift ->
+      add ( (">>" | "<<") add)*
+
+add ->
+      mult ( ('+'|'-') mult )*
+mult ->
+      unary ( ('*' | '/' | '%') unary)*
+unary ->
+      | primary
+      | ( ('-' | '!') primary)
+
+primary ->
+      | "(" blockless_expr ")"
+      | int_lit 
+      | float_lit
+      | string_lit
+      | char_lit
+      | array_lit
+      | tuple_lit 
+      | struct_lit
       | "true" 
       | "false" 
-      | TUPLE_LIT 
-      | STRUCT_LIT;
+
+type ->
+      type_header iden
+type_header ->
+      "^"* type_arr*
+type_arr ->
+      ("[" %number? "]")* "^"*
 
 ```
