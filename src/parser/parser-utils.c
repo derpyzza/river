@@ -89,10 +89,10 @@ void print_source_line(Token t) {
   while (ls > begin && ls[-1] != '\n') { ls--; }
   while (le < end   && *le    != '\n') { le++; }
 
-  int pad  = (int)(p - ls);
+  int pad  = (int)(p - ls) + 2;
   int span = t.span.len > 0 ? (int)t.span.len : 1;
 
-  fprintf(stderr, "  %.*s\n  %*s", (int)(le - ls), ls, pad, "");
+  fprintf(stderr, "%li | %.*s\n  %*s", t.line, (int)(le - ls), ls, pad, "");
   for (int i = 0; i < span; i++) fputc('^', stderr);
   fputc('\n', stderr);
 }
