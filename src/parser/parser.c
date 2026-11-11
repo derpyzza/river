@@ -10,6 +10,9 @@
 // #include "expr.h"
 #include "../scanner.h"
 
+struct Parser parser;
+
+// #define PANIC(e, et, u, ut) panic(e, et, u, ut, __FILE__, __LINE__)
 
 // Forward declarations so that i can rearrange the definitions as i wish
 static Node *top_level  (void);
@@ -31,6 +34,9 @@ void init_parser( dstr source, dstr file_name, d_arena arena ) {
 	parser.had_error = false;
 	parser.file_name = file_name;
 	parser.arena = arena;
+	parser.errors = dbuf_ParseErrors_make(8);
+	parser.had_error = false;
+	parser.panic_mode = false;
 }
 
 Node * new_node(NodeTag type) {
@@ -61,12 +67,6 @@ Node * new_node(NodeTag type) {
 	return node;
 }
 
-// #define PANIC(e, et, u, ut) panic(e, et, u, ut, __FILE__, __LINE__)
-
-bool match_type_token(void) {
-	return false;
-}
-
 Node * parse_tokens( dstr src, dstr file_name, d_arena arena )  { 
 	// Initialize parser state, parser struct found in src/parser/parser-internal.h
 	scanner_init(src);
@@ -76,49 +76,67 @@ Node * parse_tokens( dstr src, dstr file_name, d_arena arena )  {
 	Node * n = new_node(N_PROG);
 
 	while(!match(T_EOF)) {
+    const char *start = parser.cur.span.cptr;
+
 		struct Node* item = top_level();
 		if(item != NULL) {
 			dbuf_NodeList_push(&n->children, item);
-		} else {
-			dlog_error("item is null");
+		}
+		// dassert(item == NULL && !parser.had_error, "Parsed item is null and parser didn't detect any errors?!");
+
+		if(parser.panic_mode) {
+			if (parser.cur.span.cptr == start) {
+				consume();
+			}
+      synchronize();
 		}
 	}
 
-	if(check_errors() == 0) {
-		return n;
-	} else return NULL;
+	if(parser.had_error) {
+		report_errors();
+		return NULL;
+	}
+	return n;
 }
 
 
 static Node* import_decl(void) {
 	Node * n = new_node(N_IMPORT);
-	Path path;
-	path.has_subpaths = false;
-	path.cur_subpath = 0;
+
 	Token iden = expect(T_IDEN, "Missing import name");
-	if(iden.type == TOKEN_NONE.type) return n;
+	if(iden.type == T_NONE) return n;
+
+	Path path = {0};
 	path.root = iden.span;
 	path.full = iden.span;
+
+	int full_len = iden.span.len;
 	while (match('.')) {
 		Token subpath = expect(T_IDEN, "Missing identifier");
 		if(subpath.type == T_NONE) return n;
+
 		path.has_subpaths = true;
 		path.subpath[path.cur_subpath] = subpath.span;
+		// FIXME: Add bounds checking, since you can only have 32 subpaths.
 		path.cur_subpath++;
-		// FIXME: this is actually buggy.
-		// as it stands right now, Token.span only records the token's span (duh),
-		// and the tokenizer skips all whitespace. what that means though is that
-		// you can write your path in the code as:
-		// import x . y . z   . a . b;
-		// or
-		// import x
-		//      . y
-		//      . z . a . b;
-		// etc.
-		// but none of that is recorded in the full path string because i'm not
-		// allocating a new string and just treating the full path as a string view
-		// into the original source string.
-		path.full.len += subpath.span.len + 1;
+		full_len += subpath.span.len;
+	}
+
+	if(path.has_subpaths) {
+		path.full.len = full_len + path.cur_subpath;
+		char * buf = darena_alloc(&parser.arena, sizeof(char)*(path.full.len+1));
+
+		char * p = buf;
+		memcpy(p, iden.span.cptr, iden.span.len);
+		p += iden.span.len;
+
+		for(int i = 0; i < path.cur_subpath-1; i++) {
+			*p++ = '.';
+			memcpy(p, path.subpath[i].cptr, path.subpath[i].len);
+			p += path.subpath[i].len;
+		}
+		*p = '\0';
+		path.full.cptr = buf;
 	}
 
 	n->path = path;
@@ -137,7 +155,21 @@ static Node* import_decl(void) {
 }
 
 
-static Node* const_decl(bool public) { return new_node(N_TODO); }
+static Node* const_decl(bool public) {
+	Token iden = expect(T_IDEN, "Missing identifier");
+	Token ass = expect(T_ASSIGN, "Missing :=");
+	// Node * rhs = parse_expr();
+
+	if (iden.type == T_NONE || ass.type == T_NONE) {
+		return NULL;
+	}
+
+	Node * n = new_node(N_CONST);
+	n->iden = iden.span;
+	// n->rhs = rhs;	
+	return n;
+}
+
 static Node* var_decl(void) { return new_node(N_TODO); }
 static Node* type_decl(bool pub, bool is_alias) { return new_node(N_TODO); }
 
@@ -158,7 +190,7 @@ static Node * top_level(void) {
 	// maybe panic here?
 	// dunno
 	// printf("unknown node type: %s\n", token_to_str(current_tok().type));
-	error_unexpected(cur_tok(), T_PUB, true, parser.file_name.cptr, parser.cur.line);
+	error_at(cur_tok(), "Invalid token idk");
 	return NULL;
 }
 
@@ -186,11 +218,11 @@ static Node *fn_decl(bool public) {
 
 	if (match(T_ARROW)) {
 		// match type
-		if (match_type_token()) {
-			// fn->type = *cur_tok_span();
-		}
-		else 
-		 printf("ERROR: expected return type\n"), exit(-1);
+		// if (match_type_token()) {
+		// 	// fn->type = *cur_tok_span();
+		// }
+		// else 
+		//  printf("ERROR: expected return type\n"), exit(-1);
 	}
 
 	if(match('=')) {

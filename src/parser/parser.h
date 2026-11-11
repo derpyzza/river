@@ -5,14 +5,25 @@
 // #include "../memory.h"
 #include "../scanner.h"
 
+typedef enum {
+    PERR_EXPECT_TOK,
+    PERR_EXPECT_CAT,
+    PERR_LEX,          // scanner returned T_ERROR
+    PERR_MSG,          // free-form message only
+} ParseErrorKind;
+
 typedef struct ParseError {
-	bool is_tok;    // guess
+	ParseErrorKind kind;
 	int expected;   // token / cat type
-	int debug_line; // compiler source line that the error is emitted from
 	Token got;
 	// int got_id;     // index to got token
 	const char * msg;
-	const char * debug_file;
+
+# ifdef DEBUG
+	// [debug] these are only for debug
+	int debug_line;          // compiler source line that the error is emitted from
+	const char * debug_file; // compiler source file the error is emitted from
+# endif
 } ParseError;
 
 dbuf_decl(ParseError, ParseErrors)

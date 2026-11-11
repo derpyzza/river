@@ -2,6 +2,7 @@
 #include "parser-internal.h"
 
 #include "../diagnostics.h"
+// #include "scanner.h"
 
 Token cur_tok(void) {
 	return parser.cur; 
@@ -15,26 +16,54 @@ Token expect(int tag, const char* msg) {
 	if (cur_tok().type == tag) {
 		return consume();
 	}
-	// FIXME: get proper error handling, reporting, and synchronization in here
-	dlog_error("%s at file %.*s, line #%lu: %.*s", msg, dstr_fmt(parser.file_name), cur_tok().line, dstr_fmt(cur_tok().span));
-	// FIXME: get proper line and file reporting in here
-	error_unexpected(cur_tok(), tag, true, "DEBUG_FILE", 2048);
+
+	error_expected(cur_tok(), tag, true, msg);
+
 	return TOKEN_NONE;
-	exit(-1);
 }
 
-void error_unexpected( Token got, int expected, bool is_tok, const char * file, const int line ){
-	if (!parser.had_error) {
-		parser.had_error = true;
-		parser.errors = dbuf_ParseErrors_make(8);
-	}
-	struct ParseError *err = (ParseError*)malloc(sizeof(struct ParseError));
-	err->expected = expected;
-	err->got = got;
-	err->debug_file = file;
-	err->debug_line = line;
-	err->is_tok = is_tok;
-	dbuf_ParseErrors_push(&parser.errors, *err);
+void push_error(ParseError e) {
+  parser.had_error = true;
+  dbuf_ParseErrors_push(&parser.errors, e);
+}
+
+void error_expected(Token got, int expected, bool is_tok, const char* msg){
+	if(parser.panic_mode) return;
+	parser.panic_mode = true;
+	
+	ParseError err = {0};
+	err.kind = is_tok ? PERR_EXPECT_TOK : PERR_EXPECT_CAT;
+	err.expected = expected;
+	err.got = got;
+	err.msg = msg;
+	// err->debug_file = file;
+	// err->debug_line = line;
+	push_error(err);
+}
+
+void error_at(Token at, const char* msg) {
+  if (parser.panic_mode) return;
+  parser.panic_mode = true;
+  push_error((ParseError){
+    .kind = PERR_MSG, .got = at, .msg = msg,
+  });
+}
+
+void synchronize(void) {
+  parser.panic_mode = false;
+
+  while (parser.cur.type != T_EOF) {
+    if (parser.prev.type == ';') return;
+
+    switch (parser.cur.type) {
+      case T_IMPORT: case T_STRUCT: case T_FUN:
+      case T_LET: case T_IF: case T_WHILE:
+      case T_FOR: case T_RETURN:
+        return;
+      default: break;
+    }
+    consume();
+  }
 }
 
 // void panic(int expected, int is_expected_tok, int until, int is_until_tok, const char * file, const int line) {
@@ -45,54 +74,78 @@ void error_unexpected( Token got, int expected, bool is_tok, const char * file, 
 // 		while(!check_next(T_EOF) && !check_next_cat(until)) consume();
 // }
 
-void report_error(ParseError *error) {
-	printf("[%sCOMPILER_DEBUG%s]: error emitted from <%s:%i>\n", 
-	      TERM_LRED,
-       	TERM_RESET, 
-				error->debug_file,
-				error->debug_line);
+void print_source_line(Token t) {
+  const char *begin = parser.source.cptr;
+  const char *end   = begin + parser.source.len;
+  const char *p     = t.span.cptr;
 
-	if ( error->is_tok ) {
-		printf("%i:%i: ERROR Unexpected token; expected '%s', got '%.*s' (%s)\n",
-		// printf("%s:%i:%i: ERROR Unexpected token; expected '%s', got '%.*s' (%s)\n",
-			// parser.source->path,
-			(int)error->got.line,
-			error->got.col_index,
-			tok_to_str((TokenTag)error->expected),
-			dstr_fmt(error->got.span),
-			tok_to_str(error->got.type)
+  // synthetic token (e.g. EOF)
+  if (p < begin || p > end) {
+  	return;
+  }
+
+  const char *ls = p;
+  const char *le = p;
+  while (ls > begin && ls[-1] != '\n') { ls--; }
+  while (le < end   && *le    != '\n') { le++; }
+
+  int pad  = (int)(p - ls);
+  int span = t.span.len > 0 ? (int)t.span.len : 1;
+
+  fprintf(stderr, "  %.*s\n  %*s", (int)(le - ls), ls, pad, "");
+  for (int i = 0; i < span; i++) fputc('^', stderr);
+  fputc('\n', stderr);
+}
+
+void report_error(ParseError *e) {
+// #	ifdef DEBUG
+// 	printf("[%sCOMPILER_DEBUG%s]: error emitted from <%s:%i>\n", 
+// 	      TERM_LRED,
+//        	TERM_RESET, 
+// 				error->debug_file,
+// 				error->debug_line);
+// # endif
+
+	fprintf(stderr, "%.*s:%i:%i: ERROR ",
+		dstr_fmt(parser.file_name),
+		(int)e->got.line,
+		(int)e->got.col_index
+	);
+	switch(e->kind) {
+		case PERR_EXPECT_TOK:
+			fprintf(stderr, "%s (expected '%s', got '%.*s' <%s>)\n",
+			  e->msg ? e->msg : "Unexpected token",
+				tok_to_str((TokenTag)e->expected),
+				dstr_fmt(e->got.span),
+				tok_to_str(e->got.type)
+			);
+		break;
+		case PERR_EXPECT_CAT:
+			fprintf(stderr, "%s (expected <%s>, got '%.*s' <%s>)\n",
+		  e->msg ? e->msg : "Unexpected token",
+			cat_to_str((TokCat)e->expected),
+			dstr_fmt(e->got.span),
+			tok_to_str(e->got.type)
 		);
-	} else {
-		// FIXME: there's a bug in here where error_unexpected expects `got` to be
-		// a `Token` but there's no `Token` variant of `TokCat`.
-		printf("%i:%i: ERROR Unexpected token; expected <%s>, got '%.*s' (%s)\n",
-		// printf("%s:%i:%i: ERROR Unexpected token; expected <%s>, got '%.*s' (%s)\n",
-			// parser.source->path,
-			(int)error->got.line,
-			error->got.col_index,
-			cat_to_str((TokCat)error->expected),
-			dstr_fmt(error->got.span),
-			tok_to_str(error->got.type)
-		);
+		break;
+		case PERR_LEX:
+			fprintf(stderr, "%s %.*s \n",
+			  e->msg ? e->msg : "Invalid token",
+				dstr_fmt(e->got.span)
+			);
+		break;
+		case PERR_MSG:
+      fprintf(stderr, "%s\n", e->msg);
+		break;
+	}
+	print_source_line(e->got);
+}
+
+void report_errors(void) {
+	for (int i = 0; i < parser.errors.cur; i++) {
+		report_error(&parser.errors.data[i]);
 	}
 }
-
-bool check_errors(void) {
-	if (parser.had_error) {
-		for (int i = 0; i < parser.errors.cur; i++) {
-			report_error(&parser.errors.data[i]);
-		}
-		return true;
-	} else return false;
-}
-
-// int match_cat(int cat) {
-// 	if ( tok_to_cat(peek().type) == cat ) { 
-// 		consume();
-// 		return 1; 
-// 	} 
-// 	return 0;
-// }
 
 Token consume(void) {
 	if(parser.cur.type != T_EOF) {
@@ -100,7 +153,12 @@ Token consume(void) {
 		while (true) {
 			parser.cur = next_token();
 			if(parser.cur.type != T_ERROR) break;
-			error_unexpected(parser.cur, ' ', false, "", 0);
+			if(!parser.panic_mode) {
+				push_error((ParseError){
+					.kind = PERR_LEX, .got = parser.cur, .msg = "Invalid Token"
+				});
+				parser.panic_mode = true;
+			}
 		}
 	}
 	return parser.prev;

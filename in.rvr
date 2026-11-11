@@ -3,6 +3,9 @@
 // Parse the following text and make it return a .c file
 // With the equivalent code
 
-import hellothisisanidentifier;
-import a.b.c as alter;
+import raylib;
+import sys . math . matrix as mat;
 import a.b.c.d.x.y.z;
+import a.
+import b.a. ;
+

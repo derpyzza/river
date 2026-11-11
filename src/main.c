@@ -92,7 +92,7 @@ main(int argc, char** argv) {
 		// }
 
 		d_arena node_arena = { 0 }; 
-		Node *node = parse_tokens(source, path.name, node_arena);
+		Node *node = parse_tokens(source, path.full_path, node_arena);
 		if(node != NULL) {
 		 printf("==== AST DUMP ====\n");
 		 print_ast(node, 0);

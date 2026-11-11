@@ -12,12 +12,12 @@ const char* node_to_str(NodeTag node) {
 	}
 }
 
-void ind(int d) { for(int i = 0; i < d; i++) printf(" "); printf("\n"); }
+void ind(int d) { for(int i = 0; i < d; i++) printf(" "); }
 
 void print_kids( Node* n, int d) {
 	for(int i = 0; i < n->children.cur; i++) {
 		ind(d+1);
-		print_ast(n, d+1);
+		print_ast(n->children.data[i], d+1);
 	}
 }
 
@@ -27,39 +27,43 @@ void print_ast( Node *node, int depth ) {
 		dlog_error("Node is NULL, returning...");
 	}
 
-	if(!node->children.data) {
-		dlog_error("Node has no children");
-		return;
-	}
-	for ( int i = 0; i < node->children.cur; i++ ) {
-		for( int i = 0; i < depth; i++) printf(" ");
-		struct Node *cur = (Node*)node->children.data[i];
-		if (cur == NULL) {
-			dlog_warn("Node, child #%i of %s is NULL", i, node_to_str(cur->tag));
-			continue;
-		}
+	// if(!node->children.data) {
+	// 	dlog_error("Node has no children");
+	// 	return;
+	// }
+	// for ( int i = 0; i < node->children.cur; i++ ) {
+	// 	for( int i = 0; i < depth; i++) printf(" ");
+	// 	struct Node *cur = (Node*)node->children.data[i];
+	// 	if (cur == NULL) {
+	// 		dlog_warn("Node, child #%i of %s is NULL", i, node_to_str(cur->tag));
+	// 		continue;
+	// 	}
 
-		switch(cur->tag) {
+		switch(node->tag) {
 			default: printf("Unknown or not implemented yet!\n"); break;
 			case N_NONE: printf("None!\n"); break;
 			case N_TODO: printf("todo!!!\n"); break;
 			case N_PROG: {
-				printf("(prog ");
-				print_kids(cur, depth);
+				printf("(prog \n");
+				print_kids(node, depth);
+				printf(")\n");
 				break;
 			}
 
 			case N_IMPORT: {
-				dstr root = cur->path.root;
-				printf("<imp def> path: %.*s, root: %.*s", 
-					dstr_fmt(cur->path.full),
+				dstr root = node->path.root;
+				printf("(import :name \"%.*s\" :full_path \"%.*s\" :root \"%.*s\")\n", 
+					dstr_fmt(node->iden),
+					dstr_fmt(node->path.full),
 					dstr_fmt(root)
 				);
-				printf(", alias: %.*s",
-					dstr_fmt(cur->iden)
-				);
-				printf("\n");
 				break;
+			}
+
+			case N_CONST: {
+				printf("(const :name \"%.*s\" :expr\n");
+				print_ast(node->rhs, depth+1);
+				printf("\n)");
 			}
 
 	// 		case N_VAR: {
@@ -128,4 +132,4 @@ void print_ast( Node *node, int depth ) {
 		// printf("\n");
 		}
 	}
-}
+// }
