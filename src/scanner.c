@@ -14,7 +14,7 @@ struct Scanner {
 	char *line_start; // start of the current line
 };
 
-#define TOKEN_ERROR (Token) { T_ERROR, .line = scanner.line, .col_index = scanner.cur - scanner.line_start }
+#define _TOKEN_ERROR (Token) { T_ERROR, .line = scanner.line, .col_index = scanner.cur - scanner.line_start }
 
 const char* tok_to_str(int t) {
 	// shitty hack but i can't think of any other solutions
@@ -42,8 +42,11 @@ static inline bool _is_digit( char c ) {
 	return (c >= '0' && c <= '9');
 }
 
+// FIXME: this clashes with parsing a plain underscore character ( for slices )
 static inline bool _is_alpha( char c ) {
-	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || ( c == '_' );
+	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+	  // || ( c == '_' )
+	;
 }
 
 static inline bool _is_alphanum( char c ) {
@@ -203,14 +206,14 @@ static Token _scan_string(void) {
     if ( _peek() == '\n' || _peek() == '\0' ) {
       dlog_error("Unterminated string at l:%i\n", _line());
       _advance();
-      return TOKEN_ERROR;
+      return _TOKEN_ERROR;
     }
     if ( _peek() == '\\' ) {
       _advance();                 
       if ( _peek() == '\0' ) {
         dlog_error("Unterminated string at l:%i\n", _line());
 	      _advance();
-        return TOKEN_ERROR;
+        return _TOKEN_ERROR;
       }
     }
     _advance();
@@ -295,7 +298,8 @@ Token next_token(void) {
 			case '[':  case ']': 
 			case ';':  case ',': 
 			case '?':  case '#': 
-			case '@': 
+			case '@':  case '~':
+			case '_':
 				out = _make_tok( (TokenTag)_cur(), TC_SYMBOL);
 			break;
 
@@ -510,7 +514,7 @@ Token next_token(void) {
         );
 				_advance();
 				exit(-1);
-				return TOKEN_ERROR;
+				return _TOKEN_ERROR;
 			break;
 		}
 

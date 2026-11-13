@@ -7,7 +7,7 @@
 // #include "memory.h"
 #include "parser-internal.h"
 
-// #include "expr.h"
+#include "expr.h"
 #include "../scanner.h"
 
 struct Parser parser;
@@ -17,15 +17,27 @@ struct Parser parser;
 // Forward declarations so that i can rearrange the definitions as i wish
 static Node *top_level  (void);
 
-static Node *const_decl (bool pub);
-static Node *enum_decl  (bool pub);
-static Node *fn_decl    (bool pub);
-static Node *import_decl(void);
-static Node *struct_decl(bool pub);
 static Node *type_decl  (bool pub, bool is_alias);
+static Node *import_decl(void);
+static Node *const_decl (bool pub);
+static Node *fn_decl    (bool pub);
+static Node *struct_decl(bool pub);
+static Node *enum_decl  (bool pub);
 static Node *union_decl (bool pub);
 // global variables are never public?
 static Node *var_decl   (void);
+static bool parse_params(dbuf_Param * params);
+
+#define FAIL(EXP, MSG, RET)                                                    \
+  if (expect(EXP, MSG).type == T_ERROR) {                                      \
+    return RET;                                                                \
+  }
+
+#define FAIL_TOK(TOK, EXP, MSG, RET)                                           \
+  Token TOK = expect(EXP, MSG);                                                \
+  if (TOK.type == T_ERROR) {                                                   \
+    return RET;                                                                \
+  }
 
 void init_parser( dstr source, dstr file_name, d_arena arena ) {
 	parser.source = source;
@@ -82,7 +94,6 @@ Node * parse_tokens( dstr src, dstr file_name, d_arena arena )  {
 		if(item != NULL) {
 			dbuf_NodeList_push(&n->children, item);
 		}
-		// dassert(item == NULL && !parser.had_error, "Parsed item is null and parser didn't detect any errors?!");
 
 		if(parser.panic_mode) {
 			if (parser.cur.span.cptr == start) {
@@ -99,12 +110,122 @@ Node * parse_tokens( dstr src, dstr file_name, d_arena arena )  {
 	return n;
 }
 
+static Datatype * parse_type(void) {
+	Datatype * t = darena_alloc(&parser.arena, sizeof(Datatype));
+
+	// FIXME: check for NULL in all instances of `parse_type()` here;
+	if(match('*')) {
+		t->tag = DATATYPE_POINTER;
+		int indir = 1;
+		while(match('*')) { indir++; } 
+		t->type.dt_ptr.indir = indir;
+		t->type.dt_ptr.to = parse_type();
+	}
+	else if(match('[')) {
+		Token open_delim = prev_tok();
+		dassert(open_delim.type=='[', "");
+		// slice
+		if(match('*')) {
+			t->tag = DATATYPE_SLICE;
+			t->type.dt_slice.size = -1;
+			FAIL(']', "Unclosed delimiter", NULL)
+			t->type.dt_slice.of = parse_type();
+		}
+		// array
+		else if(match(T_LIT_INT) || match('_')) {
+			t->tag = DATATYPE_ARRAY;
+			if(prev_tok().type == '_') { t->type.dt_arr.size = -1; }
+			else { t->type.dt_arr.size = prev_tok().value._int; }
+			FAIL(']', "Unclosed delimiter", NULL)
+			t->type.dt_arr.of = parse_type();
+		}
+		else {
+			error("Expected expression");
+			return NULL;
+		}
+	}
+	// function type
+	else if(match(T_FUN)) {
+		t->tag = DATATYPE_FUNC;
+		expect('(', "Missing parameters list");
+		if(!match(')')) {
+			t->type.dt_func.params = dbuf_Param_make(8);
+			if(!parse_params(&t->type.dt_func.params)) {
+				return NULL;
+			}
+			FAIL(')', "Unclosed delimiter", NULL);
+		}
+		if(match(':')) {
+			t->type.dt_func.return_type = parse_type();
+		}
+	}
+	// plain type
+	else if (match(T_IDEN)) {
+		t->tag = DATATYPE_IDENTIFIER;
+		t->type.dt_iden = prev_tok().span;
+	}
+	else {
+		error("Malformed type");
+		return NULL;
+	}
+
+	return t;
+}
+
+static bool param_group(dbuf_Param* params) {
+	isize first = params->cur;
+
+	do {
+		Token name = expect(T_IDEN, "Missing param name");
+		if(name.type == T_ERROR) return false;
+
+		dbuf_Param_push(params, (Param){.iden = name.span});
+	} while(match(','));
+
+	FAIL(':', "Expected return type", false);
+
+	Datatype * type = parse_type();
+	if(!type) {
+		return false;
+	}
+
+	Node * def = NULL;
+	if(match('=')) {
+		Token eq = prev_tok();
+
+		def = parse_expr();
+		if(!def) {
+			return false;
+		}
+
+		if(params->cur - first > 1) {
+			error_at(eq, "Default values not allowed on grouped parameters, try splitting them instead");
+			return false;
+		}
+
+		params->data[first].def_value = def;
+	}
+
+	for(isize i = first; i < params->cur; i++) {
+		params->data[i].type = type;
+	}
+
+	return true;
+}
+
+static bool parse_params(dbuf_Param* params) {
+	do {
+		if(!param_group(params)) {
+			return false;
+		}
+	} while(match(','));
+	return true;
+}
 
 static Node* import_decl(void) {
 	Node * n = new_node(N_IMPORT);
 
-	Token iden = expect(T_IDEN, "Missing import name");
-	if(iden.type == T_NONE) return n;
+	FAIL_TOK(iden, T_IDEN, "Missing import name", NULL);
 
 	Path path = {0};
 	path.root = iden.span;
@@ -112,8 +233,7 @@ static Node* import_decl(void) {
 
 	int full_len = iden.span.len;
 	while (match('.')) {
-		Token subpath = expect(T_IDEN, "Missing identifier");
-		if(subpath.type == T_NONE) return n;
+		FAIL_TOK(subpath, T_IDEN, "Missing subpath name", NULL);
 
 		path.has_subpaths = true;
 		path.subpath[path.cur_subpath] = subpath.span;
@@ -130,7 +250,7 @@ static Node* import_decl(void) {
 		memcpy(p, iden.span.cptr, iden.span.len);
 		p += iden.span.len;
 
-		for(int i = 0; i < path.cur_subpath-1; i++) {
+		for(int i = 0; i < path.cur_subpath; i++) {
 			*p++ = '.';
 			memcpy(p, path.subpath[i].cptr, path.subpath[i].len);
 			p += path.subpath[i].len;
@@ -150,28 +270,40 @@ static Node* import_decl(void) {
 		n->iden = path.subpath[path.cur_subpath - 1];
 	}
 
-	expect(';', "Missing ';' after import");
+	if(expect(';', "Missing ';' after import").type == T_ERROR) {
+		return NULL;
+	}
 	return n;
 }
 
 
 static Node* const_decl(bool public) {
 	Token iden = expect(T_IDEN, "Missing identifier");
-	Token ass = expect(T_ASSIGN, "Missing :=");
-	// Node * rhs = parse_expr();
+	Datatype * ty = NULL;
 
-	if (iden.type == T_NONE || ass.type == T_NONE) {
+	FAIL(':', "Missing type", NULL);
+	ty = parse_type();
+	if(!ty) return NULL;
+
+	Token ass = expect(T_ASSIGN, "Missing :=");
+	if (iden.type == T_ERROR || ass.type == T_ERROR) {
 		return NULL;
 	}
 
+	// FIXME: Temp hack until i add proper expression parshing later
+	while(!match(';')) consume();
+	// Node * rhs = parse_expr();
+
 	Node * n = new_node(N_CONST);
 	n->iden = iden.span;
+	n->type = *ty;
 	// n->rhs = rhs;	
 	return n;
 }
 
 static Node* var_decl(void) { return new_node(N_TODO); }
 static Node* type_decl(bool pub, bool is_alias) { return new_node(N_TODO); }
+static Node *fn_decl(bool public) { dassert(false, "TODO"); }
 
 static Node * top_level(void) {
 	bool pub = false;
@@ -193,225 +325,3 @@ static Node * top_level(void) {
 	error_at(cur_tok(), "Invalid token idk");
 	return NULL;
 }
-
-// function_def -> "fun" <ID> ( "(" <params_list> ")" )? ( "->" <type> )? "=" <expr> ";" .
-// "fun" <ID> ( "::" <ID> )? ( "[" <generic> "]" )? ( "(" <params_list>? ")" )? ( "->" <type> )? ( "=" <expr> ";" | <block> )
-static Node *fn_decl(bool public) {
-	Node* fn = new_node(N_FUNC_DEF); 
-
-	// match identifier
-	Token iden = expect(T_IDEN, "Missing function name");
-	if(iden.type == T_ERROR) {
-		return fn;
-	}
-	fn->iden = iden.span;
-
-	// parse params
-	expect('(', "Missing parameters list");
-	do {
-		consume();
-	} while(!match(')'));
-
-	if(match(':')) {
-
-	}
-
-	if (match(T_ARROW)) {
-		// match type
-		// if (match_type_token()) {
-		// 	// fn->type = *cur_tok_span();
-		// }
-		// else 
-		//  printf("ERROR: expected return type\n"), exit(-1);
-	}
-
-	if(match('=')) {
-		// fn->body = parse_expr();
-	}
-	else {
-		// TODO: support proper "OR" type errors;
-		// PANIC('=', P_TOK, ';', P_TOK);
-	}
-
-	// if( fn->body->tag != N_BLOCK && !match(';')) {
-	// 	PANIC(';', P_TOK, TC_KEYWORD, P_CAT);
-	// }
-	printf("returning fn!\n");
-	return fn;
-}
-
-
-// static struct Node *import_def(void) {
-// 	struct Node *imp = new_node(N_IMPORT);
-
-// 	if (!match(T_IDENTIFIER)) 
-// 	{
-// 		PANIC(T_IDENTIFIER, P_TOK, T_SEMI, P_TOK);
-// 		return NULL;
-// 	}
-// 	imp->path.root = current_tok().source;
-// 	imp->path.full = current_tok().source;
-
-// 	// check for subpaths
-// 	if(check_next(T_DOT)) {
-// 		imp->path.has_subpaths = 1;
-
-// 		while(match(T_DOT)) {
-// 			if(!match(T_IDENTIFIER)) {
-// 				PANIC(T_IDENTIFIER, P_TOK, T_SEMI, P_TOK);
-// 				return NULL;
-// 			}
-// 			imp->path.subpath[imp->path.cur_subpath] = current_tok().source; 
-// 			imp->path.full.len += current_tok().source.len + ( current_tok().source.c_ptr - (imp->path.full.c_ptr + imp->path.full.len) );
-// 			imp->path.cur_subpath++;
-// 		}
-// 	}
-
-// 	if(match(T_AS)) {
-// 		if(!match(T_IDENTIFIER)) {
-// 			PANIC(T_IDENTIFIER, P_TOK, T_SEMI, P_TOK);
-// 			return NULL;
-// 		}
-// 		imp->has_name = 1;
-// 		imp->name_id = current_tok().literal_id;
-// 	}
-
-// 	if (!match(T_SEMI)) {
-// 		PANIC(T_SEMI, P_TOK, TC_KEYWORD, P_CAT);
-// 		return NULL;
-// 	}
-// 	return imp;
-// }
-
-
-// const values are compile time evaluated constant expressions
-// static struct Node* const_def(void) {
-// 	struct Node* node =new_node(N_CONST);
-// 	match_type_token();
-// 	node->type = current_tok().type;
-// 	match(T_IDENTIFIER);
-// 	node->name_id = current_tok().literal_id;
-// 	match(T_EQUAL);
-// 	match_cat(TC_LITERAL);
-// 	node->value = current_tok().literal_id;
-// 	match(T_SEMI);
-// 	return node;
-// }
-
-// static ^Node var_assign => {}
-// fun int add (int x, y) = x + y;
-// fun ^Node var_assign = {}
-// let ^Node node = new Node();
-// ^Node node = new Node();
-// let node = new Node();
-
-// static struct Node *var_assign(void) {
-// 	struct Node* node = new_node(N_VAR);
-
-// 	if (current_tok().type == T_LET) {
-
-// 		if(!match(T_IDENTIFIER)) PANIC(T_IDENTIFIER, P_TOK, TC_KEYWORD, P_CAT);
-// 		node->name_id = current_tok().literal_id;	
-// 	} else {
-
-// 		// pull out type
-// 		consume();
-
-// 		// the type can either be a set of built-in types,
-// 		// or an identifier that corresponds to a user defined type
-// 		// ( which can be one of a struct, an enum, a union, or a type alias ) 
-// 		// 
-
-// 		TokenType t = current_tok().type;
-// 		if( t == T_IDENTIFIER )
-// 			node->type_id = current_tok().literal_id;
-// 		node->type = current_tok().type;
-
-// 		// pull out identifier
-// 		consume();
-// 		node->name_id = current_tok().literal_id;
-// 	}
-
-
-//   if (!match(T_EQUAL))
-//     PANIC(T_EQUAL, P_TOK, TC_KEYWORD, P_CAT);
-
-// 	if( !match_cat(TC_LITERAL)) 
-// 		PANIC(TC_LITERAL, P_CAT, TC_KEYWORD, P_CAT);
-// 	node->value = current_tok().literal_id;
-// 	return node;
-// }
-
-// static struct Node *global_var(void) {
-
-// 	struct Node* node = new_node(N_NODE_LIST);
-// 	int has_commas = 0;
-// 	struct Node* assign = var_assign();
-
-// 	if(peek().type == T_COMMA) vec_push(node->children, assign);
-// 	while(match(T_COMMA)) {
-// 		has_commas = 1;
-// 		vec_push(node->children, var_assign());
-// 	}
-// 	if(!match(T_SEMI)) PANIC(T_SEMI, P_TOK, TC_KEYWORD, P_CAT);
-
-// 	if (has_commas)
-// 		return node;
-// 	else return assign;
-// }
-
-// takes in the `type` of the variable as an argument, since the type could appear
-// a lot further before the current variable, so you can't just peek backwards to check it out
-// e.g:
-//     int x, y, z, q, w, e, 'r', u, i;
-// If we're parsing the item 'r' for example, we'd have to do about 12 tokens of look-back
-// to know what the type is. instead, the type is parsed and stored when it's encountered, and
-// then passed in to any variable that is being parsed.
-// static struct Node* struct_item(TokenType type) {
-// 	struct Node* item = new_node(N_STRUCT_FIELD);
-// 	item->type = type;
-// 	match(T_IDENTIFIER);
-// 	item->name_id = current_tok().literal_id;
-// 	if(match(T_EQUAL)) {
-// 		match_cat(TC_LITERAL);
-// 		item->value = current_tok().literal_id;
-// 	}
-// 	return item;
-// }
-
-// static struct Node* struct_field(void) {
-// 	TokenType field_type = match_type_token();
-// 	struct Node* item = struct_item(field_type);
-
-// 	if(peek().type == T_COMMA) {
-
-// 		struct Node* list = new_node(N_NODE_LIST);
-// 		vec_push(list->children, item);
-
-// 		// match all items
-// 		while(match(T_COMMA)) vec_push(list->children, struct_item(field_type));		
-
-// 		return list;
-// 	}
-
-// 	return item;
-// }
-
-// static struct Node *struct_def(void) {
-// 	struct Node* node = new_node(N_STRUCT_DEF);
-// 	match(T_IDENTIFIER);
-// 	node->name_id = current_tok().literal_id;
-// 	match(T_BRACE_OPEN);
-// 	while(!match(T_BRACE_CLOSE)) {
-// 		struct Node* item = struct_field();		
-// 		if(item) {
-// 			if (item->tag == N_NODE_LIST) {
-// 				for(int i = 0; i < item->children->current; i++) 
-// 					vec_push(node->children, item->children->data[i]);
-// 			}
-// 			else vec_push(node->children, item);
-// 		}
-// 		match(T_SEMI);
-// 	}
-// 	return node;
-// }

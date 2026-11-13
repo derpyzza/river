@@ -24,23 +24,26 @@ enum PanicType {
 // spooky global parser struct
 extern struct Parser parser;
 
-/** returns the current token array index */
+/** returns the current scanned token */
 Token cur_tok(void);
+/** returns the previous scanned token */
 Token prev_tok(void);
+// match: if next token is as expected, consumes the token and returns true
+bool match(TokenTag tag);
+// consumes current token if it matches tag, else throws an unexpected token error
+Token expect(int tag, const char* msg);
 
 void report_errors(void);
 
 const char* node_to_str(int node_tag);
 
 // prints an "Unexpected token error"
-void error_expected( Token got, int expected, bool is_tok, const char* msg );
+void error_expected( int expected, bool is_tok, const char* msg );
 void error_at(Token at, const char* msg);
+void error(const char* msg);
 
 // get next token
 Token consume(void);
-// match: if next token is as expected, consumes the token and returns true
-bool match(TokenTag tag);
-Token expect(int tag, const char* msg);
 
 void synchronize(void);
 

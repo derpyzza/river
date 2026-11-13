@@ -14,11 +14,16 @@
 	\
 	TKN(T_ASSIGN,                  ":=")          \
 	\
+	TKN(T_MOD_FLOOR,               "%%")          \
+	TKN(T_INC,                     "++")          \
+	TKN(T_DEC,                     "--")          \
+	\
   TKN(T_DIV_EQ,                  "/=")          \
   TKN(T_MUL_EQ,                  "*=")          \
   TKN(T_ADD_EQ,                  "+=")          \
   TKN(T_SUB_EQ,                  "-=")          \
   TKN(T_MOD_EQ,                  "%=")          \
+	TKN(T_MOD_FLOOR_EQ,           "%%=")          \
   \
   TKN(T_BAND_EQ,                 "&=")          \
   TKN(T_BOR_EQ,                  "|=")          \
@@ -35,6 +40,7 @@
   TKN(T_FAT_ARROW,               "=>")          \
   TKN(T_SHL,                     "<<")          \
   TKN(T_SHR,                     ">>")          \
+	TKN(T_COLON_COLON,             "::")          \
   TKN(T_DOT_DOT,                 "..")          \
   TKN(T_ELLIPSE,                "...")          \
   TKN(T_LAND,                    "&&")          \
@@ -120,6 +126,12 @@ typedef struct Token {
 	int col_index; // the starting character index
 	dstr span;
 	TokCat cat; 	 // the token category
+	// TODO: Implement literal value parsing.
+	union {
+		u64 _int;
+		f64 _float;
+		bool _bool;
+	} value;
 } Token;
 
 const char* tok_to_str(int t);
@@ -130,6 +142,7 @@ Token next_token(void);
 // useful for termination
 #define TOKEN_EOF (Token) { .col_index = 0, .type = T_EOF, }
 #define TOKEN_NONE (Token) { .col_index = 0, .type = T_NONE, }
+#define TOKEN_ERROR (Token) { .type = T_ERROR }
 
 static inline TokCat tok_to_cat(TokenTag token) {
 	if ( in_range_inc(token, '=', '^') ) {

@@ -5,6 +5,12 @@
 // #include "../memory.h"
 #include "../scanner.h"
 
+typedef struct Node          Node;
+typedef struct Param         Param;
+typedef struct Datatype      Datatype;
+typedef struct ParseError    ParseError;
+typedef union  DatatypeUnion DatatypeUnion;
+
 typedef enum {
     PERR_EXPECT_TOK,
     PERR_EXPECT_CAT,
@@ -12,7 +18,7 @@ typedef enum {
     PERR_MSG,          // free-form message only
 } ParseErrorKind;
 
-typedef struct ParseError {
+struct ParseError {
 	ParseErrorKind kind;
 	int expected;   // token / cat type
 	Token got;
@@ -24,12 +30,9 @@ typedef struct ParseError {
 	int debug_line;          // compiler source line that the error is emitted from
 	const char * debug_file; // compiler source file the error is emitted from
 # endif
-} ParseError;
+};
 
 dbuf_decl(ParseError, ParseErrors)
-
-typedef struct Datatype Datatype;
-typedef union DatatypeUnion DatatypeUnion;
 
 dbuf_decl(Datatype*, Datatype)
 
@@ -65,29 +68,46 @@ typedef enum DatatypeTag {
 
 #define MAX_PTR_DEPTH 8
 
+// used by function prototypes, structs, and unions;
+struct Param {
+	dstr iden;
+	Node * def_value;
+	Datatype * type;
+};
+
+dbuf_decl(Param, Param)
+
 union DatatypeUnion {
 	dstr dt_iden;
+
 	struct Pointer {
+		// level of pointer indirection ( i.e int* vs int** etc. ).
+		// default is 1 level of indirection.
+		int indir;
 		Datatype * to;
 	} dt_ptr;
+
 	struct Array {
 		int size;
 		Datatype * of;
 	} dt_arr;
+
+	struct Slice {
+		int size;
+		Datatype * of;
+	} dt_slice;
+
 	struct Func {
 		Datatype * return_type;
-		struct Params {
-			dstr iden;
-			dstr def_value;
-			Datatype * type;
-		} * params;
-	} func;
+		dbuf_Param params;
+	} dt_func;
+
 	dbuf_Datatype dt_tuple;
 };
 
 struct Datatype {
 	DatatypeTag tag;	
-	DatatypeUnion* type;
+	DatatypeUnion type;
 };
 	
 // this can be used for import paths
@@ -129,8 +149,6 @@ typedef enum NodeTag {
 	NODES
 	#undef NODE
 } NodeTag;
-
-typedef struct Node Node;
 
 dbuf_decl(Node *, NodeList)
 

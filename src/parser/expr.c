@@ -21,6 +21,11 @@ static BinOpType token_to_binop(int type);
 static const char* binop_to_string(BinOpType type);
 static const char* unop_to_string( UnOpType type);
 
+static Node TODO_POINTER = {0};
+Node * parse_expr(void) {
+  return &TODO_POINTER;
+}
+
 // static struct Node *assignment(void) {
 // 	if(check_next(T_IDENTIFIER) && check_next_n(2, T_EQUAL_SIGN)) {
 		

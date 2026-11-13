@@ -6,6 +6,12 @@
 import raylib;
 import sys . math . matrix as mat;
 import a.b.c.d.x.y.z;
-import a.
-import b.a. ;
+import a.b;
+import b.a.z;
+
+const HI: **typename := something;
+const FUN: fun(one: typename, two, three: *typename): typename := func;
+const HELLO: [*]typename := something;
+const bleep: [*]*int := {&a, &b, &c};
+const arr: *[10]*int := [];
 

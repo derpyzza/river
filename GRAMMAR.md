@@ -52,6 +52,7 @@ item ->
             | impl_decl
       )
 
+
 import_decl ->
       "import" iden ( "." iden )* ( "as" iden )? ";"
 
@@ -59,24 +60,24 @@ import_decl ->
 const_decl ->
       "const" iden ":" type "=" expr ";"
 
+
 var_decl ->
           | ("let" | "var") iden ( "," iden )* ":" type ";"
           | ("let" | "var") iden ( "," iden )* ( ":" type )? "=" expr ";"
 
-func_name ->
-      | iden
-      | iden "::" iden
 
 func_decl ->
-      | fun" func_name "(" params_list? ")" ( ":" type )? block_expr
-      | fun" func_name "(" params_list? ")" ( ":" type )? "=" blockless_expr ";"
+      | fun iden "(" params_list? ")" ( ":" type )? ';'
+      | fun iden "(" params_list? ")" ( ":" type )? block_expr
+      | fun iden "(" params_list? ")" ( ":" type )? "=" blockless_expr ';'
+
 
 params_list ->
       param_item ( "," param_item )*;
 
 param_item ->
       | iden ":" type ( "=" lit )?
-      | iden ( "," iden )+ ":" type ( "=" lit )?
+      | iden ( "," iden )+ ":" type
 
 
 type_def ->
@@ -86,13 +87,15 @@ type_def ->
 struct_decl ->
       "struct" "{" ( struct_field ";" )+ "}"
 
+
 struct_field ->
-      | iden ":" type ( "=" lit | "=>" blockless_expr )? string? 
-      | iden ( "," iden )+ ":" type ( "=" lit | "=>" blockless_expr )? string? 
+      | iden ":" type ( "=" lit )? string?
+      | iden ( "," iden )+ ":" type string? 
 
 
 union_decl ->
       "raw"? "union" "{" ( union_field "," )+ "}"
+
 
 union_field ->
       iden ":" type string?
@@ -168,7 +171,7 @@ primary ->
 type ->
       type_header iden
 type_header ->
-      "^"* type_arr*
+      "*"* type_arr*
 type_arr ->
       ("[" %number? "]")* "^"*
 

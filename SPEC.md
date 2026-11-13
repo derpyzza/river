@@ -14,7 +14,7 @@ considerations:
 | Keyword  | Use                                        |
 | -------- | ------------------------------------------ |
 | alias    | alias a symbol to another                  |
-| as       | alias an import module | type cast         |
+| as       | alias an import module, type cast          |
 | break    | break loop                                 |
 | case     | case branch for switch expression          |
 | const    | declare a compile-time constant            |
@@ -97,9 +97,9 @@ typeid
 | !=       | inequality               | binary | infix     |
 | <=       | less than or equal to    | binary | infix     |
 | >=       | greater than or equal to | binary | infix     |
-| not      | boolean not              | unary  | prefix    |
-| and      | boolean and              | binary | infix     |
-| or       | boolean and              | binary | infix     |
+| !        | boolean not              | unary  | prefix    |
+| &&       | boolean and              | binary | infix     |
+| \|\|     | boolean and              | binary | infix     |
 | as       | type cast                | binary | prefix    |
 | .        | field / method-call      | binary | infix     |
 | []       | array index              | unary  | circumfix |
@@ -113,7 +113,7 @@ The builtin types are as follows:
 
 | Type   | C-Type       | Description                                              |
 | ------ | ------------ | -------------------------------------------------------- |
-| any    | void*        | a pointer type that can be cast down to any pointer type |
+| any    | void         | meant to only be used as a pointer, any*                 |
 | bool   | _Bool        | boolean type                                             |
 | char   | uint8_t      | alias of u8                                              |
 | f32    | float        | floating point number : corresponds to C floats          |

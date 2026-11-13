@@ -17,9 +17,9 @@ Token expect(int tag, const char* msg) {
 		return consume();
 	}
 
-	error_expected(cur_tok(), tag, true, msg);
+	error_expected(tag, true, msg);
 
-	return TOKEN_NONE;
+	return TOKEN_ERROR;
 }
 
 void push_error(ParseError e) {
@@ -27,7 +27,8 @@ void push_error(ParseError e) {
   dbuf_ParseErrors_push(&parser.errors, e);
 }
 
-void error_expected(Token got, int expected, bool is_tok, const char* msg){
+void error_expected(int expected, bool is_tok, const char* msg){
+	Token got = cur_tok();
 	if(parser.panic_mode) return;
 	parser.panic_mode = true;
 	
@@ -39,6 +40,10 @@ void error_expected(Token got, int expected, bool is_tok, const char* msg){
 	// err->debug_file = file;
 	// err->debug_line = line;
 	push_error(err);
+}
+
+void error(const char* msg) {
+	error_at(cur_tok(), msg);
 }
 
 void error_at(Token at, const char* msg) {
